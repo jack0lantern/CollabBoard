@@ -1,0 +1,85 @@
+import { describe, it, expect } from "vitest";
+import type { ObjectData, ShapeType, Board } from "@/types";
+
+describe("ObjectData type", () => {
+  it("validates sticky note shape structure", () => {
+    const sticky: ObjectData = {
+      id: "sticky-1",
+      type: "sticky",
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 150,
+      color: "#fef08a",
+      text: "Hello",
+    };
+    expect(sticky.type).toBe("sticky");
+    expect(sticky.text).toBe("Hello");
+  });
+
+  it("validates rect shape structure", () => {
+    const rect: ObjectData = {
+      id: "rect-1",
+      type: "rect",
+      x: 50,
+      y: 50,
+      width: 100,
+      height: 80,
+      color: "#3b82f6",
+    };
+    expect(rect.type).toBe("rect");
+  });
+
+  it("validates circle shape structure", () => {
+    const circle: ObjectData = {
+      id: "circle-1",
+      type: "circle",
+      x: 100,
+      y: 100,
+      radius: 50,
+      color: "#10b981",
+    };
+    expect(circle.type).toBe("circle");
+  });
+
+  it("validates line shape structure", () => {
+    const line: ObjectData = {
+      id: "line-1",
+      type: "line",
+      x: 0,
+      y: 0,
+      points: [0, 0, 100, 100],
+      color: "#6b7280",
+    };
+    expect(line.type).toBe("line");
+  });
+
+  it("accepts all valid ShapeType values", () => {
+    const types: ShapeType[] = ["sticky", "rect", "circle", "line"];
+    types.forEach((type) => {
+      const obj: ObjectData = { id: "id", type, x: 0, y: 0 };
+      expect(obj.type).toBe(type);
+    });
+  });
+});
+
+describe("Board type", () => {
+  it("validates board structure with snapshot", () => {
+    const board: Board = {
+      id: "board-1",
+      title: "Test Board",
+      created_at: "2024-01-01T00:00:00Z",
+      owner_id: "user-1",
+      last_snapshot: {
+        "obj-1": {
+          id: "obj-1",
+          type: "sticky",
+          x: 0,
+          y: 0,
+          text: "Note",
+        },
+      },
+    };
+    expect(board.last_snapshot?.["obj-1"].text).toBe("Note");
+  });
+});

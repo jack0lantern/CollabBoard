@@ -1,3 +1,6 @@
 reqs.pdf
 .cursor
 .agents/
+.env*.local
+node_modules
+.next
