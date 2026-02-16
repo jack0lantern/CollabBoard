@@ -1,0 +1,4 @@
+# For detect-secrets pre-commit hook
+# Install: pip install -r requirements-dev.txt
+# Then: npm run precommit:install (or husky will run it on prepare)
+detect-secrets>=1.4.0

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { LiveReloadInstrumentation } from "@/components/dev/LiveReloadInstrumentation";
 
 export const metadata: Metadata = {
   title: "CollabBoard",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <LiveReloadInstrumentation />
+      </body>
     </html>
   );
 }

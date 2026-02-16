@@ -44,3 +44,15 @@ types/         # TypeScript types
 ## Board URL
 
 Navigate to `/board/[id]` to open a board. Create a board via the API or add a "New board" flow on the home page.
+
+## Pre-commit: detect-secrets
+
+Blocks commits if new secrets (API keys, passwords, etc.) are detected.
+
+**Setup:**
+```bash
+pip install -r requirements-dev.txt
+npm run precommit:install
+```
+
+The husky pre-commit hook runs `detect-secrets-hook` before each commit. To allowlist a false positive, add `# pragma: allowlist secret` on that line, or update `.secrets.baseline`.

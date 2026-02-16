@@ -1,0 +1,15 @@
+# Pre-commit hooks - run: pip install pre-commit && pre-commit install
+# https://pre-commit.com
+
+repos:
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            \.env\.example|
+            package-lock\.json|
+            \.secrets\.baseline
+          )$

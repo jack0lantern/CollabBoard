@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+[ -f "$(dirname -- "$0")/_/husky.sh" ] && . "$(dirname -- "$0")/_/husky.sh"
+
+# Run detect-secrets (requires: pip install -r requirements-dev.txt)
+# Blocks commit if new secrets detected beyond .secrets.baseline
+if command -v detect-secrets-hook >/dev/null 2>&1; then
+  detect-secrets-hook --baseline .secrets.baseline
+elif command -v detect-secrets >/dev/null 2>&1; then
+  detect-secrets scan --baseline .secrets.baseline
+else
+  echo "⚠️  detect-secrets not installed. Run: pip install -r requirements-dev.txt"
+  exit 1
+fi

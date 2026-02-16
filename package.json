@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "prepare": "husky || true",
+    "precommit:install": "pip install -r requirements-dev.txt",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -15,27 +17,29 @@
     "@liveblocks/client": "^1.5.0",
     "@liveblocks/node": "^1.0.0",
     "@liveblocks/react": "^1.0.0",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.45.0",
     "konva": "^9.3.0",
-    "next": "14.2.0",
+    "next": "14.2.18",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-konva": "^18.2.10"
   },
   "devDependencies": {
+    "husky": "^9.0.0",
     "@playwright/test": "^1.40.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^14.2.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "^4.2.0",
     "eslint": "^8",
-    "eslint-config-next": "14.2.0",
+    "eslint-config-next": "14.2.18",
     "jsdom": "^24.0.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
-    "@vitejs/plugin-react": "^4.2.0",
-    "vitest": "^1.2.0"
+    "vitest": "^4.0.18"
   }
 }
