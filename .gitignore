@@ -7,3 +7,4 @@ node_modules
 .venv
 
 firebase-debug.log*
+firestore-debug.log
