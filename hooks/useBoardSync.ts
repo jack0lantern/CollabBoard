@@ -1,30 +1,54 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useBoardState } from "@/lib/liveblocks/hooks";
-import { debounce } from "@/lib/utils/debounce";
+import { useEffect, useRef, useCallback } from "react";
+import { getBoardObjects } from "@/lib/firebase/rtdb";
+import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 
-export function useBoardSync(boardId: string) {
-  const objects = useBoardState();
-  const hasSyncedRef = useRef(false);
+export function useBoardSync() {
+  const { boardId } = useBoardContext();
+  const dirtyRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const syncToFirestore = useCallback(async () => {
+    if (!boardId) return;
+    const objects = await getBoardObjects(boardId);
+    await fetch(`/api/boards/${boardId}/sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ snapshot: objects }),
+    });
+    dirtyRef.current = false;
+  }, [boardId]);
+
+  const markDirty = useCallback(() => {
+    dirtyRef.current = true;
+  }, []);
+
+  const flushSync = useCallback(async () => {
+    if (dirtyRef.current) {
+      await syncToFirestore();
+    }
+  }, [syncToFirestore]);
 
   useEffect(() => {
-    if (!objects || !boardId) return;
+    if (!boardId) return;
 
-    const syncToPostgres = debounce(async () => {
-      const snapshot = { ...objects };
-      await fetch(`/api/boards/${boardId}/sync`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ snapshot }),
-      });
-      hasSyncedRef.current = true;
+    intervalRef.current = setInterval(() => {
+      if (dirtyRef.current) {
+        syncToFirestore();
+      }
     }, 30000);
 
-    syncToPostgres();
-
     return () => {
-      syncToPostgres();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      // Flush on unmount
+      if (dirtyRef.current) {
+        syncToFirestore();
+      }
     };
-  }, [objects, boardId]);
+  }, [boardId, syncToFirestore]);
+
+  return { markDirty, flushSync };
 }

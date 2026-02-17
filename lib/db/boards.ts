@@ -1,54 +1,85 @@
-import { supabase } from "./client";
+import { getDb } from "@/lib/firebase/admin";
 import type { Board } from "@/types";
 
-export async function getBoard(id: string): Promise<Board | null> {
-  if (!supabase?.from) return null;
-  const { data, error } = await supabase
-    .from("boards")
-    .select("*")
-    .eq("id", id)
-    .single();
+const BOARDS_COLLECTION = "boards";
 
-  if (error || !data) return null;
-  return data as Board;
+export async function getBoard(id: string): Promise<Board | null> {
+  const db = getDb();
+  if (!db) return null;
+
+  const doc = await db.collection(BOARDS_COLLECTION).doc(id).get();
+  if (!doc.exists) return null;
+
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data?.title ?? "",
+    created_at: data?.created_at?.toDate?.()?.toISOString?.() ?? "",
+    owner_id: data?.owner_id ?? null,
+    last_snapshot: data?.last_snapshot ?? null,
+  } as Board;
 }
 
 export async function getBoardsByOwner(ownerId: string): Promise<Board[]> {
-  if (!supabase?.from) return [];
-  const { data, error } = await supabase
-    .from("boards")
-    .select("*")
-    .eq("owner_id", ownerId)
-    .order("created_at", { ascending: false });
+  const db = getDb();
+  if (!db) return [];
 
-  if (error) return [];
-  return (data ?? []) as Board[];
+  const snapshot = await db
+    .collection(BOARDS_COLLECTION)
+    .where("owner_id", "==", ownerId)
+    .orderBy("created_at", "desc")
+    .get();
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      title: data?.title ?? "",
+      created_at: data?.created_at?.toDate?.()?.toISOString?.() ?? "",
+      owner_id: data?.owner_id ?? null,
+      last_snapshot: data?.last_snapshot ?? null,
+    } as Board;
+  });
 }
 
 export async function createBoard(
   title: string,
   ownerId: string
 ): Promise<Board | null> {
-  if (!supabase?.from) return null;
-  const { data, error } = await supabase
-    .from("boards")
-    .insert({ title, owner_id: ownerId })
-    .select()
-    .single();
+  const db = getDb();
+  if (!db) return null;
 
-  if (error) return null;
-  return data as Board;
+  const ref = await db.collection(BOARDS_COLLECTION).add({
+    title,
+    owner_id: ownerId,
+    created_at: new Date(),
+    last_snapshot: null,
+  });
+
+  const doc = await ref.get();
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data?.title ?? "",
+    created_at: data?.created_at?.toDate?.()?.toISOString?.() ?? "",
+    owner_id: data?.owner_id ?? null,
+    last_snapshot: data?.last_snapshot ?? null,
+  } as Board;
 }
 
 export async function updateBoardSnapshot(
   id: string,
   snapshot: Record<string, unknown>
 ): Promise<boolean> {
-  if (!supabase?.from) return false;
-  const { error } = await supabase
-    .from("boards")
-    .update({ last_snapshot: snapshot })
-    .eq("id", id);
+  const db = getDb();
+  if (!db) return false;
 
-  return !error;
+  try {
+    await db.collection(BOARDS_COLLECTION).doc(id).update({
+      last_snapshot: snapshot,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

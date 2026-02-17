@@ -1,2 +1,2 @@
 export * from "./board";
-export * from "./liveblocks";
+export * from "./presence";

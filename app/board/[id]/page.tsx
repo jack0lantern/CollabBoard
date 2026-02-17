@@ -1,8 +1,9 @@
-import { LiveblocksRoom } from "@/components/providers/LiveblocksRoom";
 import { BoardCanvas } from "@/components/canvas/BoardCanvas";
 import { BoardHeader } from "@/components/ui/BoardHeader";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
+import { getBoard } from "@/lib/db/boards";
+import { BoardClientWrapper } from "./BoardClientWrapper";
 
 export default async function BoardPage({
   params,
@@ -10,9 +11,11 @@ export default async function BoardPage({
   params: { id: string };
 }) {
   const { id } = params;
+  const board = await getBoard(id);
+  const initialSnapshot = board?.last_snapshot ?? null;
 
   return (
-    <LiveblocksRoom boardId={id}>
+    <BoardClientWrapper boardId={id} initialSnapshot={initialSnapshot}>
       <div className="h-screen flex flex-col relative">
         <BoardHeader boardId={id} />
         <div className="flex-1 relative overflow-hidden">
@@ -25,6 +28,6 @@ export default async function BoardPage({
           </div>
         </div>
       </div>
-    </LiveblocksRoom>
+    </BoardClientWrapper>
   );
 }

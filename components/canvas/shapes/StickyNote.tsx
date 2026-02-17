@@ -2,13 +2,13 @@
 
 import { Group, Rect, Text } from "react-konva";
 import type { ObjectData } from "@/types";
-import { useUpdateObject } from "@/lib/liveblocks/hooks";
+import { useBoardMutations } from "@/hooks/useBoardMutations";
 
 const WIDTH = 200;
 const HEIGHT = 150;
 
 export function StickyNote({ data }: { data: ObjectData }) {
-  const updateObject = useUpdateObject();
+  const { updateObject } = useBoardMutations();
 
   return (
     <Group

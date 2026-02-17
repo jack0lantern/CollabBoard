@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 /**
  * Board Operations Tests
  * Tests for: Delete, duplicate, copy/paste
- * These tests validate the mutation logic that would be used by Liveblocks hooks.
+ * These tests validate the mutation logic used by RTDB board operations.
  */
 
 describe("Board Operations - Delete", () => {

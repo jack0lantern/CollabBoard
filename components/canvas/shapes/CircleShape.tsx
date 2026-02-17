@@ -2,10 +2,10 @@
 
 import { Circle } from "react-konva";
 import type { ObjectData } from "@/types";
-import { useUpdateObject } from "@/lib/liveblocks/hooks";
+import { useBoardMutations } from "@/hooks/useBoardMutations";
 
 export function CircleShape({ data }: { data: ObjectData }) {
-  const updateObject = useUpdateObject();
+  const { updateObject } = useBoardMutations();
   const radius = data.radius ?? 50;
 
   return (

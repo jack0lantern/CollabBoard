@@ -2,10 +2,10 @@
 
 import { Rect } from "react-konva";
 import type { ObjectData } from "@/types";
-import { useUpdateObject } from "@/lib/liveblocks/hooks";
+import { useBoardMutations } from "@/hooks/useBoardMutations";
 
 export function RectShape({ data }: { data: ObjectData }) {
-  const updateObject = useUpdateObject();
+  const { updateObject } = useBoardMutations();
   const width = data.width ?? 100;
   const height = data.height ?? 80;
 

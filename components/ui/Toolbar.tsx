@@ -1,12 +1,12 @@
 "use client";
 
-import { useAddObject } from "@/lib/liveblocks/hooks";
+import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useCallback } from "react";
 
 const COLORS = ["#fef08a", "#3b82f6", "#10b981", "#ef4444", "#8b5cf6"];
 
 export function Toolbar() {
-  const addObject = useAddObject();
+  const { addObject } = useBoardMutations();
 
   const addSticky = useCallback(() => {
     addObject({

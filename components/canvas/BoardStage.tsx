@@ -3,7 +3,8 @@
 import { useCallback, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import { useBoardState } from "@/lib/liveblocks/hooks";
+import { useBoardObjects } from "@/hooks/useBoardObjects";
+import { usePresence } from "@/hooks/usePresence";
 import { ShapeRenderer } from "./shapes/ShapeRenderer";
 import { CursorOverlay } from "./CursorOverlay";
 import { usePanZoom } from "@/hooks/usePanZoom";
@@ -15,7 +16,9 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const { scale, position, handleWheel, handleDragEnd, handleDragMove } =
     usePanZoom();
 
-  const objects = useBoardState();
+  const objects = useBoardObjects();
+  const { others, updateCursor } = usePresence();
+
   const rawList = Object.values(objects).filter(
     (obj) =>
       obj != null &&
@@ -42,6 +45,22 @@ export function BoardStage({ boardId }: { boardId: string }) {
     }
   }, []);
 
+  const handleMouseMove = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      const stage = e.target.getStage();
+      if (!stage) return;
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        updateCursor({ x: pos.x, y: pos.y });
+      }
+    },
+    [updateCursor]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    updateCursor(null);
+  }, [updateCursor]);
+
   return (
     <div ref={containerRef} className="w-full h-full">
       <Stage
@@ -56,12 +75,14 @@ export function BoardStage({ boardId }: { boardId: string }) {
         onWheel={handleWheel}
         onDragEnd={handleDragEnd}
         onDragMove={handleDragMove}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         <Layer>
           {objectList.map((obj) => (
             <ShapeRenderer key={obj.id} data={obj} />
           ))}
-          <CursorOverlay stageRef={stageRef} />
+          <CursorOverlay stageRef={stageRef} others={others} />
         </Layer>
       </Stage>
     </div>

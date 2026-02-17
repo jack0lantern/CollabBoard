@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 /**
  * Conflict Resolution Tests
  * Document: Last-write-wins (LWW) is acceptable for MVP.
- * Liveblocks CRDTs merge at the property level - concurrent edits to different
+ * Firebase RTDB uses last-write-wins per object. Concurrent edits to different
  * properties are merged; same property uses LWW.
  */
 

@@ -2,10 +2,10 @@
 
 import { Line } from "react-konva";
 import type { ObjectData } from "@/types";
-import { useUpdateObject } from "@/lib/liveblocks/hooks";
+import { useBoardMutations } from "@/hooks/useBoardMutations";
 
 export function LineShape({ data }: { data: ObjectData }) {
-  const updateObject = useUpdateObject();
+  const { updateObject } = useBoardMutations();
   const points = data.points ?? [0, 0, 100, 100];
 
   return (

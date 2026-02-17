@@ -1,6 +1,24 @@
 # CollabBoard Architecture Checklist
 
-Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Postgres.
+Based on: Canvas (React-Konva) + Firebase Realtime Database (sync) + Firestore (persistence).
+
+---
+
+## Real-Time Sync Architecture (Option 2: RTDB + Firestore)
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Real-time sync** | Firebase Realtime Database | Objects, presence, cursors—live updates via `onValue`/`onChildAdded` |
+| **Persistence** | Firestore | Board metadata, profiles, **periodic snapshots** of RTDB state |
+| **Auth** | Firebase Auth | Email/password + Google |
+
+**RTDB paths:**
+- `boards/{boardId}/objects/{objectId}` — canvas objects (sticky notes, shapes, lines)
+- `boards/{boardId}/presence/{userId}` — cursor position, displayName, lastSeen
+
+**Periodic snapshot:** Client-side job runs every 30–60s when changes are detected. Reads current RTDB state at `boards/{boardId}/objects`, writes to Firestore `boards/{boardId}.last_snapshot` (or equivalent). On board load: hydrate from Firestore snapshot first, then attach RTDB listeners for live updates.
+
+**Conflict handling:** Last-write-wins per object. Document in README.
 
 ---
 
@@ -12,7 +30,7 @@ Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Po
 
 ### 2. Budget & Cost Ceiling
 - **Pay-per-use:** Fixed costs
-- **Where will you trade money for time?** Liveblocks to save dev time and handle conflict resolution. MVP will be free, but we want to be able to scale up to 100k users without a major re-architecture. We are willing to pay for a managed service that can handle this scale without needing to worry about infrastructure management. Can transition to in-house if costs add up.
+- **Where will you trade money for time?** Firebase (RTDB + Firestore) for real-time sync and persistence. MVP will be free tier. Can scale to 100k users; Firebase handles infrastructure. Can transition to self-hosted (e.g., Y.js + custom backend) if costs add up.
 
 ### 3. Time to Ship
 - **MVP timeline?** 24 hours
@@ -34,34 +52,34 @@ Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Po
 ## Phase 2: Architecture Discovery
 
 ### 6. Hosting & Deployment
-- **Serverless vs. containers vs. edge vs. VPS?** Serverless (Vercel) for Next.js API routes and static assets. Supabase or Vercel Postgres for managed database. Liveblocks is fully managed—no self-hosting.
+- **Serverless vs. containers vs. edge vs. VPS?** Serverless (Vercel) for Next.js API routes and static assets. Firebase (RTDB + Firestore) fully managed—no self-hosting.
 - **CI/CD requirements?** GitHub Actions for automated testing and deployment. Deploy previews on PR, auto-deploy to production on merge to main.
-- **Scaling characteristics?** Vercel auto-scales serverless functions. Liveblocks handles real-time scaling. Postgres via Supabase/Vercel scales with connection pooling (e.g., PgBouncer). Target: handle 100k users with minimal config changes.
+- **Scaling characteristics?** Vercel auto-scales serverless functions. Firebase RTDB and Firestore scale automatically. Target: handle 100k users with minimal config changes.
 
 ### 7. Authentication & Authorization
-- **Auth approach:** Supabase Auth or NextAuth—support social login (Google, GitHub), magic links, and email/password for flexibility. SSO for enterprise (SOC 2) can be added post-MVP via Supabase Enterprise or Auth0.
+- **Auth approach:** Firebase Auth—support social login (Google), magic links, and email/password. SSO for enterprise (SOC 2) can be added post-MVP via Firebase Enterprise or Auth0.
 - **RBAC needed?** MVP: owner vs. viewer (board-level). Later: roles (admin, editor, commenter) for enterprise.
-- **Multi-tenancy considerations?** Boards are tenant-scoped by `owner_id`. Row-level security (RLS) in Postgres for board access. Liveblocks rooms keyed by `board_id`—access controlled at room-join level.
+- **Multi-tenancy considerations?** Boards are tenant-scoped by `owner_id`. Firestore security rules for board access. RTDB paths keyed by `board_id`—access controlled via rules.
 
 ### 8. Database & Data Layer
-- **Database type:** Relational (Supabase Postgres)
-- **Real-time sync, full-text search, vector storage, caching needs?** Real-time sync via Liveblocks (CRDT), not Postgres. Postgres holds snapshots and metadata. Full-text search: optional—index `board_elements.data` (JSONB) for searchable sticky text. Vector storage: for AI features later. Caching: Vercel Edge Cache for static assets; consider Redis for session/rate limiting at scale.
-- **Read/write ratio?** Read-heavy for board loads; write bursts during active collaboration. Liveblocks absorbs real-time writes; Postgres writes are debounced (every 30s or on session end).
+- **Database type:** Firebase Realtime Database (RTDB) for real-time sync; Firestore for persistence and metadata.
+- **Real-time sync, full-text search, vector storage, caching needs?** Real-time sync via RTDB listeners (`onValue`, `onChildAdded`, etc.). Firestore holds board metadata, profiles, and **periodic snapshots** of RTDB state. Full-text search: optional—index sticky text in Firestore. Vector storage: for AI features later. Caching: Vercel Edge Cache for static assets.
+- **Read/write ratio?** Read-heavy for board loads; write bursts during active collaboration. RTDB absorbs real-time writes; Firestore receives periodic snapshots (e.g., every 30–60s when changes detected).
 
 ### 9. Backend/API Architecture
 - **Monolith or microservices?** Monolith for MVP (Next.js API routes). Can split into microservices later if needed (e.g., dedicated AI service).
 - **REST vs. GraphQL vs. tRPC vs. gRPC?** REST for MVP (Next.js Route Handlers). tRPC is a good fit for TypeScript end-to-end types if team prefers; can adopt in iteration 2.
-- **Background job and queue requirements?** Webhook handlers for Liveblocks → Postgres sync (room.storage.updated). Optional: Vercel Cron or Inngest for periodic snapshot backups, cleanup jobs. No heavy queue needed for MVP.
+- **Background job and queue requirements?** **Periodic snapshot:** Client-side or server-side job writes RTDB board state → Firestore every 30–60s when changes detected. Optional: Vercel Cron for backup snapshots. No heavy queue needed for MVP.
 
 ### 10. Frontend Framework & Rendering
-- **SEO requirements (SSR/static)?** Low—whiteboard is app-like. SSR for initial board load (hydrate with Liveblocks state) and auth pages. Static for marketing/landing if any.
-- **Offline support/PWA?** Not for MVP. Liveblocks requires network. Consider offline queue + sync later for enterprise.
+- **SEO requirements (SSR/static)?** Low—whiteboard is app-like. SSR for initial board load (hydrate from Firestore snapshot, then attach RTDB listeners) and auth pages. Static for marketing/landing if any.
+- **Offline support/PWA?** Not for MVP. RTDB requires network. RTDB has built-in offline persistence; consider enabling later for resilience.
 - **SPA vs. SSR vs. static vs. hybrid?** Hybrid: Next.js App Router with SSR for first load, client-side React-Konva for canvas. Toolbar, menus, user list are client components.
 
 ### 11. Third-Party Integrations
-- **External services needed:** Liveblocks (real-time), Supabase or Vercel (auth + Postgres), AI API (OpenAI/Anthropic for /api/ai), optional: analytics (PostHog, Vercel Analytics), error tracking (Sentry).
-- **Pricing cliffs and rate limits?** Liveblocks: free tier → paid at scale. AI APIs: token-based; implement usage caps. Supabase: free tier, then usage-based. Monitor webhook volume for Liveblocks.
-- **Vendor lock-in risk?** Liveblocks: CRDT state is portable; can migrate to Yjs or custom sync if needed. Supabase: Postgres is standard. Mitigate with abstraction layers (e.g., `getBoardState()` returns plain JSON) so core logic is framework-agnostic.
+- **External services needed:** Firebase (RTDB + Firestore + Auth), AI API (OpenAI/Anthropic for /api/ai), optional: analytics (PostHog, Vercel Analytics), error tracking (Sentry).
+- **Pricing cliffs and rate limits?** Firebase: free tier → usage-based. RTDB: 1GB storage, 10GB/month download free. Firestore: 1GB storage, 50k reads/20k writes/day free. AI APIs: token-based; implement usage caps.
+- **Vendor lock-in risk?** RTDB/Firestore state is JSON; can migrate to custom sync if needed. Mitigate with abstraction layers (e.g., `getBoardState()` returns plain JSON) so core logic is framework-agnostic.
 
 ---
 
@@ -70,11 +88,11 @@ Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Po
 ### 12. Security Vulnerabilities
 - **Known pitfalls for your stack:**
   - **Konva:** Client-side only; ensure sensitive data isn’t in shape props if logged. XSS via user-generated text in stickies—sanitize/escape.
-  - **Liveblocks:** Validate room IDs; don’t allow arbitrary room creation. Use `liveblocks.config.ts` to enforce storage schema and presence shape.
-  - **Postgres:** SQL injection—use parameterized queries (Supabase client handles this). RLS must be correctly configured.
-  - **Next.js API routes:** Rate limit `/api/ai` and webhook endpoints. Validate webhook signatures (Liveblocks signs payloads).
-- **Common misconfigurations:** Exposing Liveblocks secret key client-side; missing CORS on API routes; RLS policies too permissive.
-- **Dependency risks:** Audit `react-konva`, `konva`, `liveblocks` regularly. Pin versions for reproducibility.
+  - **Firebase RTDB:** Validate board IDs; use security rules to restrict read/write by `board_id` and `auth.uid`. Enforce presence shape (cursor, displayName).
+  - **Firestore:** Use security rules for `boards`, `profiles`. Validate `owner_id` and board access.
+  - **Next.js API routes:** Rate limit `/api/ai`. Validate Firebase ID tokens for authenticated endpoints.
+- **Common misconfigurations:** Exposing Firebase private key client-side; missing CORS on API routes; RTDB/Firestore rules too permissive.
+- **Dependency risks:** Audit `react-konva`, `konva`, `firebase` regularly. Pin versions for reproducibility.
 
 ### 13. File Structure & Project Organization
 - **Standard folder structure for Next.js App Router:**
@@ -88,8 +106,8 @@ Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Po
     /canvas       # Stage, Layer, shapes, cursors
     /ui           # Toolbar, menus, user list
   /lib
-    /liveblocks   # liveblocks.config.ts, hooks
-    /db           # Supabase client, queries
+    /firebase     # RTDB client, Firestore admin, auth
+    /db           # Firestore queries, boards, profiles
     /utils        # coordinate transforms, etc.
   /types
   ```
@@ -101,14 +119,14 @@ Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Po
 - **Linter and formatter configs:** ESLint (Next.js config), Prettier (2 spaces, single quotes). `@typescript-eslint` strict mode. Husky + lint-staged for pre-commit.
 
 ### 15. Testing Strategy
-- **Unit, integration, e2e tools?** Vitest for unit (utils, coordinate transforms). React Testing Library for component tests. Playwright for e2e (create board, add shape, see it sync). Mock Liveblocks in unit tests.
+- **Unit, integration, e2e tools?** Vitest for unit (utils, coordinate transforms). React Testing Library for component tests. Playwright for e2e (create board, add shape, see it sync). Mock RTDB/Firestore in unit tests.
 - **Coverage target for MVP?** 60% for critical paths (auth, board CRUD, coordinate logic). Don’t block ship on coverage.
-- **Mocking patterns?** Mock `useStorage`, `useMutation` with in-memory state. Use Liveblocks’ test utilities if available. Mock Supabase client for API route tests.
+- **Mocking patterns?** Mock RTDB `onValue`/`set` and Firestore with in-memory state. Mock Firebase Admin for API route tests.
 
 ### 16. Recommended Tooling & DX
-- **VS Code extensions:** ESLint, Prettier, Tailwind CSS IntelliSense, Prisma or Supabase extension (if using), Liveblocks (if available).
-- **CLI tools:** `create-next-app`, `npx supabase` or Vercel CLI for local dev. Liveblocks dashboard for room inspection.
-- **Debugging setup:** React DevTools, Konva DevTools (if exists). Log `stage.getPointerPosition()` and inverse transform during coordinate debugging. Use `console.log` in webhook handler to verify Postgres sync.
+- **VS Code extensions:** ESLint, Prettier, Tailwind CSS IntelliSense, Firebase extension.
+- **CLI tools:** `create-next-app`, Firebase CLI (`firebase emulators`) or Vercel CLI for local dev. Firebase Console for RTDB/Firestore inspection.
+- **Debugging setup:** React DevTools, Konva DevTools (if exists). Log `stage.getPointerPosition()` and inverse transform during coordinate debugging. Use Firebase Console to verify RTDB sync and periodic snapshot to Firestore.
 
 ---
 
@@ -116,13 +134,13 @@ Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Po
 
 | Phase | Task | Est. |
 |-------|------|------|
-| Auth | Set up NextAuth or Supabase Auth | 2 hrs |
-| Liveblocks | Define Presence and Storage types in `liveblocks.config.ts` | 1 hr |
-| Canvas | Map Liveblocks storage → `<Rect>`, `<Circle>`, `<Text>` in Konva Stage | 6 hrs |
+| Auth | Firebase Auth (email/password + Google) | 2 hrs |
+| RTDB | Set up RTDB; define paths `boards/{id}/objects`, `boards/{id}/presence` | 1 hr |
+| Canvas | Map RTDB objects → `<Rect>`, `<Circle>`, `<Text>` in Konva Stage | 6 hrs |
 | Canvas | Implement infinite pan/zoom (Stage scale + x/y offsets) | — |
-| Multiplayer | Use `useOthers()` for avatars and cursor components | 2 hrs |
-| AI | Create `/api/ai` route; pass board state to LLM; LLM tool calls update Liveblocks | 4 hrs |
-| Postgres Sync | Debounced update to Postgres every 30s when changes detected | 2 hrs |
+| Multiplayer | RTDB presence listeners; cursor components with `onValue` on `presence` | 2 hrs |
+| AI | Create `/api/ai` route; pass board state to LLM; LLM tool calls write to RTDB | 4 hrs |
+| Periodic Snapshot | Client-side: every 30–60s when changes detected, write RTDB → Firestore `last_snapshot` | 2 hrs |
 
 ---
 
@@ -130,4 +148,4 @@ Based on the Gold Standard stack: Canvas (React-Konva) + CRDTs (Liveblocks) + Po
 
 - **Z-Index:** Render selection box and cursors last in `<Layer>` so they appear on top.
 - **Coordinate Systems:** Cursor x,y is window-relative; shapes are Stage-relative. Use `stage.getPointerPosition()` and inverse transform for board coordinates.
-- **Database Bloat:** Don’t store every shape move in Postgres. Sync only on Save or auto-save intervals.
+- **Database Bloat:** RTDB holds live state; Firestore receives periodic snapshots only (every 30–60s). Do not write every shape move to Firestore.

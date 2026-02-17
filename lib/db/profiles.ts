@@ -1,4 +1,6 @@
-import { supabase } from "./client";
+import { getDb } from "@/lib/firebase/admin";
+
+const PROFILES_COLLECTION = "profiles";
 
 export interface Profile {
   id: string;
@@ -9,24 +11,39 @@ export interface Profile {
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const db = getDb();
+  if (!db) return null;
 
-  if (error || !data) return null;
-  return data as Profile;
+  const doc = await db.collection(PROFILES_COLLECTION).doc(userId).get();
+  if (!doc.exists) return null;
+
+  const data = doc.data();
+  return {
+    id: doc.id,
+    display_name: data?.display_name ?? null,
+    avatar_url: data?.avatar_url ?? null,
+    created_at: data?.created_at?.toDate?.()?.toISOString?.() ?? "",
+    updated_at: data?.updated_at?.toDate?.()?.toISOString?.() ?? "",
+  } as Profile;
 }
 
 export async function updateProfile(
   userId: string,
   updates: { display_name?: string; avatar_url?: string }
 ): Promise<boolean> {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq("id", userId);
+  const db = getDb();
+  if (!db) return false;
 
-  return !error;
+  try {
+    await db.collection(PROFILES_COLLECTION).doc(userId).set(
+      {
+        ...updates,
+        updated_at: new Date(),
+      },
+      { merge: true }
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -1,12 +1,12 @@
 # CollabBoard
 
-Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, and Supabase.
+Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, and Firebase.
 
 ## Stack
 
-- **Frontend:** Next.js 15 (App Router), React-Konva, Tailwind CSS
+- **Frontend:** Next.js (App Router), React-Konva, Tailwind CSS
 - **Real-time:** Liveblocks (CRDT)
-- **Database:** Supabase (Postgres + Auth)
+- **Database & Auth:** Firebase (Firestore + Auth)
 
 ## Setup
 
@@ -18,10 +18,16 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, 
 
 2. Copy `.env.example` to `.env.local` and fill in your keys:
 
-   - Supabase: Create a project at [supabase.com](https://supabase.com)
-   - Liveblocks: Create a project at [liveblocks.io](https://liveblocks.io)
+   - **Firebase:** Create a project at [console.firebase.google.com](https://console.firebase.google.com)
+     - Enable **Authentication** (Email/Password, Google)
+     - Enable **Firestore**
+     - Get client config from Project Settings > General
+     - Create a Service Account for server-side (Project Settings > Service Accounts)
+   - **Liveblocks:** Create a project at [liveblocks.io](https://liveblocks.io)
 
-3. Run the database migrations (see `supabase/migrations/` when added).
+3. Create Firestore index for boards (Firebase Console > Firestore > Indexes):
+   - Collection: `boards`
+   - Fields: `owner_id` (Ascending), `created_at` (Descending)
 
 4. Start the dev server:
 
@@ -35,8 +41,8 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, 
 
 ```
 app/           # Next.js App Router
-components/    # React components (canvas, ui, providers)
-lib/           # Liveblocks, Supabase, utils
+components/    # React components (canvas, ui, auth, providers)
+lib/           # Liveblocks, Firebase, utils
 hooks/         # Custom hooks
 types/         # TypeScript types
 ```
