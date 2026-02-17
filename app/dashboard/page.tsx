@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import { onAuthStateChanged, type User } from "firebase/auth";
+import {
+  createBoard,
+  subscribeToBoardsByOwner,
+} from "@/lib/firebase/boards";
 import type { Board } from "@/types";
 
 export default function DashboardPage() {
@@ -12,6 +16,7 @@ export default function DashboardPage() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -35,45 +40,28 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
 
-    async function fetchBoards() {
-      const token = await user?.getIdToken();
-      if (!token) return;
+    const unsubscribe = subscribeToBoardsByOwner(user.uid, (newBoards) => {
+      setBoards(newBoards);
+      setLoading(false);
+    });
 
-      try {
-        const res = await fetch("/api/boards", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setBoards(data.boards);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchBoards();
+    return unsubscribe;
   }, [user]);
 
   const handleCreateBoard = async () => {
     if (!user || creating) return;
     setCreating(true);
+    setError("");
 
     try {
-      const token = await user.getIdToken();
-      const res = await fetch("/api/boards", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ title: "Untitled Board" }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        router.push(`/board/${data.board.id}`);
+      const board = await createBoard("Untitled Board", user.uid);
+      if (board) {
+        router.push(`/board/${board.id}`);
+      } else {
+        setError("Failed to create board");
       }
+    } catch (err) {
+      setError((err as Error)?.message ?? "Network error");
     } finally {
       setCreating(false);
     }
@@ -125,6 +113,11 @@ export default function DashboardPage() {
             >
               {creating ? "Creating..." : "Create your first board"}
             </button>
+            {error && (
+              <p className="mt-4 text-sm text-red-600 dark:text-red-400">
+                {error}
+              </p>
+            )}
           </div>
         ) : (
           <>

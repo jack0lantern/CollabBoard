@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { getBoardObjects } from "@/lib/firebase/rtdb";
+import { updateBoardSnapshot } from "@/lib/firebase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 
 export function useBoardSync() {
@@ -12,11 +13,7 @@ export function useBoardSync() {
   const syncToFirestore = useCallback(async () => {
     if (!boardId) return;
     const objects = await getBoardObjects(boardId);
-    await fetch(`/api/boards/${boardId}/sync`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ snapshot: objects }),
-    });
+    await updateBoardSnapshot(boardId, objects);
     dirtyRef.current = false;
   }, [boardId]);
 

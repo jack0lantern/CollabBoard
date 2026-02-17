@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "boards": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$boardId": {
+        "objects": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "presence": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}

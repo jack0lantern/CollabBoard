@@ -1,22 +1,24 @@
 # CollabBoard Architecture Checklist
 
-Based on: Canvas (React-Konva) + Firebase Realtime Database (sync) + Firestore (persistence).
+Based on: Canvas (React-Konva) + Firestore (persistence) + Firebase Realtime Database (real-time sync).
 
 ---
 
-## Real-Time Sync Architecture (Option 2: RTDB + Firestore)
+## Real-Time Sync Architecture (Firestore + Realtime Database)
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
 | **Real-time sync** | Firebase Realtime Database | Objects, presence, cursors—live updates via `onValue`/`onChildAdded` |
-| **Persistence** | Firestore | Board metadata, profiles, **periodic snapshots** of RTDB state |
+| **Persistence** | Firestore | Board metadata, profiles, **periodic snapshots** of canvas state |
 | **Auth** | Firebase Auth | Email/password + Google |
 
 **RTDB paths:**
 - `boards/{boardId}/objects/{objectId}` — canvas objects (sticky notes, shapes, lines)
 - `boards/{boardId}/presence/{userId}` — cursor position, displayName, lastSeen
 
-**Periodic snapshot:** Client-side job runs every 30–60s when changes are detected. Reads current RTDB state at `boards/{boardId}/objects`, writes to Firestore `boards/{boardId}.last_snapshot` (or equivalent). On board load: hydrate from Firestore snapshot first, then attach RTDB listeners for live updates.
+**Firestore:** Board metadata and snapshots only. Collection `boards` with fields: `title`, `owner_id`, `created_at`, `last_snapshot`. Requires Admin SDK (FIREBASE_PRIVATE_KEY). Index: `owner_id` (Asc) + `created_at` (Desc).
+
+**Periodic snapshot:** Client-side job runs every 30s when changes are detected. Reads RTDB state at `boards/{boardId}/objects`, POSTs to `/api/boards/[id]/sync`, which writes to Firestore `boards/{boardId}.last_snapshot`. On board load: hydrate from Firestore snapshot first, then attach RTDB listeners for live updates.
 
 **Conflict handling:** Last-write-wins per object. Document in README.
 
@@ -62,7 +64,7 @@ Based on: Canvas (React-Konva) + Firebase Realtime Database (sync) + Firestore (
 - **Multi-tenancy considerations?** Boards are tenant-scoped by `owner_id`. Firestore security rules for board access. RTDB paths keyed by `board_id`—access controlled via rules.
 
 ### 8. Database & Data Layer
-- **Database type:** Firebase Realtime Database (RTDB) for real-time sync; Firestore for persistence and metadata.
+- **Database type:** Firebase Realtime Database (RTDB) for real-time sync; Firestore for board metadata and snapshots (requires Admin SDK with `FIREBASE_PRIVATE_KEY`).
 - **Real-time sync, full-text search, vector storage, caching needs?** Real-time sync via RTDB listeners (`onValue`, `onChildAdded`, etc.). Firestore holds board metadata, profiles, and **periodic snapshots** of RTDB state. Full-text search: optional—index sticky text in Firestore. Vector storage: for AI features later. Caching: Vercel Edge Cache for static assets.
 - **Read/write ratio?** Read-heavy for board loads; write bursts during active collaboration. RTDB absorbs real-time writes; Firestore receives periodic snapshots (e.g., every 30–60s when changes detected).
 
@@ -89,9 +91,9 @@ Based on: Canvas (React-Konva) + Firebase Realtime Database (sync) + Firestore (
 - **Known pitfalls for your stack:**
   - **Konva:** Client-side only; ensure sensitive data isn’t in shape props if logged. XSS via user-generated text in stickies—sanitize/escape.
   - **Firebase RTDB:** Validate board IDs; use security rules to restrict read/write by `board_id` and `auth.uid`. Enforce presence shape (cursor, displayName).
-  - **Firestore:** Use security rules for `boards`, `profiles`. Validate `owner_id` and board access.
-  - **Next.js API routes:** Rate limit `/api/ai`. Validate Firebase ID tokens for authenticated endpoints.
-- **Common misconfigurations:** Exposing Firebase private key client-side; missing CORS on API routes; RTDB/Firestore rules too permissive.
+  - **Firestore:** Board metadata and snapshots via Admin SDK (server-side only). Use security rules for `profiles`. Validate `owner_id` and board access.
+  - **Next.js API routes:** Rate limit `/api/ai`. Validate Firebase ID tokens for `/api/boards` (GET/POST). Token verification uses Admin SDK when configured, else REST API with `NEXT_PUBLIC_FIREBASE_API_KEY`. Sync route (`/api/boards/[id]/sync`) uses Admin SDK—no auth required.
+- **Common misconfigurations:** Exposing Firebase private key client-side; missing `FIREBASE_PRIVATE_KEY` (causes 503); RTDB/Firestore rules too permissive.
 - **Dependency risks:** Audit `react-konva`, `konva`, `firebase` regularly. Pin versions for reproducibility.
 
 ### 13. File Structure & Project Organization
@@ -135,12 +137,13 @@ Based on: Canvas (React-Konva) + Firebase Realtime Database (sync) + Firestore (
 | Phase | Task | Est. |
 |-------|------|------|
 | Auth | Firebase Auth (email/password + Google) | 2 hrs |
-| RTDB | Set up RTDB; define paths `boards/{id}/objects`, `boards/{id}/presence` | 1 hr |
+| Firestore | Enable Firestore; create `boards` collection; add index `owner_id` + `created_at`; set `FIREBASE_PRIVATE_KEY` in .env | 1 hr |
+| RTDB | Set up RTDB; define paths `boards/{id}/objects`, `boards/{id}/presence`; deploy `database.rules.json` | 1 hr |
 | Canvas | Map RTDB objects → `<Rect>`, `<Circle>`, `<Text>` in Konva Stage | 6 hrs |
 | Canvas | Implement infinite pan/zoom (Stage scale + x/y offsets) | — |
 | Multiplayer | RTDB presence listeners; cursor components with `onValue` on `presence` | 2 hrs |
 | AI | Create `/api/ai` route; pass board state to LLM; LLM tool calls write to RTDB | 4 hrs |
-| Periodic Snapshot | Client-side: every 30–60s when changes detected, write RTDB → Firestore `last_snapshot` | 2 hrs |
+| Periodic Snapshot | Client-side: every 30s when dirty, POST RTDB state to `/api/boards/[id]/sync` → Firestore `last_snapshot` | 2 hrs |
 
 ---
 

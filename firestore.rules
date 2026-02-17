@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /boards/{boardId} {
+      // Users can read boards they own
+      allow read: if request.auth != null && resource.data.owner_id == request.auth.uid;
+      // Users can create boards with themselves as owner
+      allow create: if request.auth != null && request.resource.data.owner_id == request.auth.uid;
+      // Users can update/delete only their own boards
+      allow update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
+    }
+  }
+}

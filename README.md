@@ -20,14 +20,13 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, 
 
    - **Firebase:** Create a project at [console.firebase.google.com](https://console.firebase.google.com)
      - Enable **Authentication** (Email/Password, Google)
-     - Enable **Firestore**
+     - Enable **Firestore** (for board metadata)
+     - Enable **Realtime Database** (for real-time canvas + presence)
      - Get client config from Project Settings > General
-     - Create a Service Account for server-side (Project Settings > Service Accounts)
+     - Create a Service Account for server-side (Project Settings > Service Accounts) and add `FIREBASE_PRIVATE_KEY` to `.env.local`
    - **Liveblocks:** Create a project at [liveblocks.io](https://liveblocks.io)
 
-3. Create Firestore index for boards (Firebase Console > Firestore > Indexes):
-   - Collection: `boards`
-   - Fields: `owner_id` (Ascending), `created_at` (Descending)
+3. Create Firestore index (Firebase Console > Firestore > Indexes): Collection `boards`, Fields `owner_id` (Ascending), `created_at` (Descending). Deploy RTDB rules: copy `database.rules.json` into Firebase Console > Realtime Database > Rules.
 
 4. Start the dev server:
 

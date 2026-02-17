@@ -3,9 +3,15 @@ import { renderHook, act } from "@testing-library/react";
 import type { ObjectData } from "@/types";
 
 const mockGetBoardObjects = vi.fn();
+const mockUpdateBoardSnapshot = vi.fn();
 
 vi.mock("@/lib/firebase/rtdb", () => ({
   getBoardObjects: (...args: unknown[]) => mockGetBoardObjects(...args),
+}));
+
+vi.mock("@/lib/firebase/boards", () => ({
+  updateBoardSnapshot: (...args: unknown[]) =>
+    mockUpdateBoardSnapshot(...args),
 }));
 
 const mockBoardId = "board-sync-test";
@@ -17,15 +23,9 @@ vi.mock("@/components/providers/RealtimeBoardProvider", () => ({
 const { useBoardSync } = await import("@/hooks/useBoardSync");
 
 describe("useBoardSync", () => {
-  let fetchSpy: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     vi.useFakeTimers();
-    fetchSpy = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ ok: true }),
-    });
-    globalThis.fetch = fetchSpy;
+    mockUpdateBoardSnapshot.mockResolvedValue(true);
     mockGetBoardObjects.mockResolvedValue({});
   });
 
@@ -36,7 +36,7 @@ describe("useBoardSync", () => {
 
   it("does not sync immediately on mount when not dirty", () => {
     renderHook(() => useBoardSync());
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(mockUpdateBoardSnapshot).not.toHaveBeenCalled();
   });
 
   it("syncs after interval when dirty flag is set", async () => {
@@ -55,13 +55,7 @@ describe("useBoardSync", () => {
       vi.advanceTimersByTime(30000);
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      `/api/boards/${mockBoardId}/sync`,
-      expect.objectContaining({
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    expect(mockUpdateBoardSnapshot).toHaveBeenCalledWith(mockBoardId, objects);
   });
 
   it("resets dirty flag after successful sync", async () => {
@@ -79,14 +73,14 @@ describe("useBoardSync", () => {
       vi.advanceTimersByTime(30000);
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(mockUpdateBoardSnapshot).toHaveBeenCalledTimes(1);
 
     // Another interval should not trigger since dirty was reset
     await act(async () => {
       vi.advanceTimersByTime(30000);
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(mockUpdateBoardSnapshot).toHaveBeenCalledTimes(1);
   });
 
   it("provides a flushSync function for unmount", async () => {
@@ -104,6 +98,6 @@ describe("useBoardSync", () => {
       await result.current.flushSync();
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(mockUpdateBoardSnapshot).toHaveBeenCalledTimes(1);
   });
 });

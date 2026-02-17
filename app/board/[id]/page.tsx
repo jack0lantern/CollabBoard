@@ -1,18 +1,50 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { BoardCanvas } from "@/components/canvas/BoardCanvas";
 import { BoardHeader } from "@/components/ui/BoardHeader";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
-import { getBoard } from "@/lib/db/boards";
+import { getBoard } from "@/lib/firebase/boards";
 import { BoardClientWrapper } from "./BoardClientWrapper";
+import type { Board } from "@/types";
 
-export default async function BoardPage({
+export default function BoardPage({
   params,
 }: {
   params: { id: string };
 }) {
   const { id } = params;
-  const board = await getBoard(id);
-  const initialSnapshot = board?.last_snapshot ?? null;
+  const [board, setBoard] = useState<Board | null | undefined>(undefined);
+
+  useEffect(() => {
+    getBoard(id).then(setBoard);
+  }, [id]);
+
+  if (board === undefined) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <p className="text-gray-500 animate-pulse">Loading board...</p>
+      </div>
+    );
+  }
+
+  if (board === null) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-gray-500">Board not found</p>
+        <Link
+          href="/"
+          className="text-gray-600 dark:text-gray-400 hover:underline"
+        >
+          ← Back to dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  const initialSnapshot = board.last_snapshot ?? null;
 
   return (
     <BoardClientWrapper boardId={id} initialSnapshot={initialSnapshot}>
