@@ -120,7 +120,13 @@ export function BoardStage({ boardId }: { boardId: string }) {
   }, [updateCursor]);
 
   return (
-    <div ref={containerRef} className="w-full h-full">
+    <div
+      ref={containerRef}
+      className="w-full h-full"
+      data-testid="board-stage"
+      data-stage-x={position.x}
+      data-stage-y={position.y}
+    >
       <Stage
         ref={stageRef}
         width={dimensions.width}
