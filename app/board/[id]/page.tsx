@@ -67,7 +67,7 @@ export default function BoardPage({
       <div className="h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-gray-500">Board not found</p>
         <Link
-          href="/"
+          href="/dashboard"
           className="text-gray-600 dark:text-gray-400 hover:underline"
         >
           ← Back to dashboard
