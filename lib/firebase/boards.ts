@@ -15,7 +15,6 @@ import {
 } from "firebase/firestore";
 import { getFirestoreDb } from "./client";
 import type { Board, ObjectData, ShareRole } from "@/types";
-import type { PresenceData } from "@/types/presence";
 
 const BOARDS_COLLECTION = "boards";
 
@@ -222,63 +221,4 @@ export function onBoardObjectsChange(
   });
 }
 
-// --- Presence (subcollection) ---
-
-export function setPresence(
-  boardId: string,
-  userId: string,
-  presence: PresenceData
-): Promise<void> {
-  const db = getFirestoreDb();
-  if (!db) return Promise.resolve();
-  return setDoc(
-    doc(db, BOARDS_COLLECTION, boardId, "presence", userId),
-    presence
-  );
-}
-
-export function updatePresenceCursor(
-  boardId: string,
-  userId: string,
-  cursor: { x: number; y: number } | null
-): Promise<void> {
-  const db = getFirestoreDb();
-  if (!db) return Promise.resolve();
-  return updateDoc(
-    doc(db, BOARDS_COLLECTION, boardId, "presence", userId),
-    { cursor, lastSeen: Date.now() }
-  );
-}
-
-export function removePresence(
-  boardId: string,
-  userId: string
-): Promise<void> {
-  const db = getFirestoreDb();
-  if (!db) return Promise.resolve();
-  return deleteDoc(doc(db, BOARDS_COLLECTION, boardId, "presence", userId));
-}
-
-export function onPresenceChange(
-  boardId: string,
-  callback: (presence: Record<string, PresenceData>) => void
-): Unsubscribe {
-  const db = getFirestoreDb();
-  if (!db) return () => {};
-
-  const presenceRef = collection(db, BOARDS_COLLECTION, boardId, "presence");
-  return onSnapshot(presenceRef, (snapshot) => {
-    const out: Record<string, PresenceData> = {};
-    snapshot.docs.forEach((d) => {
-      out[d.id] = d.data() as PresenceData;
-    });
-    callback(out);
-  });
-}
-
-export function setupOnDisconnectCleanup(
-  _boardId: string,
-  _userId: string
-): void {
-  // Firestore has no onDisconnect; rely on lastSeen + stale filtering.
-}
+// Presence functions have been moved to lib/firebase/presence.ts (RTDB-backed).

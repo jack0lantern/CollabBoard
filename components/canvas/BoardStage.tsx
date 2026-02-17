@@ -7,6 +7,7 @@ import { useBoardObjects } from "@/hooks/useBoardObjects";
 import { usePresence } from "@/hooks/usePresence";
 import { ShapeRenderer } from "./shapes/ShapeRenderer";
 import { CursorOverlay } from "./CursorOverlay";
+import { GridBackground } from "./GridBackground";
 import { usePanZoom } from "@/hooks/usePanZoom";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import type { ObjectData } from "@/types";
@@ -126,6 +127,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
       data-testid="board-stage"
       data-stage-x={position.x}
       data-stage-y={position.y}
+      data-object-count={objectList.length}
     >
       <Stage
         ref={stageRef}
@@ -142,6 +144,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
         onMouseLeave={handleMouseLeave}
       >
         <Layer>
+          <GridBackground />
           {sortedObjects.map((obj) => (
             <ShapeRenderer
               key={obj.id}

@@ -1,6 +1,7 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getDatabase, type Database } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -9,6 +10,7 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
 export function getFirebaseApp(): FirebaseApp | null {
@@ -29,4 +31,11 @@ export function getFirebaseAuth() {
 export function getFirestoreDb() {
   const app = getFirebaseApp();
   return app ? getFirestore(app) : null;
+}
+
+export function getRealtimeDb(): Database | null {
+  const app = getFirebaseApp();
+  if (!app) return null;
+  if (!firebaseConfig.databaseURL) return null;
+  return getDatabase(app);
 }

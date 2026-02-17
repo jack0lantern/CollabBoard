@@ -9,7 +9,7 @@ const BoardStage = dynamic(
 
 export function BoardCanvas({ boardId }: { boardId: string }) {
   return (
-    <div className="w-full h-full relative bg-gray-100 dark:bg-gray-900">
+    <div className="w-full h-full relative bg-white">
       <BoardStage boardId={boardId} />
     </div>
   );

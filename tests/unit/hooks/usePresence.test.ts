@@ -9,7 +9,7 @@ const mockUpdatePresenceCursor = vi.fn();
 const mockRemovePresence = vi.fn();
 const mockSetupOnDisconnectCleanup = vi.fn();
 
-vi.mock("@/lib/firebase/boards", () => ({
+vi.mock("@/lib/firebase/presence", () => ({
   onPresenceChange: (...args: unknown[]) => mockOnPresenceChange(...args),
   setPresence: (...args: unknown[]) => mockSetPresence(...args),
   updatePresenceCursor: (...args: unknown[]) => mockUpdatePresenceCursor(...args),
@@ -33,6 +33,7 @@ describe("usePresence", () => {
   let unsubscribe: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     unsubscribe = vi.fn();
     mockSetPresence.mockResolvedValue(undefined);
@@ -45,6 +46,10 @@ describe("usePresence", () => {
         return unsubscribe;
       }
     );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("returns empty others array initially", () => {
@@ -98,17 +103,39 @@ describe("usePresence", () => {
     expect(result.current.others[0].displayName).toBe("Other User");
   });
 
-  it("provides updateCursor function", () => {
+  it("provides updateCursor function (debounced)", () => {
     const { result } = renderHook(() => usePresence());
 
     act(() => {
       result.current.updateCursor({ x: 150, y: 250 });
     });
 
+    // Cursor updates are debounced — not sent yet
+    expect(mockUpdatePresenceCursor).not.toHaveBeenCalled();
+
+    // Advance past the debounce window (50ms)
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+
     expect(mockUpdatePresenceCursor).toHaveBeenCalledWith(
       mockBoardId,
       mockUserId,
       { x: 150, y: 250 }
+    );
+  });
+
+  it("sends null cursor immediately (no debounce on mouse leave)", () => {
+    const { result } = renderHook(() => usePresence());
+
+    act(() => {
+      result.current.updateCursor(null);
+    });
+
+    expect(mockUpdatePresenceCursor).toHaveBeenCalledWith(
+      mockBoardId,
+      mockUserId,
+      null
     );
   });
 

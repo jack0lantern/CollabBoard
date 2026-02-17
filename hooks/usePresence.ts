@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   onPresenceChange,
   setPresence,
   updatePresenceCursor,
   removePresence,
   setupOnDisconnectCleanup,
-} from "@/lib/firebase/boards";
+} from "@/lib/firebase/presence";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { PresenceData } from "@/types/presence";
 
 const STALE_THRESHOLD_MS = 30000;
+const CURSOR_DEBOUNCE_MS = 50;
 
 export interface OtherUser {
   userId: string;
@@ -23,6 +24,8 @@ export interface OtherUser {
 export function usePresence() {
   const { boardId, userId, displayName, avatarUrl } = useBoardContext();
   const [others, setOthers] = useState<OtherUser[]>([]);
+  const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
 
   // Set own presence and subscribe to others
   useEffect(() => {
@@ -36,7 +39,7 @@ export function usePresence() {
       lastSeen: Date.now(),
     });
 
-    // Set up disconnect cleanup
+    // RTDB onDisconnect removes the node automatically
     setupOnDisconnectCleanup(boardId, userId);
 
     // Subscribe to all presence
@@ -71,6 +74,7 @@ export function usePresence() {
 
     return () => {
       clearInterval(heartbeat);
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
       unsubscribe();
       removePresence(boardId, userId);
     };
@@ -79,7 +83,28 @@ export function usePresence() {
   const updateCursor = useCallback(
     (cursor: { x: number; y: number } | null) => {
       if (!boardId || !userId) return;
-      updatePresenceCursor(boardId, userId, cursor);
+
+      // null (mouse leave) sends immediately
+      if (cursor === null) {
+        if (cursorTimerRef.current) {
+          clearTimeout(cursorTimerRef.current);
+          cursorTimerRef.current = null;
+        }
+        pendingCursorRef.current = null;
+        updatePresenceCursor(boardId, userId, null);
+        return;
+      }
+
+      // Debounce position updates to avoid flooding RTDB
+      pendingCursorRef.current = cursor;
+      if (cursorTimerRef.current === null) {
+        cursorTimerRef.current = setTimeout(() => {
+          cursorTimerRef.current = null;
+          if (pendingCursorRef.current) {
+            updatePresenceCursor(boardId, userId, pendingCursorRef.current);
+          }
+        }, CURSOR_DEBOUNCE_MS);
+      }
     },
     [boardId, userId]
   );
