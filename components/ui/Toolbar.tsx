@@ -16,6 +16,57 @@ function getNextZIndex(objects: Record<string, ObjectData>): number {
   return max + 1;
 }
 
+const iconClass = "w-5 h-5";
+
+function StickyIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+      <path d="M16 3v5h5" />
+    </svg>
+  );
+}
+
+function RectIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+    </svg>
+  );
+}
+
+function CircleIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  );
+}
+
 export function Toolbar() {
   const { addObject } = useBoardMutations();
   const objects = useBoardObjects();
@@ -60,25 +111,28 @@ export function Toolbar() {
   }, [addObject, objects]);
 
   return (
-    <div className="flex gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+    <aside className="flex flex-col gap-1 p-2 w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm">
       <button
         onClick={addSticky}
-        className="px-3 py-2 rounded bg-yellow-200 dark:bg-yellow-800 hover:bg-yellow-300 dark:hover:bg-yellow-700 text-sm font-medium"
+        aria-label="Add sticky note"
+        className="p-2 rounded-md bg-yellow-200 dark:bg-yellow-800 hover:bg-yellow-300 dark:hover:bg-yellow-700 text-yellow-900 dark:text-yellow-100 transition-colors"
       >
-        Sticky
+        <StickyIcon />
       </button>
       <button
         onClick={addRect}
-        className="px-3 py-2 rounded bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700 text-sm font-medium"
+        aria-label="Add rectangle"
+        className="p-2 rounded-md bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700 text-blue-900 dark:text-blue-100 transition-colors"
       >
-        Rect
+        <RectIcon />
       </button>
       <button
         onClick={addCircle}
-        className="px-3 py-2 rounded bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-sm font-medium"
+        aria-label="Add circle"
+        className="p-2 rounded-md bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-900 dark:text-green-100 transition-colors"
       >
-        Circle
+        <CircleIcon />
       </button>
-    </div>
+    </aside>
   );
 }

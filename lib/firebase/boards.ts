@@ -76,6 +76,23 @@ export async function createBoard(
   return docToBoard(snapshot.id, snapshot.data());
 }
 
+export async function updateBoardTitle(
+  boardId: string,
+  title: string
+): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    await updateDoc(doc(db, BOARDS_COLLECTION, boardId), {
+      title: title.trim() || "Untitled Board",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function updateBoardSharing(
   boardId: string,
   updates: { is_public?: boolean; shared_with?: Record<string, ShareRole> }

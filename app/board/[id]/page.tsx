@@ -75,13 +75,13 @@ export default function BoardPage({
           board={board}
           onBoardUpdated={setBoard}
         />
-        <div className="flex-1 relative overflow-hidden">
-          <BoardCanvas boardId={id} />
-          <div className="absolute top-4 left-4 z-10">
-            <Toolbar />
-          </div>
-          <div className="absolute top-4 right-4 z-10">
-            <UserList />
+        <div className="flex-1 flex relative overflow-hidden">
+          <Toolbar />
+          <div className="flex-1 relative overflow-hidden">
+            <BoardCanvas boardId={id} />
+            <div className="absolute top-4 right-4 z-10">
+              <UserList />
+            </div>
           </div>
         </div>
       </div>

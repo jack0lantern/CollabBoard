@@ -9,11 +9,17 @@ import { LineShape } from "./LineShape";
 export function ShapeRenderer({
   data,
   onSelect,
+  isSelected,
+  onShapeDragEnd,
+  onContextMenu,
 }: {
   data: ObjectData;
   onSelect: (id: string) => void;
+  isSelected?: boolean;
+  onShapeDragEnd?: () => void;
+  onContextMenu?: (id: string, clientX: number, clientY: number) => void;
 }) {
-  const common = { data, onSelect };
+  const common = { data, onSelect, isSelected, onShapeDragEnd, onContextMenu };
   switch (data.type) {
     case "sticky":
       return <StickyNote {...common} />;

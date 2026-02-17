@@ -9,6 +9,8 @@ export interface ObjectData {
   width?: number;
   height?: number;
   radius?: number;
+  radiusX?: number;
+  radiusY?: number;
   points?: number[];
   color?: string;
   text?: string;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ShareModal } from "./ShareModal";
+import { updateBoardTitle } from "@/lib/firebase/boards";
 import type { Board } from "@/types";
 
 export function BoardHeader({
@@ -17,8 +18,37 @@ export function BoardHeader({
 }) {
   const user = useCurrentUser();
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState(board?.title ?? "");
 
   const isOwner = board != null && user != null && board.owner_id === user.uid;
+
+  useEffect(() => {
+    setTitleInput(board?.title ?? "");
+  }, [board?.title]);
+
+  const handleSaveTitle = useCallback(async () => {
+    const trimmed = titleInput.trim() || "Untitled Board";
+    if (board && trimmed !== board.title) {
+      onBoardUpdated?.({ ...board, title: trimmed });
+      await updateBoardTitle(boardId, trimmed);
+    }
+    setIsEditingTitle(false);
+  }, [board, boardId, titleInput, onBoardUpdated]);
+
+  const handleTitleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSaveTitle();
+      }
+      if (e.key === "Escape") {
+        setTitleInput(board?.title ?? "");
+        setIsEditingTitle(false);
+      }
+    },
+    [board?.title, handleSaveTitle]
+  );
 
   return (
     <>
@@ -30,9 +60,24 @@ export function BoardHeader({
           >
             ← Back
           </Link>
-          <h1 className="text-lg font-semibold">
-            {board?.title ?? "Board"}
-          </h1>
+          {isEditingTitle && isOwner ? (
+            <input
+              type="text"
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onBlur={handleSaveTitle}
+              onKeyDown={handleTitleKeyDown}
+              autoFocus
+              className="text-lg font-semibold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500 min-w-[120px]"
+            />
+          ) : (
+            <h1
+              onClick={() => isOwner && setIsEditingTitle(true)}
+              className={`text-lg font-semibold ${isOwner ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400" : ""}`}
+            >
+              {board?.title ?? "Board"}
+            </h1>
+          )}
         </div>
         <div className="flex items-center gap-4">
           {isOwner && (

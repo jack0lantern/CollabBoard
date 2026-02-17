@@ -10,17 +10,25 @@ import { CursorOverlay } from "./CursorOverlay";
 import { GridBackground } from "./GridBackground";
 import { usePanZoom } from "@/hooks/usePanZoom";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
+import { useSelection } from "@/hooks/useSelection";
+import { ContextMenu } from "@/components/ui/ContextMenu";
 import type { ObjectData } from "@/types";
 
 export function BoardStage({ boardId }: { boardId: string }) {
   const stageRef = useRef<Konva.Stage>(null);
   const panningRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [lastDragEnd, setLastDragEnd] = useState(0);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const { scale, position, handleWheel, setPosition } = usePanZoom();
+  const { selectedIds, select, clearSelection, isSelected } = useSelection();
 
   const objects = useBoardObjects();
   const { others, updateCursor } = usePresence();
-  const { updateObject } = useBoardMutations();
+  const { updateObject, deleteObject } = useBoardMutations();
 
   const rawList = Object.values(objects).filter(
     (obj) =>
@@ -51,9 +59,15 @@ export function BoardStage({ boardId }: { boardId: string }) {
 
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (e.evt.button === 1 || e.evt.button === 2) {
+      const stage = e.target.getStage();
+      const clickedOnEmpty = stage != null && e.target === stage;
+
+      if (clickedOnEmpty && e.evt.button === 0) {
+        clearSelection();
+      }
+
+      if ((e.evt.button === 1 || e.evt.button === 2) && clickedOnEmpty) {
         e.evt.preventDefault();
-        const stage = e.target.getStage();
         const pointer = stage?.getPointerPosition();
         if (stage && pointer) {
           panningRef.current = true;
@@ -64,8 +78,56 @@ export function BoardStage({ boardId }: { boardId: string }) {
         }
       }
     },
-    [position.x, position.y]
+    [position.x, position.y, clearSelection]
   );
+
+  const handleSelect = useCallback(
+    (id: string) => {
+      select(id);
+      bringToFront(id);
+    },
+    [select, bringToFront]
+  );
+
+  const handleDeleteSelected = useCallback(() => {
+    for (const id of selectedIds) {
+      deleteObject(id);
+    }
+    clearSelection();
+    setContextMenu(null);
+  }, [selectedIds, deleteObject, clearSelection]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
+        if (!["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName ?? "")) {
+          e.preventDefault();
+          handleDeleteSelected();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedIds.length, handleDeleteSelected]);
+
+  const handleShapeContextMenu = useCallback(
+    (id: string, clientX: number, clientY: number) => {
+      if (!isSelected(id)) {
+        select(id);
+        bringToFront(id);
+      }
+      setContextMenu({ x: clientX, y: clientY });
+    },
+    [isSelected, select, bringToFront]
+  );
+
+  const handleStageContextMenu = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (stage != null && e.target === stage) {
+      e.evt.preventDefault();
+      setContextMenu(null);
+    }
+  }, []);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -128,6 +190,10 @@ export function BoardStage({ boardId }: { boardId: string }) {
       data-stage-x={position.x}
       data-stage-y={position.y}
       data-object-count={objectList.length}
+      data-selected-id={selectedIds[0] ?? ""}
+      data-last-drag-end={lastDragEnd}
+      data-first-object-x={sortedObjects[0]?.x ?? ""}
+      data-first-object-y={sortedObjects[0]?.y ?? ""}
     >
       <Stage
         ref={stageRef}
@@ -142,6 +208,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
         onMouseDown={handleStageMouseDown}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onContextMenu={handleStageContextMenu}
       >
         <Layer>
           <GridBackground />
@@ -149,12 +216,29 @@ export function BoardStage({ boardId }: { boardId: string }) {
             <ShapeRenderer
               key={obj.id}
               data={obj}
-              onSelect={bringToFront}
+              onSelect={handleSelect}
+              isSelected={isSelected(obj.id)}
+              onShapeDragEnd={() => setLastDragEnd(Date.now())}
+              onContextMenu={handleShapeContextMenu}
             />
           ))}
           <CursorOverlay stageRef={stageRef} others={others} />
         </Layer>
       </Stage>
+      {contextMenu != null && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          visible
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: "Delete",
+              onClick: handleDeleteSelected,
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }

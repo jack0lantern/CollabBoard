@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Rect } from "react-konva";
 
-const GRID_SPACING = 20;
+const GRID_SPACING = 40;
 const DOT_RADIUS = 1.5;
 const DOT_COLOR = "#94a3b8";
 

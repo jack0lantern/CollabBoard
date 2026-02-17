@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { login, getAuthSession } from "./helpers/auth";
+import { createTestBoard, deleteBoardDoc } from "./helpers/firestore";
 
 /**
  * E2E Multi-User Tests
@@ -8,16 +10,39 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("Multi-User - 2 Users Simultaneous Edit", () => {
+  let boardId = "";
+  let ownerToken = "";
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await login(page, 1);
+    const session = await getAuthSession(page);
+    ownerToken = session.token;
+    boardId = await createTestBoard({
+      token: ownerToken,
+      ownerUid: session.uid,
+      titlePrefix: "multi-user",
+    });
+    await page.close();
+  });
+
+  test.afterAll(async () => {
+    if (boardId && ownerToken) {
+      await deleteBoardDoc({ token: ownerToken, boardId });
+    }
+  });
+
   test("two browser contexts can load same board", async ({ browser }) => {
-    const roomId = `test-${Date.now()}`;
     const context1 = await browser.newContext();
     const context2 = await browser.newContext();
 
     const page1 = await context1.newPage();
     const page2 = await context2.newPage();
 
-    await page1.goto(`/board/${roomId}`);
-    await page2.goto(`/board/${roomId}`);
+    await Promise.all([login(page1, 1), login(page2, 2)]);
+
+    await page1.goto(`/board/${boardId}`);
+    await page2.goto(`/board/${boardId}`);
 
     await expect(page1.locator("canvas")).toBeVisible({ timeout: 10000 });
     await expect(page2.locator("canvas")).toBeVisible({ timeout: 10000 });

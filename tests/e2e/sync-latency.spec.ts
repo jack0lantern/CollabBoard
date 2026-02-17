@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { login, getAuthSession } from "./helpers/auth";
+import { createTestBoard, deleteBoardDoc } from "./helpers/firestore";
 
 /**
  * Sync Latency E2E Test
@@ -14,9 +16,30 @@ import { test, expect } from "@playwright/test";
  */
 
 const MAX_SYNC_LATENCY_MS = 100;
-const BOARD_ID = "test-board-123";
 
 test.describe("Sync Latency - Multi-User Object Propagation", () => {
+  let boardId = "";
+  let ownerToken = "";
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await login(page, 1);
+    const session = await getAuthSession(page);
+    ownerToken = session.token;
+    boardId = await createTestBoard({
+      token: ownerToken,
+      ownerUid: session.uid,
+      titlePrefix: "sync-latency",
+    });
+    await page.close();
+  });
+
+  test.afterAll(async () => {
+    if (boardId && ownerToken) {
+      await deleteBoardDoc({ token: ownerToken, boardId });
+    }
+  });
+
   test("other user sees object modification within acceptable latency", async ({
     browser,
   }) => {
@@ -26,10 +49,12 @@ test.describe("Sync Latency - Multi-User Object Propagation", () => {
     const page1 = await context1.newPage();
     const page2 = await context2.newPage();
 
+    await Promise.all([login(page1, 1), login(page2, 2)]);
+
     // Both users load the same board
     await Promise.all([
-      page1.goto(`/board/${BOARD_ID}`),
-      page2.goto(`/board/${BOARD_ID}`),
+      page1.goto(`/board/${boardId}`),
+      page2.goto(`/board/${boardId}`),
     ]);
 
     // Wait for both to have the canvas loaded (board exists and user has access)

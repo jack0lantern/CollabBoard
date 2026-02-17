@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { login, getAuthSession } from "./helpers/auth";
+import { createTestBoard, deleteBoardDoc } from "./helpers/firestore";
 
 /**
  * E2E Tests - Shape Dragging
@@ -8,11 +10,30 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("Shape Drag - Stage Isolation", () => {
+  let boardId = "";
+  let ownerToken = "";
+
+  test.beforeEach(async ({ page }) => {
+    await login(page, 1);
+    const session = await getAuthSession(page);
+    ownerToken = session.token;
+    boardId = await createTestBoard({
+      token: ownerToken,
+      ownerUid: session.uid,
+      titlePrefix: "shape-drag",
+    });
+    await page.goto(`/board/${boardId}`);
+  });
+
+  test.afterEach(async () => {
+    if (boardId && ownerToken) {
+      await deleteBoardDoc({ token: ownerToken, boardId });
+    }
+  });
+
   test("left-click drag on shape does not move the canvas", async ({
     page,
   }) => {
-    await page.goto("/board/test-board-123");
-
     await expect(page.locator("canvas")).toBeVisible({ timeout: 10000 });
 
     // Add a rect (placed at 150,150 with size 100x80)

@@ -1,7 +1,7 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getDatabase, type Database } from "firebase/database";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getDatabase, connectDatabaseEmulator, type Database } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,6 +12,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
+
+const USE_EMULATOR = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
+
+const emulatorConnected = { auth: false, firestore: false, database: false };
 
 export function getFirebaseApp(): FirebaseApp | null {
   if (getApps().length > 0) {
@@ -25,17 +29,34 @@ export function getFirebaseApp(): FirebaseApp | null {
 
 export function getFirebaseAuth() {
   const app = getFirebaseApp();
-  return app ? getAuth(app) : null;
+  if (!app) return null;
+  const auth = getAuth(app);
+  if (USE_EMULATOR && !emulatorConnected.auth) {
+    connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
+    emulatorConnected.auth = true;
+  }
+  return auth;
 }
 
 export function getFirestoreDb() {
   const app = getFirebaseApp();
-  return app ? getFirestore(app) : null;
+  if (!app) return null;
+  const db = getFirestore(app);
+  if (USE_EMULATOR && !emulatorConnected.firestore) {
+    connectFirestoreEmulator(db, "localhost", 8080);
+    emulatorConnected.firestore = true;
+  }
+  return db;
 }
 
 export function getRealtimeDb(): Database | null {
   const app = getFirebaseApp();
   if (!app) return null;
-  if (!firebaseConfig.databaseURL) return null;
-  return getDatabase(app);
+  if (!firebaseConfig.databaseURL && !USE_EMULATOR) return null;
+  const db = getDatabase(app);
+  if (USE_EMULATOR && !emulatorConnected.database) {
+    connectDatabaseEmulator(db, "localhost", 9009);
+    emulatorConnected.database = true;
+  }
+  return db;
 }
