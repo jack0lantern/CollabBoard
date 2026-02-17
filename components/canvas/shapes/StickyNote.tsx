@@ -224,17 +224,21 @@ export function StickyNote({
         shadowOpacity={0.2}
         cornerRadius={4}
       />
-      <Text
-        text={data.text ?? ""}
-        x={TEXT_PADDING}
-        y={TEXT_PADDING}
-        width={width - TEXT_PADDING * 2}
-        height={height - TEXT_PADDING * 2}
-        fontSize={FONT_SIZE}
-        fontFamily={FONT_FAMILY}
-        fill={TEXT_COLOR}
-        listening={false}
-      />
+    </Group>
+    <Group x={displayX} y={displayY} listening={false}>
+      {!isEditing && (
+        <Text
+          text={data.text ?? ""}
+          x={TEXT_PADDING}
+          y={TEXT_PADDING}
+          width={width - TEXT_PADDING * 2}
+          height={height - TEXT_PADDING * 2}
+          fontSize={FONT_SIZE}
+          fontFamily={FONT_FAMILY}
+          fill={TEXT_COLOR}
+          listening={false}
+        />
+      )}
     </Group>
     {isSelected && (
       <Transformer

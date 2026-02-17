@@ -36,6 +36,46 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, 
 
 6. Open [http://localhost:3000](http://localhost:3000).
 
+## Testing
+
+### Unit tests (Vitest)
+
+```bash
+npm run test        # watch mode
+npm run test:run    # single run
+```
+
+### E2E tests (Playwright)
+
+**Basic tests** (no auth required):
+
+```bash
+npm run dev         # in one terminal
+npm run test:e2e    # in another
+```
+
+**Auth-required tests** (sync-latency, concurrent-grab, etc.) need test credentials in `.env.local`:
+
+```
+E2E_TEST_EMAIL=your-test-account@example.com
+E2E_TEST_PASSWORD=your-test-password
+```
+
+**Performance 500 test** (uses Firebase Emulator, no quota limits):
+
+```bash
+# Terminal 1: start emulators
+firebase emulators:start
+
+# Terminal 2: dev server with emulator
+NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true npm run dev
+
+# Terminal 3: run the test
+NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true npx playwright test tests/e2e/performance-500.spec.ts --project=chromium --workers=1
+```
+
+Install Playwright browsers if needed: `npx playwright install`
+
 ## Project Structure
 
 ```
