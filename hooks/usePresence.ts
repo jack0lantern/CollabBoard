@@ -6,8 +6,7 @@ import {
   setPresence,
   updatePresenceCursor,
   removePresence,
-  setupOnDisconnectCleanup,
-} from "@/lib/firebase/presence";
+} from "@/lib/supabase/presence";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { PresenceData } from "@/types/presence";
 
@@ -27,40 +26,39 @@ export function usePresence() {
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Set own presence and subscribe to others
+  // Subscribe to presence and publish own presence (Supabase Realtime Presence)
   useEffect(() => {
     if (!boardId || !userId) return;
 
-    // Publish own presence
-    setPresence(boardId, userId, {
+    const initialPresence: PresenceData = {
       cursor: null,
       displayName: displayName ?? "Anonymous",
       avatarUrl: avatarUrl ?? null,
       lastSeen: Date.now(),
-    });
+    };
 
-    // RTDB onDisconnect removes the node automatically
-    setupOnDisconnectCleanup(boardId, userId);
+    const unsubscribe = onPresenceChange(
+      boardId,
+      { userId, initialPresence },
+      (presenceMap) => {
+        const now = Date.now();
+        const otherUsers: OtherUser[] = [];
 
-    // Subscribe to all presence
-    const unsubscribe = onPresenceChange(boardId, (presenceMap) => {
-      const now = Date.now();
-      const otherUsers: OtherUser[] = [];
+        for (const [uid, data] of Object.entries(presenceMap)) {
+          if (uid === userId) continue;
+          if (now - data.lastSeen > STALE_THRESHOLD_MS) continue;
 
-      for (const [uid, data] of Object.entries(presenceMap)) {
-        if (uid === userId) continue;
-        if (now - data.lastSeen > STALE_THRESHOLD_MS) continue;
+          otherUsers.push({
+            userId: uid,
+            cursor: data.cursor ?? null,
+            displayName: data.displayName ?? "Anonymous",
+            avatarUrl: data.avatarUrl ?? null,
+          });
+        }
 
-        otherUsers.push({
-          userId: uid,
-          cursor: data.cursor,
-          displayName: data.displayName,
-          avatarUrl: data.avatarUrl,
-        });
+        setOthers(otherUsers);
       }
-
-      setOthers(otherUsers);
-    });
+    );
 
     // Heartbeat: update lastSeen every 10s
     const heartbeat = setInterval(() => {

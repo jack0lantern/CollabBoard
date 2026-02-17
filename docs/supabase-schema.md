@@ -6,14 +6,14 @@ CollabBoard uses Supabase for auth, boards, board_objects, and profiles.
 
 **Auth:** Supabase Auth  
 **Boards & objects:** Supabase PostgreSQL  
-**Presence:** Firebase RTDB only (no presence table in Supabase)
+**Presence:** Supabase Realtime Presence (no Firebase RTDB)
 
 | Firebase | Supabase |
 |----------|----------|
 | Firestore `boards` | `boards` table |
 | Firestore `boards/{id}/objects` | `board_objects` table |
 | Firestore `profiles` | `profiles` table |
-| RTDB `boards/{id}/presence/{userId}` | **Stays in Firebase RTDB** |
+| RTDB presence | Supabase Realtime Presence |
 
 ## Tables
 
@@ -23,7 +23,9 @@ User display info. Keyed by Supabase auth user ID.
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID (PK, FK → auth.users) | Supabase user ID |
-| display_name | TEXT | Display name |
+| display_name | TEXT | Display name (legacy / computed) |
+| first_name | TEXT | First name |
+| last_name | TEXT | Last name |
 | avatar_url | TEXT | Avatar URL |
 | created_at | TIMESTAMPTZ | Created |
 | updated_at | TIMESTAMPTZ | Updated |
@@ -56,8 +58,8 @@ Canvas objects (sticky notes, shapes, lines).
 | meta | JSONB | Extra data |
 | updated_at | TIMESTAMPTZ | Last update |
 
-### Presence (Firebase RTDB)
-Live cursor positions stay in Firebase RTDB at `boards/{boardId}/presence/{userId}`. No Supabase table.
+### Presence (Supabase Realtime)
+Live cursor positions use Supabase Realtime Presence on channel `board-presence:{boardId}`. No database table.
 
 ## Applying the Migration
 
@@ -92,8 +94,8 @@ supabase
   }, (payload) => { /* handle change */ })
   .subscribe();
 
-// Presence: keep using Firebase RTDB (lib/firebase/presence.ts)
-// onPresenceChange(boardId, callback)
+// Presence: Supabase Realtime Presence (lib/supabase/presence.ts)
+// onPresenceChange(boardId, { userId, initialPresence }, callback)
 ```
 
 ## Auth (Supabase)
@@ -105,4 +107,4 @@ Supabase Auth handles sign-in. RLS policies use `auth.uid()` and `auth.jwt() ->>
 - **board_objects**: Firebase stored objects with client-generated IDs. Supabase uses UUIDs; map old IDs during migration or accept new IDs.
 - **shared_with**: Stays as JSONB `{email: role}` to match current structure.
 - **last_snapshot**: JSONB stores the same structure as Firestore.
-- **Presence**: No migration needed; stays in Firebase RTDB. Update presence code to use Supabase user ID when writing to RTDB.
+- **Presence**: Uses Supabase Realtime Presence; no Firebase RTDB.

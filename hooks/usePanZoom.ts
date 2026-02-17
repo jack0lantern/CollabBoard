@@ -24,7 +24,7 @@ export function usePanZoom() {
 
     const newScale =
       e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
-    const clampedScale = Math.min(Math.max(0.1, newScale), 4);
+    const clampedScale = Math.min(Math.max(0.1, newScale), 8);
 
     setScale(clampedScale);
     setPosition({

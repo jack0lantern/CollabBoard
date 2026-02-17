@@ -55,7 +55,7 @@ export function CursorOverlay({
               <Text
                 text={user.displayName}
                 fontSize={11}
-                fill="white"
+                fill="black"
                 padding={2}
                 listening={false}
               />

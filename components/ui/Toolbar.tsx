@@ -2,7 +2,8 @@
 
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useBoardObjects } from "@/hooks/useBoardObjects";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ObjectData } from "@/types";
 
 const COLORS = ["#fef08a", "#3b82f6", "#10b981", "#ef4444", "#8b5cf6"];
@@ -17,6 +18,23 @@ function getNextZIndex(objects: Record<string, ObjectData>): number {
 }
 
 const iconClass = "w-5 h-5";
+
+function ShapesIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="10" height="10" rx="1" />
+      <circle cx="16" cy="16" r="6" />
+    </svg>
+  );
+}
 
 function StickyIcon() {
   return (
@@ -69,7 +87,46 @@ function CircleIcon() {
 
 export function Toolbar() {
   const { addObject } = useBoardMutations();
-  const objects = useBoardObjects();
+  const { objects } = useBoardObjects();
+  const [shapesExpanded, setShapesExpanded] = useState(false);
+  const shapesRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        shapesRef.current != null &&
+        !shapesRef.current.contains(target) &&
+        !document.getElementById("toolbar-shapes-dropdown")?.contains(target)
+      ) {
+        setShapesExpanded(false);
+        setDropdownPosition(null);
+      }
+    };
+    if (shapesExpanded) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [shapesExpanded]);
+
+  const handleShapesClick = useCallback(() => {
+    setShapesExpanded((prev) => {
+      if (prev) {
+        setDropdownPosition(null);
+        return false;
+      }
+      if (buttonRef.current != null) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setDropdownPosition({ top: rect.top, left: rect.right + 4 });
+      }
+      return true;
+    });
+  }, []);
 
   const addSticky = useCallback(() => {
     addObject({
@@ -83,6 +140,7 @@ export function Toolbar() {
       color: COLORS[0],
       text: "New note",
     });
+    setShapesExpanded(false);
   }, [addObject, objects]);
 
   const addRect = useCallback(() => {
@@ -96,6 +154,7 @@ export function Toolbar() {
       height: 80,
       color: COLORS[1],
     });
+    setShapesExpanded(false);
   }, [addObject, objects]);
 
   const addCircle = useCallback(() => {
@@ -108,31 +167,62 @@ export function Toolbar() {
       radius: 50,
       color: COLORS[2],
     });
+    setShapesExpanded(false);
   }, [addObject, objects]);
 
   return (
     <aside className="flex flex-col gap-1 p-2 w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm">
-      <button
-        onClick={addSticky}
-        aria-label="Add sticky note"
-        className="p-2 rounded-md bg-yellow-200 dark:bg-yellow-800 hover:bg-yellow-300 dark:hover:bg-yellow-700 text-yellow-900 dark:text-yellow-100 transition-colors"
-      >
-        <StickyIcon />
-      </button>
-      <button
-        onClick={addRect}
-        aria-label="Add rectangle"
-        className="p-2 rounded-md bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700 text-blue-900 dark:text-blue-100 transition-colors"
-      >
-        <RectIcon />
-      </button>
-      <button
-        onClick={addCircle}
-        aria-label="Add circle"
-        className="p-2 rounded-md bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-900 dark:text-green-100 transition-colors"
-      >
-        <CircleIcon />
-      </button>
+      <div ref={shapesRef} className="relative">
+        <button
+          ref={buttonRef}
+          onClick={() => setShapesExpanded((prev) => !prev)}
+          aria-label="Add shapes"
+          aria-expanded={shapesExpanded}
+          aria-haspopup="true"
+          className={`p-2 rounded-md transition-colors ${
+            shapesExpanded
+              ? "bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100"
+              : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
+          }`}
+        >
+          <ShapesIcon />
+        </button>
+        {shapesExpanded &&
+          dropdownPosition != null &&
+          createPortal(
+            <div
+              id="toolbar-shapes-dropdown"
+              className="fixed flex flex-col gap-1 min-w-[2.5rem] py-1 px-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50"
+              style={{
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+              }}
+            >
+              <button
+                onClick={addSticky}
+                aria-label="Add sticky note"
+                className="p-2 rounded-md bg-yellow-200 dark:bg-yellow-800 hover:bg-yellow-300 dark:hover:bg-yellow-700 text-yellow-900 dark:text-yellow-100 transition-colors"
+              >
+                <StickyIcon />
+              </button>
+              <button
+                onClick={addRect}
+                aria-label="Add rectangle"
+                className="p-2 rounded-md bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700 text-blue-900 dark:text-blue-100 transition-colors"
+              >
+                <RectIcon />
+              </button>
+              <button
+                onClick={addCircle}
+                aria-label="Add circle"
+                className="p-2 rounded-md bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-900 dark:text-green-100 transition-colors"
+              >
+                <CircleIcon />
+              </button>
+            </div>,
+            document.body
+          )}
+      </div>
     </aside>
   );
 }

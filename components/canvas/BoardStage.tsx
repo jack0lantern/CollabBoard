@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import { useBoardObjects } from "@/hooks/useBoardObjects";
+import {
+  useBoardObjects,
+  PatchObjectContext,
+  AddObjectContext,
+  RemoveObjectContext,
+} from "@/hooks/useBoardObjects";
 import { usePresence } from "@/hooks/usePresence";
 import { ShapeRenderer } from "./shapes/ShapeRenderer";
 import { CursorOverlay } from "./CursorOverlay";
@@ -33,7 +38,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const { scale, position, handleWheel, setPosition } = usePanZoom();
   const { selectedIds, select, clearSelection, isSelected } = useSelection();
 
-  const objects = useBoardObjects();
+  const { objects, patchObject, addObject, removeObject } = useBoardObjects();
   const { others, updateCursor } = usePresence();
   const { updateObject, deleteObject } = useBoardMutations();
 
@@ -238,95 +243,101 @@ export function BoardStage({ boardId }: { boardId: string }) {
   }, [updateCursor]);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full"
-      data-testid="board-stage"
-      onMouseDownCapture={handleContainerMouseDownCapture}
-      data-stage-x={position.x}
-      data-stage-y={position.y}
-      data-object-count={objectList.length}
-      data-selected-id={selectedIds[0] ?? ""}
-      data-last-drag-end={lastDragEnd}
-      data-first-object-x={sortedObjects[0]?.x ?? ""}
-      data-first-object-y={sortedObjects[0]?.y ?? ""}
-    >
-      <Stage
-        ref={stageRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        scaleX={scale}
-        scaleY={scale}
-        x={position.x}
-        y={position.y}
-        draggable={false}
-        onWheel={handleWheel}
-        onMouseDown={handleStageMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        onContextMenu={handleStageContextMenu}
-      >
-        <Layer>
-          <GridBackground />
-          {sortedObjects.map((obj) => (
-            <ShapeRenderer
-              key={obj.id}
-              data={obj}
-              onSelect={handleSelect}
-              isSelected={isSelected(obj.id)}
-              onShapeDragEnd={() => setLastDragEnd(Date.now())}
-              onContextMenu={handleShapeContextMenu}
-            />
-          ))}
-          <CursorOverlay stageRef={stageRef} others={others} />
-        </Layer>
-      </Stage>
-      {contextMenu != null && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          visible
-          onClose={() => setContextMenu(null)}
-          items={[
-            {
-              label: "Bring to front",
-              onClick: () => {
-                const targetIds = contextMenu.targetIds;
-                const updates = computeBringToFront(objectList, targetIds);
-                queueMicrotask(() => applyZOrderUpdates(updates));
-              },
-            },
-            {
-              label: "Send to back",
-              onClick: () => {
-                const targetIds = contextMenu.targetIds;
-                const updates = computeSendToBack(objectList, targetIds);
-                queueMicrotask(() => applyZOrderUpdates(updates));
-              },
-            },
-            {
-              label: "Bring forward",
-              onClick: () => {
-                const targetIds = contextMenu.targetIds;
-                const updates = computeBringForward(objectList, targetIds);
-                queueMicrotask(() => applyZOrderUpdates(updates));
-              },
-            },
-            {
-              label: "Send backward",
-              onClick: () => {
-                const targetIds = contextMenu.targetIds;
-                const updates = computeSendBackward(objectList, targetIds);
-                queueMicrotask(() => applyZOrderUpdates(updates));
-              },
-            },
-            {
-              label: "Delete",
-              onClick: () => handleDeleteSelected(contextMenu.targetIds),
-            },
-          ]}
-        />
-      )}
-    </div>
+    <PatchObjectContext.Provider value={patchObject}>
+      <AddObjectContext.Provider value={addObject}>
+        <RemoveObjectContext.Provider value={removeObject}>
+          <div
+            ref={containerRef}
+            className="w-full h-full"
+            data-testid="board-stage"
+            onMouseDownCapture={handleContainerMouseDownCapture}
+            data-stage-x={position.x}
+            data-stage-y={position.y}
+            data-object-count={objectList.length}
+            data-selected-id={selectedIds[0] ?? ""}
+            data-last-drag-end={lastDragEnd}
+            data-first-object-x={sortedObjects[0]?.x ?? ""}
+            data-first-object-y={sortedObjects[0]?.y ?? ""}
+          >
+            <Stage
+              ref={stageRef}
+              width={dimensions.width}
+              height={dimensions.height}
+              scaleX={scale}
+              scaleY={scale}
+              x={position.x}
+              y={position.y}
+              draggable={false}
+              onWheel={handleWheel}
+              onMouseDown={handleStageMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              onContextMenu={handleStageContextMenu}
+            >
+              <Layer>
+                <GridBackground />
+                {sortedObjects.map((obj) => (
+                  <ShapeRenderer
+                    key={obj.id}
+                    data={obj}
+                    onSelect={handleSelect}
+                    isSelected={isSelected(obj.id)}
+                    onShapeDragEnd={() => setLastDragEnd(Date.now())}
+                    onContextMenu={handleShapeContextMenu}
+                  />
+                ))}
+                <CursorOverlay stageRef={stageRef} others={others} />
+              </Layer>
+            </Stage>
+            {contextMenu != null && (
+              <ContextMenu
+                x={contextMenu.x}
+                y={contextMenu.y}
+                visible
+                onClose={() => setContextMenu(null)}
+                items={[
+                  {
+                    label: "Bring to front",
+                    onClick: () => {
+                      const targetIds = contextMenu.targetIds;
+                      const updates = computeBringToFront(objectList, targetIds);
+                      queueMicrotask(() => applyZOrderUpdates(updates));
+                    },
+                  },
+                  {
+                    label: "Send to back",
+                    onClick: () => {
+                      const targetIds = contextMenu.targetIds;
+                      const updates = computeSendToBack(objectList, targetIds);
+                      queueMicrotask(() => applyZOrderUpdates(updates));
+                    },
+                  },
+                  {
+                    label: "Bring forward",
+                    onClick: () => {
+                      const targetIds = contextMenu.targetIds;
+                      const updates = computeBringForward(objectList, targetIds);
+                      queueMicrotask(() => applyZOrderUpdates(updates));
+                    },
+                  },
+                  {
+                    label: "Send backward",
+                    onClick: () => {
+                      const targetIds = contextMenu.targetIds;
+                      const updates = computeSendBackward(objectList, targetIds);
+                      queueMicrotask(() => applyZOrderUpdates(updates));
+                    },
+                  },
+                  {
+                    label: "Delete",
+                    onClick: () => handleDeleteSelected(contextMenu.targetIds),
+                  },
+                ]}
+              />
+            )}
+          </div>
+        </RemoveObjectContext.Provider>
+      </AddObjectContext.Provider>
+    </PatchObjectContext.Provider>
   );
 }

@@ -121,13 +121,27 @@ export function RectShape({
           keepRatio={false}
           ignoreStroke
           boundBoxFunc={(oldBox, newBox) => {
-            if (
-              Math.abs(newBox.width) < MIN_SIZE ||
-              Math.abs(newBox.height) < MIN_SIZE
-            ) {
-              return oldBox;
+            let { x, y, width, height, rotation } = newBox;
+            // Prevent flip and enforce minimum: clamp to MIN_SIZE when cursor goes beyond border
+            if (width < 0) {
+              x = newBox.x + newBox.width;
+              width = MIN_SIZE;
+            } else if (width < MIN_SIZE) {
+              width = MIN_SIZE;
+              if (Math.abs(newBox.x - oldBox.x) > 0.5) {
+                x = newBox.x + newBox.width - MIN_SIZE;
+              }
             }
-            return newBox;
+            if (height < 0) {
+              y = newBox.y + newBox.height;
+              height = MIN_SIZE;
+            } else if (height < MIN_SIZE) {
+              height = MIN_SIZE;
+              if (Math.abs(newBox.y - oldBox.y) > 0.5) {
+                y = newBox.y + newBox.height - MIN_SIZE;
+              }
+            }
+            return { x, y, width, height, rotation };
           }}
         />
       )}

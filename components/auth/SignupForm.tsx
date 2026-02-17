@@ -7,6 +7,8 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 
 export function SignupForm() {
   const [mounted, setMounted] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -32,10 +34,24 @@ export function SignupForm() {
     }
 
     try {
+      const trimmedFirst = firstName.trim();
+      const trimmedLast = lastName.trim();
+
+      if (!trimmedFirst || !trimmedLast) {
+        setError("First name and last name are required.");
+        setLoading(false);
+        return;
+      }
+
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          data: {
+            first_name: trimmedFirst,
+            last_name: trimmedLast,
+            full_name: `${trimmedFirst} ${trimmedLast}`,
+          },
           emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
         },
       });
@@ -109,6 +125,34 @@ export function SignupForm() {
       <h1 className="text-2xl font-bold">Sign up</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label htmlFor="firstName" className="block text-sm font-medium mb-1">
+              First name
+            </label>
+            <input
+              id="firstName"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+            />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="lastName" className="block text-sm font-medium mb-1">
+              Last name
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+            />
+          </div>
+        </div>
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-1">
             Email

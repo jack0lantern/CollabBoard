@@ -7,14 +7,12 @@ const mockOnPresenceChange = vi.fn();
 const mockSetPresence = vi.fn();
 const mockUpdatePresenceCursor = vi.fn();
 const mockRemovePresence = vi.fn();
-const mockSetupOnDisconnectCleanup = vi.fn();
 
-vi.mock("@/lib/firebase/presence", () => ({
+vi.mock("@/lib/supabase/presence", () => ({
   onPresenceChange: (...args: unknown[]) => mockOnPresenceChange(...args),
   setPresence: (...args: unknown[]) => mockSetPresence(...args),
   updatePresenceCursor: (...args: unknown[]) => mockUpdatePresenceCursor(...args),
   removePresence: (...args: unknown[]) => mockRemovePresence(...args),
-  setupOnDisconnectCleanup: (...args: unknown[]) => mockSetupOnDisconnectCleanup(...args),
 }));
 
 const mockBoardId = "board-789";
@@ -41,7 +39,7 @@ describe("usePresence", () => {
     mockRemovePresence.mockResolvedValue(undefined);
 
     mockOnPresenceChange.mockImplementation(
-      (_boardId: string, callback: typeof presenceCallback) => {
+      (_boardId: string, _options: { userId: string; initialPresence: PresenceData }, callback: typeof presenceCallback) => {
         presenceCallback = callback;
         return unsubscribe;
       }
@@ -57,24 +55,19 @@ describe("usePresence", () => {
     expect(result.current.others).toEqual([]);
   });
 
-  it("sets own presence on mount", () => {
+  it("subscribes to presence with initial presence on mount", () => {
     renderHook(() => usePresence());
-    expect(mockSetPresence).toHaveBeenCalledWith(
+    expect(mockOnPresenceChange).toHaveBeenCalledWith(
       mockBoardId,
-      mockUserId,
       expect.objectContaining({
-        displayName: "Test User",
-        avatarUrl: null,
-        cursor: null,
-      })
-    );
-  });
-
-  it("sets up onDisconnect cleanup on mount", () => {
-    renderHook(() => usePresence());
-    expect(mockSetupOnDisconnectCleanup).toHaveBeenCalledWith(
-      mockBoardId,
-      mockUserId
+        userId: mockUserId,
+        initialPresence: expect.objectContaining({
+          displayName: "Test User",
+          avatarUrl: null,
+          cursor: null,
+        }),
+      }),
+      expect.any(Function)
     );
   });
 

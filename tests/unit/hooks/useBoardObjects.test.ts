@@ -38,7 +38,7 @@ describe("useBoardObjects", () => {
 
   it("returns empty record initially", () => {
     const { result } = renderHook(() => useBoardObjects());
-    expect(result.current).toEqual({});
+    expect(result.current.objects).toEqual({});
   });
 
   it("adds objects when onChildAdded fires", () => {
@@ -56,7 +56,7 @@ describe("useBoardObjects", () => {
       capturedCallbacks.onAdded("obj-1", sticky);
     });
 
-    expect(result.current["obj-1"]).toEqual(sticky);
+    expect(result.current.objects["obj-1"]).toEqual(sticky);
   });
 
   it("updates objects when onChildChanged fires", () => {
@@ -81,8 +81,8 @@ describe("useBoardObjects", () => {
       capturedCallbacks.onChanged("obj-1", updated);
     });
 
-    expect(result.current["obj-1"].x).toBe(50);
-    expect(result.current["obj-1"].y).toBe(50);
+    expect(result.current.objects["obj-1"].x).toBe(50);
+    expect(result.current.objects["obj-1"].y).toBe(50);
   });
 
   it("removes objects when onChildRemoved fires", () => {
@@ -104,15 +104,15 @@ describe("useBoardObjects", () => {
       });
     });
 
-    expect(Object.keys(result.current)).toHaveLength(2);
+    expect(Object.keys(result.current.objects)).toHaveLength(2);
 
     act(() => {
       capturedCallbacks.onRemoved("obj-1");
     });
 
-    expect(Object.keys(result.current)).toHaveLength(1);
-    expect(result.current["obj-1"]).toBeUndefined();
-    expect(result.current["obj-2"]).toBeDefined();
+    expect(Object.keys(result.current.objects)).toHaveLength(1);
+    expect(result.current.objects["obj-1"]).toBeUndefined();
+    expect(result.current.objects["obj-2"]).toBeDefined();
   });
 
   it("subscribes with the correct boardId", () => {
@@ -143,6 +143,6 @@ describe("useBoardObjects", () => {
       }
     });
 
-    expect(Object.keys(result.current)).toHaveLength(10);
+    expect(Object.keys(result.current.objects)).toHaveLength(10);
   });
 });

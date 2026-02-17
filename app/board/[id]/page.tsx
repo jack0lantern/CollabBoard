@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { BoardHeader } from "@/components/ui/BoardHeader";
 import { Toolbar } from "@/components/ui/Toolbar";
@@ -23,7 +22,6 @@ export default function BoardPage({
   params: { id: string };
 }) {
   const { id } = params;
-  const router = useRouter();
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
 
   useEffect(() => {
@@ -33,26 +31,17 @@ export default function BoardPage({
       return;
     }
 
+    // Fetch board regardless of auth state — anonymous users can access boards
+    getBoard(id).then(setBoard);
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) {
-        router.replace("/login");
-        return;
-      }
-      getBoard(id).then(setBoard);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
-        router.replace("/login");
-        return;
-      }
+    } = supabase.auth.onAuthStateChange(() => {
       getBoard(id).then(setBoard);
     });
 
     return () => subscription.unsubscribe();
-  }, [id, router]);
+  }, [id]);
 
   if (board === undefined) {
     return (

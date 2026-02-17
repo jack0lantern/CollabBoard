@@ -260,8 +260,7 @@ export async function updateBoardObject(
     .eq("id", objectId);
 
   if (error) {
-    console.error("[updateBoardObject] Supabase update failed:", error);
-    throw error;
+    console.error("[updateBoardObject] Supabase update failed:", error.message, error.code, error.details);
   }
 }
 
@@ -348,7 +347,11 @@ export function onBoardObjectsChange(
         }
       }
     )
-    .subscribe();
+    .subscribe((status, err) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error("[onBoardObjectsChange] Subscription failed:", status, err);
+      }
+    });
 
   // Initial fetch
   getBoardObjects(boardId).then((objs) => {
