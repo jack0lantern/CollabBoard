@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { getBoardObjects } from "@/lib/firebase/boards";
-import { updateBoardSnapshot } from "@/lib/firebase/boards";
+import { getBoardObjects } from "@/lib/supabase/boards";
+import { updateBoardSnapshot } from "@/lib/supabase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 
 export function useBoardSync() {

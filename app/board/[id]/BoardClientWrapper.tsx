@@ -2,9 +2,8 @@
 
 import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvider";
 import { useBoardSync } from "@/hooks/useBoardSync";
-import { getFirebaseAuth } from "@/lib/firebase/client";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
 import type { ObjectData } from "@/types";
 
 function SyncManager() {
@@ -22,25 +21,33 @@ export function BoardClientWrapper({
   children: React.ReactNode;
 }) {
   const [user, setUser] = useState<{
-    uid: string;
+    id: string;
     displayName: string | null;
-    photoURL: string | null;
+    avatarUrl: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
+    const supabase = createSupabaseClient();
+    if (!supabase) {
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const meta = session.user.user_metadata ?? {};
         setUser({
-          uid: firebaseUser.uid,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
+          id: session.user.id,
+          displayName:
+            (meta.full_name as string) ??
+            (meta.name as string) ??
+            session.user.email ??
+            null,
+          avatarUrl:
+            (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
         });
       } else {
         setUser(null);
@@ -48,7 +55,26 @@ export function BoardClientWrapper({
       setLoading(false);
     });
 
-    return unsubscribe;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const meta = session.user.user_metadata ?? {};
+        setUser({
+          id: session.user.id,
+          displayName:
+            (meta.full_name as string) ??
+            (meta.name as string) ??
+            session.user.email ??
+            null,
+          avatarUrl:
+            (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (loading) {
@@ -59,9 +85,9 @@ export function BoardClientWrapper({
     );
   }
 
-  const userId = user?.uid ?? "anonymous";
+  const userId = user?.id ?? "anonymous";
   const displayName = user?.displayName ?? "Anonymous";
-  const avatarUrl = user?.photoURL ?? null;
+  const avatarUrl = user?.avatarUrl ?? null;
 
   return (
     <RealtimeBoardProvider

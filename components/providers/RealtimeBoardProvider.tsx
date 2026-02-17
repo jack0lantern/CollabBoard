@@ -9,7 +9,7 @@ import {
 import {
   getBoardObjects,
   seedBoardObjects,
-} from "@/lib/firebase/boards";
+} from "@/lib/supabase/boards";
 import type { ObjectData } from "@/types";
 
 interface BoardContextValue {
@@ -46,7 +46,7 @@ export function RealtimeBoardProvider({
   initialSnapshot,
   children,
 }: RealtimeBoardProviderProps) {
-  // Seed Firestore objects subcollection from snapshot if empty
+  // Seed board_objects from snapshot if empty
   useEffect(() => {
     if (!boardId || !initialSnapshot) return;
 

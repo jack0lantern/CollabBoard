@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { updateBoardSharing } from "@/lib/firebase/boards";
+import { updateBoardSharing } from "@/lib/supabase/boards";
 import type { Board, ShareRole } from "@/types";
 
 export function ShareModal({
@@ -20,16 +20,16 @@ export function ShareModal({
   const [emailInput, setEmailInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [boardUrl, setBoardUrl] = useState("");
 
   useEffect(() => {
     setIsPublic(board.is_public ?? false);
     setSharedWith(board.shared_with ?? {});
   }, [board.id, board.is_public, board.shared_with]);
 
-  const boardUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/board/${board.id}`
-      : "";
+  useEffect(() => {
+    setBoardUrl(`${window.location.origin}/board/${board.id}`);
+  }, [board.id]);
 
   const persistSharing = useCallback(
     async (updates: { is_public?: boolean; shared_with?: Record<string, ShareRole> }) => {

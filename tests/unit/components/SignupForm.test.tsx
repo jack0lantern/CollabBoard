@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const mockPush = vi.fn();
+const mockRefresh = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, refresh: vi.fn() }),
+  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
 }));
 
 vi.mock("next/link", () => ({
@@ -22,18 +23,16 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const mockCreateUser = vi.fn();
-const mockSignInWithPopup = vi.fn();
+const mockSignUp = vi.fn();
+const mockSignInWithOAuth = vi.fn();
 
-vi.mock("@/lib/firebase/client", () => ({
-  getFirebaseAuth: () => ({}),
-}));
-
-vi.mock("firebase/auth", () => ({
-  createUserWithEmailAndPassword: (...args: unknown[]) =>
-    mockCreateUser(...args),
-  signInWithPopup: (...args: unknown[]) => mockSignInWithPopup(...args),
-  GoogleAuthProvider: vi.fn(),
+vi.mock("@/lib/supabase/client", () => ({
+  createSupabaseClient: () => ({
+    auth: {
+      signUp: (...args: unknown[]) => mockSignUp(...args),
+      signInWithOAuth: (...args: unknown[]) => mockSignInWithOAuth(...args),
+    },
+  }),
 }));
 
 import { SignupForm } from "@/components/auth/SignupForm";
@@ -58,7 +57,10 @@ describe("SignupForm", () => {
 
   describe("post-auth redirect", () => {
     it("redirects to /dashboard after successful email signup", async () => {
-      mockCreateUser.mockResolvedValue({});
+      mockSignUp.mockResolvedValue({
+        data: { session: { user: {} } },
+        error: null,
+      });
       render(<SignupForm />);
 
       fillAndSubmit();
@@ -69,7 +71,10 @@ describe("SignupForm", () => {
     });
 
     it("does NOT redirect to / after successful email signup", async () => {
-      mockCreateUser.mockResolvedValue({});
+      mockSignUp.mockResolvedValue({
+        data: { session: { user: {} } },
+        error: null,
+      });
       render(<SignupForm />);
 
       fillAndSubmit();
@@ -80,8 +85,11 @@ describe("SignupForm", () => {
       expect(mockPush).not.toHaveBeenCalledWith("/");
     });
 
-    it("redirects to /dashboard after successful Google signup", async () => {
-      mockSignInWithPopup.mockResolvedValue({});
+    it("calls signInWithOAuth with Google provider for Google signup", async () => {
+      mockSignInWithOAuth.mockResolvedValue({
+        data: { url: "https://accounts.google.com/oauth" },
+        error: null,
+      });
       render(<SignupForm />);
 
       fireEvent.click(
@@ -89,22 +97,28 @@ describe("SignupForm", () => {
       );
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith("/dashboard");
+        expect(mockSignInWithOAuth).toHaveBeenCalledWith(
+          expect.objectContaining({ provider: "google" })
+        );
       });
     });
+  });
 
-    it("does NOT redirect to / after successful Google signup", async () => {
-      mockSignInWithPopup.mockResolvedValue({});
+  describe("email confirmation", () => {
+    it("shows success message when email confirmation is required", async () => {
+      mockSignUp.mockResolvedValue({
+        data: { session: null },
+        error: null,
+      });
       render(<SignupForm />);
 
-      fireEvent.click(
-        screen.getByRole("button", { name: "Sign up with Google" })
-      );
+      fillAndSubmit();
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalled();
+        expect(
+          screen.getByText("Check your email for the confirmation link.")
+        ).toBeInTheDocument();
       });
-      expect(mockPush).not.toHaveBeenCalledWith("/");
     });
   });
 });

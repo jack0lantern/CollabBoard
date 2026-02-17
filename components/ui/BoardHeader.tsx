@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ShareModal } from "./ShareModal";
-import { updateBoardTitle } from "@/lib/firebase/boards";
+import { updateBoardTitle } from "@/lib/supabase/boards";
 import type { Board } from "@/types";
 
 export function BoardHeader({
@@ -21,7 +21,7 @@ export function BoardHeader({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(board?.title ?? "");
 
-  const isOwner = board != null && user != null && board.owner_id === user.uid;
+  const isOwner = board != null && user != null && board.owner_id === user.id;
 
   useEffect(() => {
     setTitleInput(board?.title ?? "");

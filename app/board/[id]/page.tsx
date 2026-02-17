@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getFirebaseAuth } from "@/lib/firebase/client";
-import { onAuthStateChanged } from "firebase/auth";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import { BoardHeader } from "@/components/ui/BoardHeader";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
-import { getBoard } from "@/lib/firebase/boards";
+import { getBoard } from "@/lib/supabase/boards";
 import { BoardClientWrapper } from "./BoardClientWrapper";
 import type { Board } from "@/types";
 
@@ -28,19 +27,31 @@ export default function BoardPage({
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
+    const supabase = createSupabaseClient();
+    if (!supabase) {
       setBoard(null);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
         router.replace("/login");
         return;
       }
       getBoard(id).then(setBoard);
     });
-    return unsubscribe;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) {
+        router.replace("/login");
+        return;
+      }
+      getBoard(id).then(setBoard);
+    });
+
+    return () => subscription.unsubscribe();
   }, [id, router]);
 
   if (board === undefined) {

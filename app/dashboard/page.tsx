@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getFirebaseAuth } from "@/lib/firebase/client";
-import { onAuthStateChanged, type User } from "firebase/auth";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import {
   createBoard,
   subscribeToBoardsByOwner,
-} from "@/lib/firebase/boards";
+} from "@/lib/supabase/boards";
 import type { Board } from "@/types";
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -20,41 +20,54 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
+    const supabase = createSupabaseClient();
+    if (!supabase) {
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (!firebaseUser) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
         router.replace("/login");
         return;
       }
-      setUser(firebaseUser);
+      setUserId(session.user.id);
+      setEmail(session.user.email ?? null);
     });
 
-    return unsubscribe;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) {
+        router.replace("/login");
+        setLoading(false);
+        return;
+      }
+      setUserId(session.user.id);
+      setEmail(session.user.email ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, [router]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
-    const unsubscribe = subscribeToBoardsByOwner(user.uid, (newBoards) => {
+    const unsubscribe = subscribeToBoardsByOwner(userId, (newBoards) => {
       setBoards(newBoards);
       setLoading(false);
     });
 
     return unsubscribe;
-  }, [user]);
+  }, [userId]);
 
   const handleCreateBoard = async () => {
-    if (!user || creating) return;
+    if (!userId || creating) return;
     setCreating(true);
     setError("");
 
     try {
-      const board = await createBoard("Untitled Board", user.uid);
+      const board = await createBoard("Untitled Board", userId);
       if (board) {
         router.push(`/board/${board.id}`);
       } else {
@@ -64,6 +77,14 @@ export default function DashboardPage() {
       setError((err as Error)?.message ?? "Network error");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    const supabase = createSupabaseClient();
+    if (supabase) {
+      await supabase.auth.signOut();
+      router.replace("/login");
     }
   };
 
@@ -82,16 +103,10 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold">My Boards</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              {user?.email}
+              {email}
             </span>
             <button
-              onClick={async () => {
-                const auth = getFirebaseAuth();
-                if (auth) {
-                  await auth.signOut();
-                  router.replace("/login");
-                }
-              }}
+              onClick={handleSignOut}
               className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
             >
               Sign out

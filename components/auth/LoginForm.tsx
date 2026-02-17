@@ -1,42 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getFirebaseAuth } from "@/lib/firebase/client";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-} from "firebase/auth";
+import { createSupabaseClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      setError("Firebase not configured");
+    const supabase = createSupabaseClient();
+    if (!supabase) {
+      setError("Supabase not configured");
       setLoading(false);
       return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        if (authError.message.includes("Invalid login credentials")) {
+          setError("invalid-credential");
+        } else {
+          setError(authError.message);
+        }
+        setLoading(false);
+        return;
+      }
+
       router.push("/dashboard");
+      router.refresh();
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      if (code === "auth/operation-not-allowed") setError("user-not-found");
-      else if (code === "auth/invalid-credential") setError("invalid-credential");
-      else setError((err as Error)?.message ?? "Failed to sign in");
+      setError((err as Error)?.message ?? "Failed to sign in");
     } finally {
       setLoading(false);
     }
@@ -46,25 +58,44 @@ export function LoginForm() {
     setError("");
     setLoading(true);
 
-    const auth = getFirebaseAuth();
-    if (!auth) {
-      setError("Firebase not configured");
+    const supabase = createSupabaseClient();
+    if (!supabase) {
+      setError("Supabase not configured");
       setLoading(false);
       return;
     }
 
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
-      router.push("/dashboard");
+      const { data, error: authError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+        },
+      });
+
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      if (code === "auth/operation-not-allowed") setError("user-not-found");
-      else if (code === "auth/invalid-credential") setError("invalid-credential");
-      else setError((err as Error)?.message ?? "Failed to sign in with Google");
-    } finally {
+      setError((err as Error)?.message ?? "Failed to sign in with Google");
       setLoading(false);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Log in</h1>
+        <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -7,7 +7,7 @@ const mockSetBoardObject = vi.fn();
 const mockUpdateBoardObject = vi.fn();
 const mockRemoveBoardObject = vi.fn();
 
-vi.mock("@/lib/firebase/boards", () => ({
+vi.mock("@/lib/supabase/boards", () => ({
   setBoardObject: (...args: unknown[]) => mockSetBoardObject(...args),
   updateBoardObject: (...args: unknown[]) => mockUpdateBoardObject(...args),
   removeBoardObject: (...args: unknown[]) => mockRemoveBoardObject(...args),

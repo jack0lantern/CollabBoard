@@ -5,7 +5,7 @@ import type { ObjectData } from "@/types";
 const mockGetBoardObjects = vi.fn();
 const mockUpdateBoardSnapshot = vi.fn();
 
-vi.mock("@/lib/firebase/boards", () => ({
+vi.mock("@/lib/supabase/boards", () => ({
   getBoardObjects: (...args: unknown[]) => mockGetBoardObjects(...args),
   updateBoardSnapshot: (...args: unknown[]) =>
     mockUpdateBoardSnapshot(...args),

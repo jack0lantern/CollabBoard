@@ -7,7 +7,7 @@ import type { ObjectData } from "@/types";
 // Mock the Firestore boards module
 const mockOnBoardObjectsChange = vi.fn();
 
-vi.mock("@/lib/firebase/boards", () => ({
+vi.mock("@/lib/supabase/boards", () => ({
   onBoardObjectsChange: (...args: unknown[]) => mockOnBoardObjectsChange(...args),
 }));
 
