@@ -4,10 +4,10 @@ import React from "react";
 import { useBoardObjects } from "@/hooks/useBoardObjects";
 import type { ObjectData } from "@/types";
 
-// Mock the RTDB module
+// Mock the Firestore boards module
 const mockOnBoardObjectsChange = vi.fn();
 
-vi.mock("@/lib/firebase/rtdb", () => ({
+vi.mock("@/lib/firebase/boards", () => ({
   onBoardObjectsChange: (...args: unknown[]) => mockOnBoardObjectsChange(...args),
 }));
 

@@ -5,7 +5,7 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, 
 ## Stack
 
 - **Frontend:** Next.js (App Router), React-Konva, Tailwind CSS
-- **Real-time:** Liveblocks (CRDT)
+- **Real-time:** Firestore (objects + presence subcollections)
 - **Database & Auth:** Firebase (Firestore + Auth)
 
 ## Setup
@@ -20,28 +20,28 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, 
 
    - **Firebase:** Create a project at [console.firebase.google.com](https://console.firebase.google.com)
      - Enable **Authentication** (Email/Password, Google)
-     - Enable **Firestore** (for board metadata)
-     - Enable **Realtime Database** (for real-time canvas + presence)
+     - Enable **Firestore** (board metadata, objects, presence)
      - Get client config from Project Settings > General
      - Create a Service Account for server-side (Project Settings > Service Accounts) and add `FIREBASE_PRIVATE_KEY` to `.env.local`
-   - **Liveblocks:** Create a project at [liveblocks.io](https://liveblocks.io)
 
-3. Create Firestore index (Firebase Console > Firestore > Indexes): Collection `boards`, Fields `owner_id` (Ascending), `created_at` (Descending). Deploy RTDB rules: copy `database.rules.json` into Firebase Console > Realtime Database > Rules.
+3. Create Firestore index (Firebase Console > Firestore > Indexes): Collection `boards`, Fields `owner_id` (Ascending), `created_at` (Descending).
 
-4. Start the dev server:
+4. Deploy Firestore rules: `firebase deploy --only firestore`
+
+5. Start the dev server:
 
    ```bash
    npm run dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000).
+6. Open [http://localhost:3000](http://localhost:3000).
 
 ## Project Structure
 
 ```
 app/           # Next.js App Router
 components/    # React components (canvas, ui, auth, providers)
-lib/           # Liveblocks, Firebase, utils
+lib/           # Firebase, utils
 hooks/         # Custom hooks
 types/         # TypeScript types
 ```

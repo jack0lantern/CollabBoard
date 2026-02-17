@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onBoardObjectsChange } from "@/lib/firebase/rtdb";
+import { onBoardObjectsChange } from "@/lib/firebase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { ObjectData } from "@/types";
 

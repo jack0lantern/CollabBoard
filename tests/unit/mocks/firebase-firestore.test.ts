@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createMockRTDB, createFirebaseDatabaseMock } from "@/tests/mocks/firebase-rtdb";
+import { createMockFirestore, createFirebaseFirestoreMock } from "@/tests/mocks/firebase-firestore";
 import type { ObjectData } from "@/types";
 
-describe("createMockRTDB", () => {
-  let mockDb: ReturnType<typeof createMockRTDB>;
+describe("createMockFirestore", () => {
+  let mockDb: ReturnType<typeof createMockFirestore>;
 
   beforeEach(() => {
-    mockDb = createMockRTDB();
+    mockDb = createMockFirestore();
   });
 
   it("starts with empty state", () => {
@@ -111,9 +111,9 @@ describe("createMockRTDB", () => {
   });
 });
 
-describe("createFirebaseDatabaseMock", () => {
-  it("provides mock functions for all RTDB operations", () => {
-    const mock = createFirebaseDatabaseMock();
+describe("createFirebaseFirestoreMock", () => {
+  it("provides mock functions for all Firestore operations", () => {
+    const mock = createFirebaseFirestoreMock();
     expect(mock.setBoardObject).toBeDefined();
     expect(mock.updateBoardObject).toBeDefined();
     expect(mock.removeBoardObject).toBeDefined();
@@ -125,14 +125,14 @@ describe("createFirebaseDatabaseMock", () => {
   });
 
   it("setBoardObject adds to mock state", async () => {
-    const mock = createFirebaseDatabaseMock();
+    const mock = createFirebaseFirestoreMock();
     const obj: ObjectData = { id: "obj-1", type: "sticky", x: 0, y: 0 };
     await mock.setBoardObject("board-1", obj);
     expect(mock.mockDb.state.objects["obj-1"]).toEqual(obj);
   });
 
   it("removeBoardObject removes from mock state", async () => {
-    const mock = createFirebaseDatabaseMock();
+    const mock = createFirebaseFirestoreMock();
     mock.mockDb.state.objects["obj-1"] = { id: "obj-1", type: "sticky", x: 0, y: 0 };
     await mock.removeBoardObject("board-1", "obj-1");
     expect(mock.mockDb.state.objects["obj-1"]).toBeUndefined();

@@ -1,6 +1,5 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getDatabase as getFirebaseDatabase } from "firebase/database";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -10,7 +9,6 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
 export function getFirebaseApp(): FirebaseApp | null {
@@ -26,11 +24,6 @@ export function getFirebaseApp(): FirebaseApp | null {
 export function getFirebaseAuth() {
   const app = getFirebaseApp();
   return app ? getAuth(app) : null;
-}
-
-export function getDatabase() {
-  const app = getFirebaseApp();
-  return app ? getFirebaseDatabase(app) : null;
 }
 
 export function getFirestoreDb() {

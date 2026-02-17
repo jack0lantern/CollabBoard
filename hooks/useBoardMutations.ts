@@ -5,7 +5,7 @@ import {
   setBoardObject,
   updateBoardObject,
   removeBoardObject,
-} from "@/lib/firebase/rtdb";
+} from "@/lib/firebase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { ObjectData } from "@/types";
 

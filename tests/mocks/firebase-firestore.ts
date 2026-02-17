@@ -5,7 +5,7 @@ import type { PresenceData } from "@/types/presence";
 type ChildCallback = (snapshot: { key: string | null; val: () => unknown }) => void;
 type ValueCallback = (snapshot: { val: () => unknown }) => void;
 
-interface MockRTDBState {
+interface MockFirestoreState {
   objects: Record<string, ObjectData>;
   presence: Record<string, PresenceData>;
   childListeners: {
@@ -16,8 +16,8 @@ interface MockRTDBState {
   presenceListeners: ValueCallback[];
 }
 
-export function createMockRTDB() {
-  const state: MockRTDBState = {
+export function createMockFirestore() {
+  const state: MockFirestoreState = {
     objects: {},
     presence: {},
     childListeners: { added: [], changed: [], removed: [] },
@@ -111,8 +111,8 @@ export function createMockRTDB() {
   return mock;
 }
 
-export function createFirebaseDatabaseMock() {
-  const mockDb = createMockRTDB();
+export function createFirebaseFirestoreMock() {
+  const mockDb = createMockFirestore();
 
   const setBoardObject = vi.fn(
     async (_boardId: string, object: ObjectData) => {
@@ -190,5 +190,5 @@ export function createFirebaseDatabaseMock() {
   };
 }
 
-export type MockRTDB = ReturnType<typeof createMockRTDB>;
-export type FirebaseDatabaseMock = ReturnType<typeof createFirebaseDatabaseMock>;
+export type MockFirestore = ReturnType<typeof createMockFirestore>;
+export type FirebaseFirestoreMock = ReturnType<typeof createFirebaseFirestoreMock>;

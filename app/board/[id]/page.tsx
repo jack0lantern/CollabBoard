@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { BoardCanvas } from "@/components/canvas/BoardCanvas";
+import { useRouter } from "next/navigation";
+import { getFirebaseAuth } from "@/lib/firebase/client";
+import { onAuthStateChanged } from "firebase/auth";
 import { BoardHeader } from "@/components/ui/BoardHeader";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
@@ -10,17 +13,35 @@ import { getBoard } from "@/lib/firebase/boards";
 import { BoardClientWrapper } from "./BoardClientWrapper";
 import type { Board } from "@/types";
 
+const BoardCanvas = dynamic(
+  () => import("@/components/canvas/BoardCanvas").then((m) => m.BoardCanvas),
+  { ssr: false }
+);
+
 export default function BoardPage({
   params,
 }: {
   params: { id: string };
 }) {
   const { id } = params;
+  const router = useRouter();
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
 
   useEffect(() => {
-    getBoard(id).then(setBoard);
-  }, [id]);
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setBoard(null);
+      return;
+    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+      getBoard(id).then(setBoard);
+    });
+    return unsubscribe;
+  }, [id, router]);
 
   if (board === undefined) {
     return (

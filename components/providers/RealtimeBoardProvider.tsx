@@ -9,7 +9,7 @@ import {
 import {
   getBoardObjects,
   seedBoardObjects,
-} from "@/lib/firebase/rtdb";
+} from "@/lib/firebase/boards";
 import type { ObjectData } from "@/types";
 
 interface BoardContextValue {
@@ -46,7 +46,7 @@ export function RealtimeBoardProvider({
   initialSnapshot,
   children,
 }: RealtimeBoardProviderProps) {
-  // Seed RTDB from Firestore snapshot if RTDB is empty
+  // Seed Firestore objects subcollection from snapshot if empty
   useEffect(() => {
     if (!boardId || !initialSnapshot) return;
 

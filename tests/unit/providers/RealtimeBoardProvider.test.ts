@@ -6,7 +6,7 @@ import React from "react";
 const mockGetBoardObjects = vi.fn();
 const mockSeedBoardObjects = vi.fn();
 
-vi.mock("@/lib/firebase/rtdb", () => ({
+vi.mock("@/lib/firebase/boards", () => ({
   getBoardObjects: (...args: unknown[]) => mockGetBoardObjects(...args),
   seedBoardObjects: (...args: unknown[]) => mockSeedBoardObjects(...args),
 }));

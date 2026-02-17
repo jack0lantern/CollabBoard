@@ -7,7 +7,7 @@ import {
   updatePresenceCursor,
   removePresence,
   setupOnDisconnectCleanup,
-} from "@/lib/firebase/rtdb";
+} from "@/lib/firebase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { PresenceData } from "@/types/presence";
 

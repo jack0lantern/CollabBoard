@@ -9,7 +9,7 @@ const mockUpdatePresenceCursor = vi.fn();
 const mockRemovePresence = vi.fn();
 const mockSetupOnDisconnectCleanup = vi.fn();
 
-vi.mock("@/lib/firebase/rtdb", () => ({
+vi.mock("@/lib/firebase/boards", () => ({
   onPresenceChange: (...args: unknown[]) => mockOnPresenceChange(...args),
   setPresence: (...args: unknown[]) => mockSetPresence(...args),
   updatePresenceCursor: (...args: unknown[]) => mockUpdatePresenceCursor(...args),

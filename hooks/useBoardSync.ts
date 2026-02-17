@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { getBoardObjects } from "@/lib/firebase/rtdb";
+import { getBoardObjects } from "@/lib/firebase/boards";
 import { updateBoardSnapshot } from "@/lib/firebase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 
