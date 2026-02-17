@@ -13,6 +13,12 @@ import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useSelection } from "@/hooks/useSelection";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import type { ObjectData } from "@/types";
+import {
+  computeBringToFront,
+  computeSendToBack,
+  computeBringForward,
+  computeSendBackward,
+} from "@/lib/utils/zorder";
 
 export function BoardStage({ boardId }: { boardId: string }) {
   const stageRef = useRef<Konva.Stage>(null);
@@ -22,6 +28,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
+    targetIds: string[];
   } | null>(null);
   const { scale, position, handleWheel, setPosition } = usePanZoom();
   const { selectedIds, select, clearSelection, isSelected } = useSelection();
@@ -44,18 +51,18 @@ export function BoardStage({ boardId }: { boardId: string }) {
     (a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0)
   );
 
-  const bringToFront = useCallback(
-    (id: string) => {
-      const maxZ = Math.max(
-        0,
-        ...objectList.map((o) => o.zIndex ?? 0)
-      );
-      updateObject(id, { zIndex: maxZ + 1 });
+  const applyZOrderUpdates = useCallback(
+    (updates: Map<string, number>) => {
+      updates.forEach((zIndex, id) => {
+        updateObject(id, { zIndex });
+      });
     },
-    [objectList, updateObject]
+    [updateObject]
   );
 
   const panStartRef = useRef<{ pointer: { x: number; y: number }; position: { x: number; y: number } } | null>(null);
+  const panningMovedRef = useRef(false);
+  const pendingContextMenuRef = useRef<{ x: number; y: number; targetIds: string[] } | null>(null);
 
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -66,7 +73,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
         clearSelection();
       }
 
-      if ((e.evt.button === 1 || e.evt.button === 2) && clickedOnEmpty) {
+      if (e.evt.button === 1 || e.evt.button === 2) {
         e.evt.preventDefault();
         const pointer = stage?.getPointerPosition();
         if (stage && pointer) {
@@ -81,21 +88,50 @@ export function BoardStage({ boardId }: { boardId: string }) {
     [position.x, position.y, clearSelection]
   );
 
+  const handleContainerMouseDownCapture = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.button === 1 || e.button === 2) {
+        e.preventDefault();
+        e.stopPropagation();
+        panningMovedRef.current = false;
+        pendingContextMenuRef.current = null;
+        const stage = stageRef.current;
+        const container = stage?.container();
+        if (stage && container) {
+          const rect = container.getBoundingClientRect();
+          const pointer = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          };
+          panningRef.current = true;
+          panStartRef.current = {
+            pointer,
+            position: { x: position.x, y: position.y },
+          };
+        }
+      }
+    },
+    [position.x, position.y]
+  );
+
   const handleSelect = useCallback(
     (id: string) => {
       select(id);
-      bringToFront(id);
     },
-    [select, bringToFront]
+    [select]
   );
 
-  const handleDeleteSelected = useCallback(() => {
-    for (const id of selectedIds) {
-      deleteObject(id);
-    }
-    clearSelection();
-    setContextMenu(null);
-  }, [selectedIds, deleteObject, clearSelection]);
+  const handleDeleteSelected = useCallback(
+    (ids?: string[]) => {
+      const toDelete = ids ?? selectedIds;
+      for (const id of toDelete) {
+        deleteObject(id);
+      }
+      clearSelection();
+      setContextMenu(null);
+    },
+    [selectedIds, deleteObject, clearSelection]
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,13 +148,17 @@ export function BoardStage({ boardId }: { boardId: string }) {
 
   const handleShapeContextMenu = useCallback(
     (id: string, clientX: number, clientY: number) => {
+      if (panningRef.current) {
+        pendingContextMenuRef.current = { x: clientX, y: clientY, targetIds: [id] };
+        return;
+      }
+      const targetIds = isSelected(id) ? selectedIds : [id];
       if (!isSelected(id)) {
         select(id);
-        bringToFront(id);
       }
-      setContextMenu({ x: clientX, y: clientY });
+      setContextMenu({ x: clientX, y: clientY, targetIds });
     },
-    [isSelected, select, bringToFront]
+    [select, isSelected, selectedIds]
   );
 
   const handleStageContextMenu = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
@@ -130,13 +170,22 @@ export function BoardStage({ boardId }: { boardId: string }) {
   }, []);
 
   useEffect(() => {
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      if ((e.button === 1 || e.button === 2) && panningRef.current && !panningMovedRef.current && pendingContextMenuRef.current) {
+        const pending = pendingContextMenuRef.current;
+        setContextMenu(pending);
+        if (pending.targetIds.length > 0) {
+          select(pending.targetIds[0]);
+        }
+      }
       panningRef.current = false;
       panStartRef.current = null;
+      panningMovedRef.current = false;
+      pendingContextMenuRef.current = null;
     };
     window.addEventListener("mouseup", handleMouseUp);
     return () => window.removeEventListener("mouseup", handleMouseUp);
-  }, []);
+  }, [select]);
 
   const containerRef = useCallback((node: HTMLDivElement | null) => {
     if (node) {
@@ -161,6 +210,8 @@ export function BoardStage({ boardId }: { boardId: string }) {
       if (pos) {
         updateCursor({ x: pos.x, y: pos.y });
         if (panningRef.current && panStartRef.current) {
+          panningMovedRef.current = true;
+          pendingContextMenuRef.current = null;
           const deltaX = pos.x - panStartRef.current.pointer.x;
           const deltaY = pos.y - panStartRef.current.pointer.y;
           const newPosition = {
@@ -172,6 +223,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
             pointer: { x: pos.x, y: pos.y },
             position: newPosition,
           };
+          setContextMenu(null);
         }
       }
     },
@@ -187,6 +239,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
       ref={containerRef}
       className="w-full h-full"
       data-testid="board-stage"
+      onMouseDownCapture={handleContainerMouseDownCapture}
       data-stage-x={position.x}
       data-stage-y={position.y}
       data-object-count={objectList.length}
@@ -233,8 +286,40 @@ export function BoardStage({ boardId }: { boardId: string }) {
           onClose={() => setContextMenu(null)}
           items={[
             {
+              label: "Bring to front",
+              onClick: () => {
+                const targetIds = contextMenu.targetIds;
+                const updates = computeBringToFront(objectList, targetIds);
+                queueMicrotask(() => applyZOrderUpdates(updates));
+              },
+            },
+            {
+              label: "Send to back",
+              onClick: () => {
+                const targetIds = contextMenu.targetIds;
+                const updates = computeSendToBack(objectList, targetIds);
+                queueMicrotask(() => applyZOrderUpdates(updates));
+              },
+            },
+            {
+              label: "Bring forward",
+              onClick: () => {
+                const targetIds = contextMenu.targetIds;
+                const updates = computeBringForward(objectList, targetIds);
+                queueMicrotask(() => applyZOrderUpdates(updates));
+              },
+            },
+            {
+              label: "Send backward",
+              onClick: () => {
+                const targetIds = contextMenu.targetIds;
+                const updates = computeSendBackward(objectList, targetIds);
+                queueMicrotask(() => applyZOrderUpdates(updates));
+              },
+            },
+            {
               label: "Delete",
-              onClick: handleDeleteSelected,
+              onClick: () => handleDeleteSelected(contextMenu.targetIds),
             },
           ]}
         />

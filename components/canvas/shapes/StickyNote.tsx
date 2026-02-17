@@ -176,6 +176,7 @@ export function StickyNote({
         y={displayY}
         draggable={!isEditing}
         onMouseDown={(e) => {
+          if (e.evt.button !== 0) return;
           e.cancelBubble = true;
           onSelect(data.id);
         }}

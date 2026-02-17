@@ -50,6 +50,7 @@ export function LineShape({
       dash={isSelected ? [8, 4] : undefined}
       draggable
       onMouseDown={(e) => {
+        if (e.evt.button !== 0) return;
         e.cancelBubble = true;
         onSelect(data.id);
       }}
