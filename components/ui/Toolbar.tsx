@@ -1,12 +1,24 @@
 "use client";
 
 import { useBoardMutations } from "@/hooks/useBoardMutations";
+import { useBoardObjects } from "@/hooks/useBoardObjects";
 import { useCallback } from "react";
+import type { ObjectData } from "@/types";
 
 const COLORS = ["#fef08a", "#3b82f6", "#10b981", "#ef4444", "#8b5cf6"];
 
+function getNextZIndex(objects: Record<string, ObjectData>): number {
+  const values = Object.values(objects).filter(
+    (o): o is ObjectData =>
+      o != null && typeof o === "object" && "id" in o && "type" in o
+  );
+  const max = Math.max(0, ...values.map((o) => o.zIndex ?? 0));
+  return max + 1;
+}
+
 export function Toolbar() {
   const { addObject } = useBoardMutations();
+  const objects = useBoardObjects();
 
   const addSticky = useCallback(() => {
     addObject({
@@ -14,12 +26,13 @@ export function Toolbar() {
       type: "sticky",
       x: 100,
       y: 100,
+      zIndex: getNextZIndex(objects),
       width: 200,
       height: 150,
       color: COLORS[0],
       text: "New note",
     });
-  }, [addObject]);
+  }, [addObject, objects]);
 
   const addRect = useCallback(() => {
     addObject({
@@ -27,11 +40,12 @@ export function Toolbar() {
       type: "rect",
       x: 150,
       y: 150,
+      zIndex: getNextZIndex(objects),
       width: 100,
       height: 80,
       color: COLORS[1],
     });
-  }, [addObject]);
+  }, [addObject, objects]);
 
   const addCircle = useCallback(() => {
     addObject({
@@ -39,10 +53,11 @@ export function Toolbar() {
       type: "circle",
       x: 200,
       y: 200,
+      zIndex: getNextZIndex(objects),
       radius: 50,
       color: COLORS[2],
     });
-  }, [addObject]);
+  }, [addObject, objects]);
 
   return (
     <div className="flex gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg">

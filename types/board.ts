@@ -5,6 +5,7 @@ export interface ObjectData {
   type: ShapeType;
   x: number;
   y: number;
+  zIndex?: number;
   width?: number;
   height?: number;
   radius?: number;

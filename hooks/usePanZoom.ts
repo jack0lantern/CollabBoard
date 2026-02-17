@@ -47,5 +47,5 @@ export function usePanZoom() {
     });
   }, []);
 
-  return { scale, position, handleWheel, handleDragEnd, handleDragMove };
+  return { scale, position, handleWheel, handleDragEnd, handleDragMove, setPosition };
 }
