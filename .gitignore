@@ -4,3 +4,4 @@ reqs.pdf
 .env*.local
 node_modules
 .next
+.venv

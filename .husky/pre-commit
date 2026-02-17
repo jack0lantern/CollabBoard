@@ -1,13 +1,30 @@
 #!/usr/bin/env sh
-[ -f "$(dirname -- "$0")/_/husky.sh" ] && . "$(dirname -- "$0")/_/husky.sh"
 
-# Run detect-secrets (requires: pip install -r requirements-dev.txt)
+# Run detect-secrets (requires: pip install -r requirements-dev.txt in venv)
 # Blocks commit if new secrets detected beyond .secrets.baseline
+# Prefer venv's detect-secrets since the hook runs without venv activated
+DETECT_BIN=""
+for venv in .venv venv env; do
+  if [ -f "$venv/bin/detect-secrets" ]; then
+    DETECT_BIN="$venv/bin"
+    break
+  fi
+done
+if [ -n "$DETECT_BIN" ]; then
+  if [ -f "$DETECT_BIN/detect-secrets-hook" ]; then
+    "$DETECT_BIN/detect-secrets-hook" --baseline .secrets.baseline
+  else
+    "$DETECT_BIN/detect-secrets" scan --baseline .secrets.baseline
+  fi
+  exit $?
+fi
 if command -v detect-secrets-hook >/dev/null 2>&1; then
   detect-secrets-hook --baseline .secrets.baseline
-elif command -v detect-secrets >/dev/null 2>&1; then
-  detect-secrets scan --baseline .secrets.baseline
-else
-  echo "⚠️  detect-secrets not installed. Run: pip install -r requirements-dev.txt"
-  exit 1
+  exit $?
 fi
+if command -v detect-secrets >/dev/null 2>&1; then
+  detect-secrets scan --baseline .secrets.baseline
+  exit $?
+fi
+echo "⚠️  detect-secrets not installed. Run: pip install -r requirements-dev.txt (in your venv)"
+exit 1
