@@ -208,7 +208,10 @@ export function BoardStage({ boardId }: { boardId: string }) {
       if (!stage) return;
       const pos = stage.getPointerPosition();
       if (pos) {
-        updateCursor({ x: pos.x, y: pos.y });
+        // Convert container coords to board coords so cursors sync correctly across users with different pan/zoom
+        const boardX = (pos.x - stage.x()) / stage.scaleX();
+        const boardY = (pos.y - stage.y()) / stage.scaleY();
+        updateCursor({ x: boardX, y: boardY });
         if (panningRef.current && panStartRef.current) {
           panningMovedRef.current = true;
           pendingContextMenuRef.current = null;

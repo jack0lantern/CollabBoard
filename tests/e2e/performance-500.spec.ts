@@ -1,7 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * E2E - Performance with 500 Objects (Firebase Emulator)
+ * E2E - Performance with 500 Objects (Firebase Emulator ONLY)
+ *
+ * ⚠️  This test MUST run against the emulator. Running against production would burn
+ *     ~1k writes + ~2.5k reads per run (500 seed + 500 cleanup + 500 reads × 3 pages).
+ *     Firestore charges 500 reads per onSnapshot delivery when the collection has 500 docs.
  *
  * Self-contained test that:
  *   1. Creates a test user in the Auth emulator
@@ -17,6 +21,8 @@ import { test, expect } from "@playwright/test";
  *   NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true \
  *     npx playwright test tests/e2e/performance-500.spec.ts --project=chromium --workers=1
  */
+
+const USE_EMULATOR = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "colabboard-6fecd";
 const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "fake-api-key";
@@ -215,6 +221,18 @@ test.describe("Performance 500 Objects (Emulator)", () => {
   let boardId: string;
 
   test.beforeAll(async () => {
+    if (!USE_EMULATOR) return;
+
+    // Verify emulator is reachable
+    const emulatorCheck = await fetch(`${FIRESTORE_EMULATOR}/`, {
+      method: "GET",
+    }).catch(() => null);
+    if (!emulatorCheck?.ok && emulatorCheck?.status !== 404) {
+      throw new Error(
+        `Firestore emulator not reachable at ${FIRESTORE_EMULATOR}. ` +
+          "Start it with: firebase emulators:start"
+      );
+    }
     // 1. Create / sign in test user via Auth emulator
     const { idToken, uid } = await createEmulatorUser();
 
@@ -257,6 +275,7 @@ test.describe("Performance 500 Objects (Emulator)", () => {
   });
 
   test.beforeEach(async ({ page }) => {
+    if (!USE_EMULATOR) return;
     // Log in via the UI (app is connected to Auth emulator)
     await page.goto("/login");
     await page.getByLabel("Email").fill(TEST_EMAIL);
@@ -269,6 +288,7 @@ test.describe("Performance 500 Objects (Emulator)", () => {
   });
 
   test("board loads 500 objects", async ({ page }) => {
+    test.skip(!USE_EMULATOR, "Requires NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true");
     const stageEl = page.getByTestId("board-stage");
 
     await expect
@@ -285,6 +305,7 @@ test.describe("Performance 500 Objects (Emulator)", () => {
   test("click selection latency within threshold @ 500 objects", async ({
     page,
   }) => {
+    test.skip(!USE_EMULATOR, "Requires NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true");
     const stageEl = page.getByTestId("board-stage");
 
     // Wait for all objects to load
@@ -332,6 +353,7 @@ test.describe("Performance 500 Objects (Emulator)", () => {
   });
 
   test("drag end latency within threshold @ 500 objects", async ({ page }) => {
+    test.skip(!USE_EMULATOR, "Requires NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true");
     const stageEl = page.getByTestId("board-stage");
 
     await expect

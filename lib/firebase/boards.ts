@@ -174,7 +174,10 @@ export function updateBoardObject(
   return updateDoc(
     doc(db, BOARDS_COLLECTION, boardId, "objects", objectId),
     updates as Record<string, unknown>
-  );
+  ).catch((err) => {
+    console.error("[updateBoardObject] Firestore update failed:", err);
+    throw err;
+  });
 }
 
 export function removeBoardObject(
@@ -227,15 +230,22 @@ export function onBoardObjectsChange(
   if (!db) return () => {};
 
   const objectsRef = collection(db, BOARDS_COLLECTION, boardId, "objects");
-  return onSnapshot(objectsRef, (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      const id = change.doc.id;
-      const data = change.doc.data() as ObjectData;
-      if (change.type === "added") callbacks.onAdded(id, data);
-      else if (change.type === "modified") callbacks.onChanged(id, data);
-      else if (change.type === "removed") callbacks.onRemoved(id);
-    });
-  });
+  return onSnapshot(
+    objectsRef,
+    (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const id = change.doc.id;
+        const raw = change.doc.data();
+        const data: ObjectData = { ...raw, id } as ObjectData;
+        if (change.type === "added") callbacks.onAdded(id, data);
+        else if (change.type === "modified") callbacks.onChanged(id, data);
+        else if (change.type === "removed") callbacks.onRemoved(id);
+      });
+    },
+    (err) => {
+      console.error("[onBoardObjectsChange] Firestore listener error:", err);
+    }
+  );
 }
 
 // Presence functions have been moved to lib/firebase/presence.ts (RTDB-backed).
