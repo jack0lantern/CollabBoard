@@ -15,12 +15,16 @@ export interface ObjectData {
   rotation?: number;
 }
 
+export type ShareRole = "editor" | "viewer";
+
 export interface Board {
   id: string;
   title: string;
   created_at: string;
   owner_id: string | null;
   last_snapshot: Record<string, ObjectData> | null;
+  is_public?: boolean;
+  shared_with?: Record<string, ShareRole>;
 }
 
 export interface BoardElement {

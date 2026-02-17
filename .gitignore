@@ -5,3 +5,5 @@ reqs.pdf
 node_modules
 .next
 .venv
+
+firebase-debug.log*

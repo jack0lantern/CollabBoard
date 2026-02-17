@@ -70,7 +70,11 @@ export default function BoardPage({
   return (
     <BoardClientWrapper boardId={id} initialSnapshot={initialSnapshot}>
       <div className="h-screen flex flex-col relative">
-        <BoardHeader boardId={id} />
+        <BoardHeader
+          boardId={id}
+          board={board}
+          onBoardUpdated={setBoard}
+        />
         <div className="flex-1 relative overflow-hidden">
           <BoardCanvas boardId={id} />
           <div className="absolute top-4 left-4 z-10">

@@ -2,22 +2,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /boards/{boardId} {
-      // Users can read boards they own
-      allow read: if request.auth != null && resource.data.owner_id == request.auth.uid;
+      // Helper: user has access (owner, public, or shared)
+      function hasAccess() {
+        return request.auth != null && (
+          resource.data.owner_id == request.auth.uid ||
+          resource.data.get('is_public', false) == true ||
+          (request.auth.token.email != null && request.auth.token.email in resource.data.get('shared_with', {}))
+        );
+      }
+      function isOwner() {
+        return request.auth != null && resource.data.owner_id == request.auth.uid;
+      }
+      // Users can read if they own, board is public, or their email is in shared_with
+      allow read: if hasAccess();
       // Users can create boards with themselves as owner
       allow create: if request.auth != null && request.resource.data.owner_id == request.auth.uid;
-      // Users can update/delete only their own boards
-      allow update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
+      // Only owner can update/delete board doc (including sharing settings)
+      allow update, delete: if isOwner();
 
-      // Canvas objects subcollection - authenticated users with board access
+      // Canvas objects subcollection - users with board access only
       match /objects/{objectId} {
-        allow read, write: if request.auth != null;
+        allow read, write: if request.auth != null && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.owner_id == request.auth.uid ||
+          get(/databases/$(database)/documents/boards/$(boardId)).data.get('is_public', false) == true ||
+          (request.auth.token.email != null && request.auth.token.email in get(/databases/$(database)/documents/boards/$(boardId)).data.get('shared_with', {}))
+        );
       }
 
-      // Presence subcollection - read all, write only own doc
+      // Presence subcollection - users with board access
       match /presence/{userId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.owner_id == request.auth.uid ||
+          get(/databases/$(database)/documents/boards/$(boardId)).data.get('is_public', false) == true ||
+          (request.auth.token.email != null && request.auth.token.email in get(/databases/$(database)/documents/boards/$(boardId)).data.get('shared_with', {}))
+        );
+        allow write: if request.auth != null && request.auth.uid == userId && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.owner_id == request.auth.uid ||
+          get(/databases/$(database)/documents/boards/$(boardId)).data.get('is_public', false) == true ||
+          (request.auth.token.email != null && request.auth.token.email in get(/databases/$(database)/documents/boards/$(boardId)).data.get('shared_with', {}))
+        );
       }
     }
   }

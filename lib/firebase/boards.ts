@@ -14,7 +14,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getFirestoreDb } from "./client";
-import type { Board, ObjectData } from "@/types";
+import type { Board, ObjectData, ShareRole } from "@/types";
 import type { PresenceData } from "@/types/presence";
 
 const BOARDS_COLLECTION = "boards";
@@ -26,6 +26,8 @@ function docToBoard(docId: string, data: Record<string, unknown> | undefined): B
     created_at: (data?.created_at as { toDate?: () => Date })?.toDate?.()?.toISOString?.() ?? "",
     owner_id: (data?.owner_id as string) ?? null,
     last_snapshot: (data?.last_snapshot as Record<string, ObjectData>) ?? null,
+    is_public: (data?.is_public as boolean) ?? false,
+    shared_with: (data?.shared_with as Record<string, ShareRole>) ?? {},
   };
 }
 
@@ -33,11 +35,14 @@ export async function getBoard(id: string): Promise<Board | null> {
   const db = getFirestoreDb();
   if (!db) return null;
 
-  const docRef = doc(db, BOARDS_COLLECTION, id);
-  const snapshot = await getDoc(docRef);
-  if (!snapshot.exists()) return null;
-
-  return docToBoard(snapshot.id, snapshot.data());
+  try {
+    const docRef = doc(db, BOARDS_COLLECTION, id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) return null;
+    return docToBoard(snapshot.id, snapshot.data());
+  } catch {
+    return null;
+  }
 }
 
 export async function getBoardsByOwner(ownerId: string): Promise<Board[]> {
@@ -70,6 +75,27 @@ export async function createBoard(
   const snapshot = await getDoc(ref);
   if (!snapshot.exists()) return null;
   return docToBoard(snapshot.id, snapshot.data());
+}
+
+export async function updateBoardSharing(
+  boardId: string,
+  updates: { is_public?: boolean; shared_with?: Record<string, ShareRole> }
+): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    const docRef = doc(db, BOARDS_COLLECTION, boardId);
+    const updateData: Record<string, unknown> = {};
+    if (updates.is_public !== undefined) updateData.is_public = updates.is_public;
+    if (updates.shared_with !== undefined) updateData.shared_with = updates.shared_with;
+    if (Object.keys(updateData).length > 0) {
+      await updateDoc(docRef, updateData);
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function updateBoardSnapshot(
