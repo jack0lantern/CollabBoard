@@ -20,8 +20,8 @@ export function computeTransformedObject(
       return {
         x,
         y,
-        width: Math.max(MIN_SIZE, w),
-        height: Math.max(MIN_SIZE, h),
+        width: Math.max(MIN_SIZE, Math.abs(w)),
+        height: Math.max(MIN_SIZE, Math.abs(h)),
         rotation: rotation ?? undefined,
       };
     }
@@ -31,8 +31,8 @@ export function computeTransformedObject(
       return {
         x,
         y,
-        radiusX: Math.max(MIN_RADIUS, rx),
-        radiusY: Math.max(MIN_RADIUS, ry),
+        radiusX: Math.max(MIN_RADIUS, Math.abs(rx)),
+        radiusY: Math.max(MIN_RADIUS, Math.abs(ry)),
         radius: undefined,
         rotation: rotation ?? undefined,
       };
@@ -43,8 +43,8 @@ export function computeTransformedObject(
       return {
         x,
         y,
-        width: Math.max(MIN_SIZE, w),
-        height: Math.max(MIN_SIZE, h),
+        width: Math.max(MIN_SIZE, Math.abs(w)),
+        height: Math.max(MIN_SIZE, Math.abs(h)),
         rotation: rotation ?? undefined,
       };
     }

@@ -99,6 +99,86 @@ export function isFullyContained(
   );
 }
 
+/** Threshold to detect which edge was dragged (avoids floating-point noise). */
+const ANCHOR_THRESHOLD = 0.5;
+
+export type TransformBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+};
+
+/**
+ * boundBoxFunc helper: clamp to minimum size while keeping the opposite edge/corner
+ * anchored. When the user drags one handle, the opposite handle stays fixed.
+ * @param anchorBox - Box at transform start (use this for anchor detection; falls back to oldBox if null)
+ */
+export function boundBoxWithAnchorPreservation(
+  oldBox: TransformBox,
+  newBox: TransformBox,
+  minWidth: number,
+  minHeight: number,
+  anchorBox?: TransformBox | null
+): TransformBox {
+  let { x, y, width, height, rotation } = newBox;
+
+  const ref = anchorBox ?? oldBox;
+  const leftMoved = Math.abs(newBox.x - ref.x) > ANCHOR_THRESHOLD;
+  const topMoved = Math.abs(newBox.y - ref.y) > ANCHOR_THRESHOLD;
+
+  if (width < 0) {
+    // User dragged past opposite edge - allow flip, keep anchor fixed
+    const absWidth = Math.max(minWidth, Math.abs(width));
+    if (leftMoved) {
+      const rightEdge = ref.x + ref.width;
+      x = rightEdge;
+      width = -absWidth;
+    } else {
+      const leftEdge = ref.x;
+      x = leftEdge + absWidth;
+      width = -absWidth;
+    }
+  } else if (width < minWidth) {
+    const clampedWidth = Math.max(minWidth, width);
+    if (leftMoved) {
+      const rightEdge = ref.x + ref.width;
+      x = rightEdge - clampedWidth;
+      width = clampedWidth;
+    } else {
+      x = ref.x;
+      width = clampedWidth;
+    }
+  }
+
+  if (height < 0) {
+    // User dragged past opposite edge - allow flip, keep anchor fixed
+    const absHeight = Math.max(minHeight, Math.abs(height));
+    if (topMoved) {
+      const bottomEdge = ref.y + ref.height;
+      y = bottomEdge;
+      height = -absHeight;
+    } else {
+      const topEdge = ref.y;
+      y = topEdge + absHeight;
+      height = -absHeight;
+    }
+  } else if (height < minHeight) {
+    const clampedHeight = Math.max(minHeight, height);
+    if (topMoved) {
+      const bottomEdge = ref.y + ref.height;
+      y = bottomEdge - clampedHeight;
+      height = clampedHeight;
+    } else {
+      y = ref.y;
+      height = clampedHeight;
+    }
+  }
+
+  return { x, y, width, height, rotation };
+}
+
 /**
  * Check if two axis-aligned rectangles intersect.
  */

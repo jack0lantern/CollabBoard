@@ -5,6 +5,8 @@ import { Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
+import type { TransformBox } from "@/lib/utils/boundingBox";
+import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 import { computeTransformedObject } from "@/lib/utils/transformMultiSelect";
 
 const MIN_SIZE = 20;
@@ -27,6 +29,7 @@ export function MultiSelectTransformer({
   onTransformEnd,
 }: MultiSelectTransformerProps) {
   const trRef = useRef<Konva.Transformer | null>(null);
+  const anchorBoxRef = useRef<TransformBox | null>(null);
   const { updateObject } = useBoardMutations();
 
   useLayoutEffect(() => {
@@ -44,6 +47,7 @@ export function MultiSelectTransformer({
   }, [selectedIds, nodeRefs]);
 
   const handleTransformEnd = () => {
+    anchorBoxRef.current = null;
     const tr = trRef.current;
     if (!tr) return;
 
@@ -79,20 +83,18 @@ export function MultiSelectTransformer({
   return (
     <Transformer
       ref={trRef}
-      flipEnabled={false}
+      flipEnabled
       keepRatio={false}
       ignoreStroke
       boundBoxFunc={(oldBox, newBox) => {
-        let { x, y, width, height, rotation } = newBox;
-        if (width < MIN_SIZE) {
-          width = MIN_SIZE;
-          if (newBox.width < 0) x = newBox.x + newBox.width - MIN_SIZE;
-        }
-        if (height < MIN_SIZE) {
-          height = MIN_SIZE;
-          if (newBox.height < 0) y = newBox.y + newBox.height - MIN_SIZE;
-        }
-        return { x, y, width, height, rotation };
+        if (!anchorBoxRef.current) anchorBoxRef.current = oldBox;
+        return boundBoxWithAnchorPreservation(
+          oldBox,
+          newBox,
+          MIN_SIZE,
+          MIN_SIZE,
+          anchorBoxRef.current
+        );
       }}
       onTransformEnd={handleTransformEnd}
     />

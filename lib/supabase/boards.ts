@@ -21,6 +21,32 @@ function rowToBoard(row: {
   };
 }
 
+const MIN_DIMENSION = 1;
+
+function ensurePositiveDimension(val: number | null | undefined): number | undefined {
+  if (val == null) return undefined;
+  return Math.max(MIN_DIMENSION, Math.abs(val));
+}
+
+/** Sanitize ObjectData: ensure width, height, radius are always positive. */
+function sanitizeObjectData(obj: ObjectData): ObjectData {
+  const width = obj.width != null ? ensurePositiveDimension(obj.width) : obj.width;
+  const height = obj.height != null ? ensurePositiveDimension(obj.height) : obj.height;
+  const radius = obj.radius != null ? ensurePositiveDimension(obj.radius) : obj.radius;
+  const radiusX = obj.radiusX != null ? ensurePositiveDimension(obj.radiusX) : obj.radiusX;
+  const radiusY = obj.radiusY != null ? ensurePositiveDimension(obj.radiusY) : obj.radiusY;
+  if (
+    width === obj.width &&
+    height === obj.height &&
+    radius === obj.radius &&
+    radiusX === obj.radiusX &&
+    radiusY === obj.radiusY
+  ) {
+    return obj;
+  }
+  return { ...obj, width, height, radius, radiusX, radiusY };
+}
+
 function rowToObjectData(row: {
   id: string;
   type: string;
@@ -37,7 +63,7 @@ function rowToObjectData(row: {
   text?: string;
   rotation?: number;
 }): ObjectData {
-  return {
+  return sanitizeObjectData({
     id: row.id,
     type: row.type as ObjectData["type"],
     x: row.x,
@@ -52,7 +78,7 @@ function rowToObjectData(row: {
     color: row.color,
     text: row.text,
     rotation: row.rotation,
-  };
+  });
 }
 
 function objectToRow(
@@ -306,7 +332,7 @@ export async function seedBoardObjects(
   if (!supabase) return;
 
   const rows = Object.entries(objects).map(([id, obj]) =>
-    objectToRow({ ...obj, id }, boardId)
+    objectToRow({ ...sanitizeObjectData(obj), id }, boardId)
   );
   await supabase.from("board_objects").upsert(rows, {
     onConflict: "id",

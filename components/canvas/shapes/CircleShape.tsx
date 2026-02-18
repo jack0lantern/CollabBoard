@@ -5,6 +5,8 @@ import { Ellipse, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
+import type { TransformBox } from "@/lib/utils/boundingBox";
+import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 
 const MIN_RADIUS = 10;
 const DEFAULT_RADIUS = 50;
@@ -29,6 +31,7 @@ export function CircleShape({
   const { updateObject } = useBoardMutations();
   const shapeRef = useRef<Konva.Ellipse | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
+  const anchorBoxRef = useRef<TransformBox | null>(null);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
@@ -120,13 +123,18 @@ export function CircleShape({
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {
+          anchorBoxRef.current = null;
           if (isMultiSelect) return;
           const node = shapeRef.current;
           if (!node) return;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
-          const newRadiusX = Math.max(MIN_RADIUS, node.radiusX() * scaleX);
-          const newRadiusY = Math.max(MIN_RADIUS, node.radiusY() * scaleY);
+          const rawRx = node.radiusX() * scaleX;
+          const rawRy = node.radiusY() * scaleY;
+          const newRadiusX =
+            rawRx >= 0 ? Math.max(MIN_RADIUS, rawRx) : -Math.max(MIN_RADIUS, Math.abs(rawRx));
+          const newRadiusY =
+            rawRy >= 0 ? Math.max(MIN_RADIUS, rawRy) : -Math.max(MIN_RADIUS, Math.abs(rawRy));
           setLocalSize({ radiusX: newRadiusX, radiusY: newRadiusY });
           node.scaleX(1);
           node.scaleY(1);
@@ -141,18 +149,19 @@ export function CircleShape({
       {isSelected && !isMultiSelect && (
         <Transformer
           ref={trRef}
-          flipEnabled={false}
+          flipEnabled
           keepRatio={false}
           ignoreStroke
           boundBoxFunc={(oldBox, newBox) => {
+            if (!anchorBoxRef.current) anchorBoxRef.current = oldBox;
             const minDim = MIN_RADIUS * 2;
-            if (
-              Math.abs(newBox.width) < minDim ||
-              Math.abs(newBox.height) < minDim
-            ) {
-              return oldBox;
-            }
-            return newBox;
+            return boundBoxWithAnchorPreservation(
+              oldBox,
+              newBox,
+              minDim,
+              minDim,
+              anchorBoxRef.current
+            );
           }}
         />
       )}

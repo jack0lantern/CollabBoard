@@ -5,6 +5,8 @@ import { Rect, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
+import type { TransformBox } from "@/lib/utils/boundingBox";
+import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 
 const MIN_SIZE = 20;
 
@@ -28,6 +30,7 @@ export function RectShape({
   const { updateObject } = useBoardMutations();
   const shapeRef = useRef<Konva.Rect | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
+  const anchorBoxRef = useRef<TransformBox | null>(null);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
@@ -84,8 +87,8 @@ export function RectShape({
         ref={shapeRef}
         x={displayX}
         y={displayY}
-        width={width}
-        height={height}
+        width={Math.max(MIN_SIZE, Math.abs(width))}
+        height={Math.max(MIN_SIZE, Math.abs(height))}
         fill={data.color ?? "#3b82f6"}
         stroke={isSelected ? "#2563eb" : undefined}
         strokeWidth={isSelected ? 2 : undefined}
@@ -111,13 +114,16 @@ export function RectShape({
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {
+          anchorBoxRef.current = null;
           if (isMultiSelect) return;
           const node = shapeRef.current;
           if (!node) return;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
-          const newWidth = Math.max(MIN_SIZE, node.width() * scaleX);
-          const newHeight = Math.max(MIN_SIZE, node.height() * scaleY);
+          const rawW = node.width() * scaleX;
+          const rawH = node.height() * scaleY;
+          const newWidth = Math.max(MIN_SIZE, Math.abs(rawW));
+          const newHeight = Math.max(MIN_SIZE, Math.abs(rawH));
           setLocalSize({ width: newWidth, height: newHeight });
           node.scaleX(1);
           node.scaleY(1);
@@ -132,31 +138,18 @@ export function RectShape({
       {isSelected && !isMultiSelect && (
         <Transformer
           ref={trRef}
-          flipEnabled={false}
+          flipEnabled
           keepRatio={false}
           ignoreStroke
           boundBoxFunc={(oldBox, newBox) => {
-            let { x, y, width, height, rotation } = newBox;
-            // Prevent flip and enforce minimum: clamp to MIN_SIZE when cursor goes beyond border
-            if (width < 0) {
-              x = newBox.x + newBox.width;
-              width = MIN_SIZE;
-            } else if (width < MIN_SIZE) {
-              width = MIN_SIZE;
-              if (Math.abs(newBox.x - oldBox.x) > 0.5) {
-                x = newBox.x + newBox.width - MIN_SIZE;
-              }
-            }
-            if (height < 0) {
-              y = newBox.y + newBox.height;
-              height = MIN_SIZE;
-            } else if (height < MIN_SIZE) {
-              height = MIN_SIZE;
-              if (Math.abs(newBox.y - oldBox.y) > 0.5) {
-                y = newBox.y + newBox.height - MIN_SIZE;
-              }
-            }
-            return { x, y, width, height, rotation };
+            if (!anchorBoxRef.current) anchorBoxRef.current = oldBox;
+            return boundBoxWithAnchorPreservation(
+              oldBox,
+              newBox,
+              MIN_SIZE,
+              MIN_SIZE,
+              anchorBoxRef.current
+            );
           }}
         />
       )}

@@ -5,6 +5,8 @@ import { Group, Rect, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
+import type { TransformBox } from "@/lib/utils/boundingBox";
+import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 
 const WIDTH = 200;
 const HEIGHT = 150;
@@ -34,6 +36,7 @@ export function StickyNote({
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
+  const anchorBoxRef = useRef<TransformBox | null>(null);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
@@ -102,6 +105,10 @@ export function StickyNote({
 
   const width = localSize?.width ?? data.width ?? WIDTH;
   const height = localSize?.height ?? data.height ?? HEIGHT;
+  const absWidth = Math.abs(width);
+  const absHeight = Math.abs(height);
+  const flipX = width < 0;
+  const flipY = height < 0;
 
   const handleDblClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -124,10 +131,12 @@ export function StickyNote({
     const stageX = stage.x();
     const stageY = stage.y();
 
-    const areaX = stageBox.left + stageX + (pos.x + TEXT_PADDING) * scaleX;
-    const areaY = stageBox.top + stageY + (pos.y + TEXT_PADDING) * scaleY;
-    const areaW = (width - TEXT_PADDING * 2) * scaleX;
-    const areaH = (height - TEXT_PADDING * 2) * scaleY;
+    const textX = width >= 0 ? pos.x + TEXT_PADDING : pos.x + width + TEXT_PADDING;
+    const textY = height >= 0 ? pos.y + TEXT_PADDING : pos.y + height + TEXT_PADDING;
+    const areaX = stageBox.left + stageX + textX * scaleX;
+    const areaY = stageBox.top + stageY + textY * scaleY;
+    const areaW = (Math.abs(width) - TEXT_PADDING * 2) * scaleX;
+    const areaH = (Math.abs(height) - TEXT_PADDING * 2) * scaleY;
 
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
@@ -224,14 +233,17 @@ export function StickyNote({
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {
+          anchorBoxRef.current = null;
           if (isMultiSelect) return;
           const node = groupRef.current;
           if (!node) return;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
           const newRotation = node.rotation();
-          const newWidth = Math.max(MIN_SIZE, width * scaleX);
-          const newHeight = Math.max(MIN_SIZE, height * scaleY);
+          const rawW = width * scaleX;
+          const rawH = height * scaleY;
+          const newWidth = Math.max(MIN_SIZE, Math.abs(rawW));
+          const newHeight = Math.max(MIN_SIZE, Math.abs(rawH));
           setLocalSize({ width: newWidth, height: newHeight });
           setLocalRotation(newRotation);
           node.scaleX(1);
@@ -246,8 +258,8 @@ export function StickyNote({
         }}
       >
         <Rect
-          width={width}
-          height={height}
+          width={absWidth}
+          height={absHeight}
           fill={data.color ?? "#fef08a"}
           stroke={isEditing || isSelected ? "#2563eb" : undefined}
           strokeWidth={isEditing || isSelected ? 3 : undefined}
@@ -260,10 +272,10 @@ export function StickyNote({
       {!isEditing && (
         <Text
           text={data.text ?? ""}
-          x={TEXT_PADDING}
-          y={TEXT_PADDING}
-          width={width - TEXT_PADDING * 2}
-          height={height - TEXT_PADDING * 2}
+          x={flipX ? width + TEXT_PADDING : TEXT_PADDING}
+          y={flipY ? height + TEXT_PADDING : TEXT_PADDING}
+          width={absWidth - TEXT_PADDING * 2}
+          height={absHeight - TEXT_PADDING * 2}
           fontSize={FONT_SIZE}
           fontFamily={FONT_FAMILY}
           fill={TEXT_COLOR}
@@ -274,31 +286,18 @@ export function StickyNote({
     {isSelected && !isMultiSelect && (
       <Transformer
         ref={trRef}
-        flipEnabled={false}
+        flipEnabled
         keepRatio={false}
         ignoreStroke
         boundBoxFunc={(oldBox, newBox) => {
-          let { x, y, width, height, rotation } = newBox;
-          // Prevent flip and enforce minimum: clamp to MIN_SIZE when cursor goes beyond border
-          if (width < 0) {
-            x = newBox.x + newBox.width;
-            width = MIN_SIZE;
-          } else if (width < MIN_SIZE) {
-            width = MIN_SIZE;
-            if (Math.abs(newBox.x - oldBox.x) > 0.5) {
-              x = newBox.x + newBox.width - MIN_SIZE;
-            }
-          }
-          if (height < 0) {
-            y = newBox.y + newBox.height;
-            height = MIN_SIZE;
-          } else if (height < MIN_SIZE) {
-            height = MIN_SIZE;
-            if (Math.abs(newBox.y - oldBox.y) > 0.5) {
-              y = newBox.y + newBox.height - MIN_SIZE;
-            }
-          }
-          return { x, y, width, height, rotation };
+          if (!anchorBoxRef.current) anchorBoxRef.current = oldBox;
+          return boundBoxWithAnchorPreservation(
+            oldBox,
+            newBox,
+            MIN_SIZE,
+            MIN_SIZE,
+            anchorBoxRef.current
+          );
         }}
       />
     )}
