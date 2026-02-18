@@ -32,6 +32,7 @@ export function CircleShape({
   const shapeRef = useRef<Konva.Ellipse | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
+  const isTransformingRef = useRef(false);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
@@ -61,6 +62,7 @@ export function CircleShape({
     radiusY: data.radiusY ?? data.radius ?? DEFAULT_RADIUS,
   });
   useEffect(() => {
+    if (isTransformingRef.current) return;
     if (localSize != null) {
       const prev = prevDataRef.current;
       const currX = data.radiusX ?? data.radius ?? DEFAULT_RADIUS;
@@ -138,6 +140,7 @@ export function CircleShape({
         }}
         onTransformEnd={() => {
           anchorBoxRef.current = null;
+          isTransformingRef.current = false;
           if (isMultiSelect) return;
           const node = shapeRef.current;
           if (!node) return;
@@ -170,15 +173,17 @@ export function CircleShape({
           keepRatio={false}
           ignoreStroke
           onTransformStart={() => {
+            isTransformingRef.current = true;
             const node = shapeRef.current;
             if (node) {
-              const rx = node.radiusX();
-              const ry = node.radiusY();
+              const rect = node.getClientRect({
+                relativeTo: node.getLayer() ?? undefined,
+              });
               anchorBoxRef.current = {
-                x: node.x() - rx,
-                y: node.y() - ry,
-                width: rx * 2,
-                height: ry * 2,
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
                 rotation: node.rotation(),
               };
             }

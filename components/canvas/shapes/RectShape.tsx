@@ -10,6 +10,12 @@ import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 
 const MIN_SIZE = 20;
 
+/**
+ * Single-select transform: use data as source of truth. No localSize during
+ * transform—Konva applies scaleX/scaleY to the node. On transform end, bake
+ * scale into width/height and persist. isTransforming ref prevents external
+ * data sync from causing flicker during the transform.
+ */
 export function RectShape({
   data,
   onSelect,
@@ -31,6 +37,7 @@ export function RectShape({
   const shapeRef = useRef<Konva.Rect | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
+  const isTransformingRef = useRef(false);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
@@ -57,6 +64,7 @@ export function RectShape({
 
   const prevDataRef = useRef({ width: data.width, height: data.height });
   useEffect(() => {
+    if (isTransformingRef.current) return;
     if (localSize != null) {
       const prev = prevDataRef.current;
       if (data.width !== prev.width || data.height !== prev.height) {
@@ -129,6 +137,7 @@ export function RectShape({
         }}
         onTransformEnd={() => {
           anchorBoxRef.current = null;
+          isTransformingRef.current = false;
           if (isMultiSelect) return;
           const node = shapeRef.current;
           if (!node) return;
@@ -159,13 +168,17 @@ export function RectShape({
           keepRatio={false}
           ignoreStroke
           onTransformStart={() => {
+            isTransformingRef.current = true;
             const node = shapeRef.current;
             if (node) {
+              const rect = node.getClientRect({
+                relativeTo: node.getLayer() ?? undefined,
+              });
               anchorBoxRef.current = {
-                x: node.x(),
-                y: node.y(),
-                width: node.width(),
-                height: node.height(),
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
                 rotation: node.rotation(),
               };
             }

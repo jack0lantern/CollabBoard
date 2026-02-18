@@ -37,6 +37,7 @@ export function StickyNote({
   const groupRef = useRef<Konva.Group | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
+  const isTransformingRef = useRef(false);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
@@ -67,6 +68,7 @@ export function StickyNote({
 
   const prevDataRef = useRef({ width: data.width, height: data.height });
   useEffect(() => {
+    if (isTransformingRef.current) return;
     if (localSize != null) {
       const prev = prevDataRef.current;
       if (data.width !== prev.width || data.height !== prev.height) {
@@ -78,6 +80,7 @@ export function StickyNote({
 
   const prevRotationRef = useRef(data.rotation);
   useEffect(() => {
+    if (isTransformingRef.current) return;
     if (localRotation != null) {
       const prev = prevRotationRef.current;
       if (data.rotation !== prev) {
@@ -236,6 +239,7 @@ export function StickyNote({
         }}
         onTransformEnd={() => {
           anchorBoxRef.current = null;
+          isTransformingRef.current = false;
           if (isMultiSelect) return;
           const node = groupRef.current;
           if (!node) return;
@@ -309,6 +313,7 @@ export function StickyNote({
         keepRatio={false}
         ignoreStroke
         onTransformStart={() => {
+          isTransformingRef.current = true;
           const node = groupRef.current;
           if (node) {
             const layer = node.getLayer();

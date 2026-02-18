@@ -107,10 +107,13 @@ export type TransformBox = {
   rotation: number;
 };
 
+/** Epsilon for anchor detection - avoids flip-flopping when deltas are nearly equal */
+const ANCHOR_EPSILON = 1e-6;
+
 /**
  * boundBoxFunc helper: clamp to minimum size while keeping the opposite edge/corner
  * anchored. When the user drags one handle, the opposite handle stays fixed.
- * @param anchorBox - Box at transform start (use this for anchor detection; falls back to oldBox if null)
+ * Uses anchorBox (transform-start box) for stable reference to avoid drift/flicker.
  */
 export function boundBoxWithAnchorPreservation(
   oldBox: TransformBox,
@@ -119,66 +122,65 @@ export function boundBoxWithAnchorPreservation(
   minHeight: number,
   anchorBox?: TransformBox | null
 ): TransformBox {
+  const ref = anchorBox ?? oldBox;
   let { x, y, width, height, rotation } = newBox;
 
-  const ref = anchorBox ?? oldBox;
-  // Infer anchor from which edge moved less (more robust than position threshold)
+  // Infer which edge is being dragged by comparing movement from ref (transform start).
+  // Use strict greater-than with epsilon so we don't flip-flop when deltas are equal.
   const leftDelta = Math.abs(newBox.x - ref.x);
   const rightDelta = Math.abs(
-    (newBox.x + newBox.width) - (ref.x + ref.width)
+    newBox.x + newBox.width - (ref.x + ref.width)
   );
-  const leftMoved = leftDelta > rightDelta;
+  const leftMoved = leftDelta > rightDelta + ANCHOR_EPSILON;
   const topDelta = Math.abs(newBox.y - ref.y);
   const bottomDelta = Math.abs(
-    (newBox.y + newBox.height) - (ref.y + ref.height)
+    newBox.y + newBox.height - (ref.y + ref.height)
   );
-  const topMoved = topDelta > bottomDelta;
+  const topMoved = topDelta > bottomDelta + ANCHOR_EPSILON;
 
-  if (width < 0) {
-    // User dragged past opposite edge - allow flip, keep anchor fixed
-    const absWidth = Math.max(minWidth, Math.abs(width));
-    if (leftMoved) {
-      const rightEdge = ref.x + ref.width;
-      x = rightEdge;
-      width = -absWidth;
+  // Clamp width: keep opposite edge fixed
+  const absWidth = Math.abs(width);
+  if (absWidth < minWidth) {
+    const clamped = minWidth;
+    if (width < 0) {
+      if (leftMoved) {
+        x = ref.x + ref.width;
+        width = -clamped;
+      } else {
+        x = ref.x + clamped;
+        width = -clamped;
+      }
     } else {
-      const leftEdge = ref.x;
-      x = leftEdge + absWidth;
-      width = -absWidth;
-    }
-  } else if (width < minWidth) {
-    const clampedWidth = Math.max(minWidth, width);
-    if (leftMoved) {
-      const rightEdge = ref.x + ref.width;
-      x = rightEdge - clampedWidth;
-      width = clampedWidth;
-    } else {
-      x = ref.x;
-      width = clampedWidth;
+      if (leftMoved) {
+        x = ref.x + ref.width - clamped;
+        width = clamped;
+      } else {
+        x = ref.x;
+        width = clamped;
+      }
     }
   }
 
-  if (height < 0) {
-    // User dragged past opposite edge - allow flip, keep anchor fixed
-    const absHeight = Math.max(minHeight, Math.abs(height));
-    if (topMoved) {
-      const bottomEdge = ref.y + ref.height;
-      y = bottomEdge;
-      height = -absHeight;
+  // Clamp height: keep opposite edge fixed
+  const absHeight = Math.abs(height);
+  if (absHeight < minHeight) {
+    const clamped = minHeight;
+    if (height < 0) {
+      if (topMoved) {
+        y = ref.y + ref.height;
+        height = -clamped;
+      } else {
+        y = ref.y + clamped;
+        height = -clamped;
+      }
     } else {
-      const topEdge = ref.y;
-      y = topEdge + absHeight;
-      height = -absHeight;
-    }
-  } else if (height < minHeight) {
-    const clampedHeight = Math.max(minHeight, height);
-    if (topMoved) {
-      const bottomEdge = ref.y + ref.height;
-      y = bottomEdge - clampedHeight;
-      height = clampedHeight;
-    } else {
-      y = ref.y;
-      height = clampedHeight;
+      if (topMoved) {
+        y = ref.y + ref.height - clamped;
+        height = clamped;
+      } else {
+        y = ref.y;
+        height = clamped;
+      }
     }
   }
 
