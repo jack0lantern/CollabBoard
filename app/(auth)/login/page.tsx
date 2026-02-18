@@ -7,7 +7,7 @@ type LoginPageProps = {
 export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <div className="space-y-6">
-      <LoginForm authError={searchParams.error} />
+      <LoginForm />
     </div>
   );
 }
