@@ -12,9 +12,9 @@ const WIDTH = 200;
 const HEIGHT = 150;
 const MIN_SIZE = 40;
 const TEXT_PADDING = 8;
-const FONT_SIZE = 14;
-const TEXT_COLOR = "black";
-const FONT_FAMILY = "sans-serif";
+const DEFAULT_FONT_SIZE = 14;
+const DEFAULT_TEXT_COLOR = "black";
+const DEFAULT_FONT_FAMILY = "sans-serif";
 
 export function StickyNote({
   data,
@@ -147,9 +147,11 @@ export function StickyNote({
     textarea.style.top = `${areaY}px`;
     textarea.style.width = `${areaW}px`;
     textarea.style.height = `${areaH}px`;
-    textarea.style.fontSize = `${FONT_SIZE}px`;
-    textarea.style.fontFamily = FONT_FAMILY;
-    textarea.style.color = TEXT_COLOR;
+    textarea.style.fontSize = `${data.fontSize ?? DEFAULT_FONT_SIZE}px`;
+    textarea.style.fontFamily = data.fontFamily ?? DEFAULT_FONT_FAMILY;
+    textarea.style.fontWeight = data.fontWeight ?? "normal";
+    textarea.style.fontStyle = data.fontStyle ?? "normal";
+    textarea.style.color = data.textColor ?? DEFAULT_TEXT_COLOR;
     textarea.style.border = "none";
     textarea.style.padding = "0";
     textarea.style.margin = "0";
@@ -261,8 +263,20 @@ export function StickyNote({
           width={absWidth}
           height={absHeight}
           fill={data.color ?? "#fef08a"}
-          stroke={isEditing || isSelected ? "#2563eb" : undefined}
-          strokeWidth={isEditing || isSelected ? 3 : undefined}
+          stroke={
+            (data.strokeWidth ?? 0) > 0
+              ? (data.strokeColor ?? data.color ?? "#eab308")
+              : isEditing || isSelected
+                ? "#2563eb"
+                : undefined
+          }
+          strokeWidth={
+            (data.strokeWidth ?? 0) > 0
+              ? (data.strokeWidth ?? 1)
+              : isEditing || isSelected
+                ? 3
+                : undefined
+          }
           strokeScaleEnabled={false}
         shadowColor="black"
         shadowBlur={4}
@@ -276,9 +290,14 @@ export function StickyNote({
           y={flipY ? height + TEXT_PADDING : TEXT_PADDING}
           width={absWidth - TEXT_PADDING * 2}
           height={absHeight - TEXT_PADDING * 2}
-          fontSize={FONT_SIZE}
-          fontFamily={FONT_FAMILY}
-          fill={TEXT_COLOR}
+          fontSize={data.fontSize ?? DEFAULT_FONT_SIZE}
+          fontFamily={data.fontFamily ?? DEFAULT_FONT_FAMILY}
+          fontStyle={
+            [data.fontWeight === "bold" && "bold", data.fontStyle === "italic" && "italic"]
+              .filter(Boolean)
+              .join(" ") || "normal"
+          }
+          fill={data.textColor ?? DEFAULT_TEXT_COLOR}
           listening={false}
         />
       )}

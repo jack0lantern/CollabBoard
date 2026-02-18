@@ -101,8 +101,20 @@ export function CircleShape({
         radiusX={radiusX}
         radiusY={radiusY}
         fill={data.color ?? "#10b981"}
-        stroke={isSelected ? "#2563eb" : undefined}
-        strokeWidth={isSelected ? 2 : undefined}
+        stroke={
+          (data.strokeWidth ?? 0) > 0
+            ? (data.strokeColor ?? data.color ?? "#059669")
+            : isSelected
+              ? "#2563eb"
+              : undefined
+        }
+        strokeWidth={
+          (data.strokeWidth ?? 0) > 0
+            ? (data.strokeWidth ?? 1)
+            : isSelected
+              ? 2
+              : undefined
+        }
         strokeScaleEnabled={false}
         draggable
         onMouseDown={(e) => {

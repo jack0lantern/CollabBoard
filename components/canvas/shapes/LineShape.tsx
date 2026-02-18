@@ -15,7 +15,7 @@ const HOVER_STROKE_WIDTH = 8;
 const HOVER_OPACITY = 0.2;
 const ARROW_LENGTH = 12;
 const ARROW_WIDTH = 10;
-const LINE_STROKE_WIDTH = 2;
+const DEFAULT_LINE_STROKE_WIDTH = 2;
 
 function setCursor(e: Konva.KonvaEventObject<MouseEvent>, cursor: string) {
   const container = e.target.getStage()?.container();
@@ -65,7 +65,11 @@ export function LineShape({
   const displayRotation = data.rotation ?? 0;
   const displayPoints = points;
 
-  const lineColor = data.color ?? "#6b7280";
+  const lineColor = data.strokeColor ?? data.color ?? "#6b7280";
+  const lineStrokeWidth = Math.max(
+    1,
+    (data.strokeWidth ?? 0) > 0 ? (data.strokeWidth ?? DEFAULT_LINE_STROKE_WIDTH) : DEFAULT_LINE_STROKE_WIDTH
+  );
   const hasArrowStart = data.arrowStart === true;
   const hasArrowEnd = data.arrowEnd === true;
   const hasArrows = hasArrowStart || hasArrowEnd;
@@ -164,7 +168,7 @@ export function LineShape({
     points: displayPoints,
     x: 0,
     y: 0,
-    strokeWidth: LINE_STROKE_WIDTH,
+    strokeWidth: lineStrokeWidth,
     strokeScaleEnabled: false,
     hitStrokeWidth: HIT_STROKE_WIDTH,
     listening: true,

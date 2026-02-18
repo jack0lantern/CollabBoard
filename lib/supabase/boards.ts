@@ -62,6 +62,15 @@ function rowToObjectData(row: {
   color?: string;
   text?: string;
   rotation?: number;
+  font_family?: string;
+  font_size?: number;
+  font_weight?: string;
+  font_style?: string;
+  text_color?: string;
+  stroke_color?: string;
+  stroke_width?: number;
+  arrow_start?: boolean;
+  arrow_end?: boolean;
 }): ObjectData {
   return sanitizeObjectData({
     id: row.id,
@@ -78,6 +87,15 @@ function rowToObjectData(row: {
     color: row.color,
     text: row.text,
     rotation: row.rotation,
+    fontFamily: row.font_family,
+    fontSize: row.font_size,
+    fontWeight: row.font_weight,
+    fontStyle: row.font_style,
+    textColor: row.text_color,
+    strokeColor: row.stroke_color,
+    strokeWidth: row.stroke_width,
+    arrowStart: row.arrow_start,
+    arrowEnd: row.arrow_end,
   });
 }
 
@@ -101,6 +119,15 @@ function objectToRow(
     color: object.color,
     text: object.text,
     rotation: object.rotation ?? 0,
+    font_family: object.fontFamily,
+    font_size: object.fontSize,
+    font_weight: object.fontWeight,
+    font_style: object.fontStyle,
+    text_color: object.textColor,
+    stroke_color: object.strokeColor,
+    stroke_width: object.strokeWidth,
+    arrow_start: object.arrowStart,
+    arrow_end: object.arrowEnd,
   };
 }
 
@@ -261,6 +288,15 @@ export async function updateBoardObject(
   if (updates.color !== undefined) updateData.color = updates.color;
   if (updates.text !== undefined) updateData.text = updates.text;
   if (updates.rotation !== undefined) updateData.rotation = updates.rotation;
+  if (updates.fontFamily !== undefined) updateData.font_family = updates.fontFamily;
+  if (updates.fontSize !== undefined) updateData.font_size = updates.fontSize;
+  if (updates.fontWeight !== undefined) updateData.font_weight = updates.fontWeight;
+  if (updates.fontStyle !== undefined) updateData.font_style = updates.fontStyle;
+  if (updates.textColor !== undefined) updateData.text_color = updates.textColor;
+  if (updates.strokeColor !== undefined) updateData.stroke_color = updates.strokeColor;
+  if (updates.strokeWidth !== undefined) updateData.stroke_width = updates.strokeWidth;
+  if (updates.arrowStart !== undefined) updateData.arrow_start = updates.arrowStart;
+  if (updates.arrowEnd !== undefined) updateData.arrow_end = updates.arrowEnd;
 
   if (Object.keys(updateData).length === 0) return;
 

@@ -92,8 +92,20 @@ export function RectShape({
         width={Math.max(MIN_SIZE, Math.abs(width))}
         height={Math.max(MIN_SIZE, Math.abs(height))}
         fill={data.color ?? "#3b82f6"}
-        stroke={isSelected ? "#2563eb" : undefined}
-        strokeWidth={isSelected ? 2 : undefined}
+        stroke={
+          (data.strokeWidth ?? 0) > 0
+            ? (data.strokeColor ?? data.color ?? "#2563eb")
+            : isSelected
+              ? "#2563eb"
+              : undefined
+        }
+        strokeWidth={
+          (data.strokeWidth ?? 0) > 0
+            ? (data.strokeWidth ?? 1)
+            : isSelected
+              ? 2
+              : undefined
+        }
         strokeScaleEnabled={false}
         draggable
         onMouseDown={(e) => {

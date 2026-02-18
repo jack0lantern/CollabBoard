@@ -17,6 +17,20 @@ export interface ObjectData {
   rotation?: number;
   arrowStart?: boolean;
   arrowEnd?: boolean;
+  /** Font family for text (e.g. sticky notes) */
+  fontFamily?: string;
+  /** Font size in pixels */
+  fontSize?: number;
+  /** Font weight: "normal" | "bold" */
+  fontWeight?: string;
+  /** Font style: "normal" | "italic" */
+  fontStyle?: string;
+  /** Text color (fill) */
+  textColor?: string;
+  /** Border/stroke color */
+  strokeColor?: string;
+  /** Border/stroke width in pixels */
+  strokeWidth?: number;
 }
 
 export type ShareRole = "editor" | "viewer";

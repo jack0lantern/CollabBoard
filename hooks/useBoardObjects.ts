@@ -31,6 +31,13 @@ function objectDataEqual(a: ObjectData, b: ObjectData): boolean {
   if ((a.text ?? "") !== (b.text ?? "")) return false;
   if ((a.arrowStart ?? false) !== (b.arrowStart ?? false)) return false;
   if ((a.arrowEnd ?? false) !== (b.arrowEnd ?? false)) return false;
+  if ((a.fontFamily ?? "") !== (b.fontFamily ?? "")) return false;
+  if ((a.fontSize ?? 0) !== (b.fontSize ?? 0)) return false;
+  if ((a.fontWeight ?? "") !== (b.fontWeight ?? "")) return false;
+  if ((a.fontStyle ?? "") !== (b.fontStyle ?? "")) return false;
+  if ((a.textColor ?? "") !== (b.textColor ?? "")) return false;
+  if ((a.strokeColor ?? "") !== (b.strokeColor ?? "")) return false;
+  if ((a.strokeWidth ?? 0) !== (b.strokeWidth ?? 0)) return false;
   const pa = a.points ?? [];
   const pb = b.points ?? [];
   if (pa.length !== pb.length) return false;

@@ -27,6 +27,7 @@ import {
   getObjectBoundingBox,
   rectsIntersect,
 } from "@/lib/utils/boundingBox";
+import { ShapeToolbar } from "./ShapeToolbar";
 
 export function BoardStage({ boardId }: { boardId: string }) {
   const stageRef = useRef<Konva.Stage>(null);
@@ -324,20 +325,35 @@ export function BoardStage({ boardId }: { boardId: string }) {
     return () => window.removeEventListener("mouseup", handleMouseUp);
   }, [select, setSelection, clearSelection]);
 
+  const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useCallback((node: HTMLDivElement | null) => {
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
     if (node) {
+      const updateRect = () => {
+        setContainerRect(node.getBoundingClientRect());
+      };
       const resize = () => {
         setDimensions({
           width: node.offsetWidth,
           height: node.offsetHeight,
         });
+        updateRect();
       };
       resize();
       const observer = new ResizeObserver(resize);
       observer.observe(node);
-      return () => observer.disconnect();
+      resizeObserverRef.current = observer;
+    } else {
+      setContainerRect(null);
     }
   }, []);
+
+  const selectedSingleObject =
+    selectedIds.length === 1
+      ? objectList.find((o) => o.id === selectedIds[0])
+      : null;
 
   const handleMouseMove = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -457,6 +473,26 @@ export function BoardStage({ boardId }: { boardId: string }) {
                 <CursorOverlay stageRef={stageRef} others={others} />
               </Layer>
             </Stage>
+            {selectedSingleObject != null &&
+              containerRect != null &&
+              selectedIds.length === 1 && (
+                <ShapeToolbar
+                  object={selectedSingleObject}
+                  containerRect={containerRect}
+                  shapeRect={(() => {
+                    const box = getObjectBoundingBox(selectedSingleObject);
+                    return {
+                      x: position.x + box.x * scale,
+                      y: position.y + box.y * scale,
+                      width: box.width * scale,
+                      height: box.height * scale,
+                    };
+                  })()}
+                  onUpdate={(updates) =>
+                    updateObject(selectedSingleObject.id, updates)
+                  }
+                />
+              )}
             {contextMenu != null && (
               <ContextMenu
                 x={contextMenu.x}
