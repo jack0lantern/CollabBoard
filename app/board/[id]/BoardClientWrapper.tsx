@@ -1,6 +1,7 @@
 "use client";
 
 import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvider";
+import { BoardObjectsProvider } from "@/components/providers/BoardObjectsProvider";
 import { useBoardSync } from "@/hooks/useBoardSync";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { ensureAnonymousAuth } from "@/lib/firebase/anonymous-auth";
@@ -78,7 +79,7 @@ export function BoardClientWrapper({
       initialSnapshot={initialSnapshot}
     >
       <SyncManager />
-      {children}
+      <BoardObjectsProvider>{children}</BoardObjectsProvider>
     </RealtimeBoardProvider>
   );
 }

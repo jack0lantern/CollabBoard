@@ -9,5 +9,17 @@ export function createSupabaseClient(): SupabaseClient | null {
     return null;
   }
 
-  return createBrowserClient(url, anonKey);
+  const client = createBrowserClient(url, anonKey, {
+    realtime: {
+      // Use Web Worker for heartbeats so they continue when tab is backgrounded
+      worker: true,
+      // Reconnect when connection drops (e.g. after idle)
+      heartbeatCallback: (status) => {
+        if (status === "disconnected" || status === "timeout") {
+          client?.realtime?.connect?.();
+        }
+      },
+    },
+  });
+  return client;
 }

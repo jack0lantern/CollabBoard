@@ -1,7 +1,7 @@
 "use client";
 
 import { useBoardMutations } from "@/hooks/useBoardMutations";
-import { useBoardObjects } from "@/hooks/useBoardObjects";
+import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ObjectData } from "@/types";
@@ -103,7 +103,7 @@ function LineIcon() {
 
 export function Toolbar() {
   const { addObject } = useBoardMutations();
-  const { objects } = useBoardObjects();
+  const { objects } = useBoardObjectsContext();
   const [shapesExpanded, setShapesExpanded] = useState(false);
   const shapesRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

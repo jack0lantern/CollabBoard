@@ -3,12 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import {
-  useBoardObjects,
-  PatchObjectContext,
-  AddObjectContext,
-  RemoveObjectContext,
-} from "@/hooks/useBoardObjects";
+import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
 import { usePresence } from "@/hooks/usePresence";
 import { ShapeRenderer } from "./shapes/ShapeRenderer";
 import { CursorOverlay } from "./CursorOverlay";
@@ -74,7 +69,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
   }, []);
 
   const { objects, patchObject, addObject: addObjectLocal, removeObject } =
-    useBoardObjects();
+    useBoardObjectsContext();
   const { others, updateCursor } = usePresence();
   const { addObject, updateObject, deleteObject } = useBoardMutations();
 
@@ -365,10 +360,8 @@ export function BoardStage({ boardId }: { boardId: string }) {
   }, [updateCursor]);
 
   return (
-    <PatchObjectContext.Provider value={patchObject}>
-      <AddObjectContext.Provider value={addObjectLocal}>
-        <RemoveObjectContext.Provider value={removeObject}>
-          <div
+    <>
+      <div
             ref={containerRef}
             className="w-full h-full"
             data-testid="board-stage"
@@ -486,8 +479,6 @@ export function BoardStage({ boardId }: { boardId: string }) {
               />
             )}
           </div>
-        </RemoveObjectContext.Provider>
-      </AddObjectContext.Provider>
-    </PatchObjectContext.Provider>
+    </>
   );
 }

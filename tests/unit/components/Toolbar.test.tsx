@@ -8,9 +8,13 @@ vi.mock("@/hooks/useBoardMutations", () => ({
   useBoardMutations: () => ({ addObject: mockAddObject }),
 }));
 
-vi.mock("@/hooks/useBoardObjects", () => ({
-  useBoardObjects: () => ({ objects: {} }),
-}));
+vi.mock("@/hooks/useBoardObjects", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/useBoardObjects")>();
+  return {
+    ...actual,
+    useBoardObjectsContext: () => ({ objects: {} }),
+  };
+});
 
 describe("Toolbar", () => {
   beforeEach(() => {
