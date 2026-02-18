@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Group, Rect, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
@@ -18,12 +18,16 @@ export function StickyNote({
   data,
   onSelect,
   isSelected,
+  isMultiSelect,
+  registerShapeRef,
   onShapeDragEnd,
   onContextMenu,
 }: {
   data: ObjectData;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
+  isMultiSelect?: boolean;
+  registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
 }) {
@@ -68,10 +72,20 @@ export function StickyNote({
   }, [data.width, data.height, localSize]);
 
   useEffect(() => {
-    if (isSelected && groupRef.current != null && trRef.current != null) {
-      trRef.current.nodes([groupRef.current]);
+    if (isSelected && groupRef.current != null) {
+      registerShapeRef?.(data.id, groupRef.current);
+    } else {
+      registerShapeRef?.(data.id, null);
     }
-  }, [isSelected]);
+    return () => registerShapeRef?.(data.id, null);
+  }, [isSelected, data.id, registerShapeRef]);
+
+  useLayoutEffect(() => {
+    if (isSelected && !isMultiSelect && groupRef.current != null && trRef.current != null) {
+      trRef.current.nodes([groupRef.current]);
+      trRef.current.getLayer()?.batchDraw();
+    }
+  }, [isSelected, isMultiSelect]);
 
   const width = localSize?.width ?? data.width ?? WIDTH;
   const height = localSize?.height ?? data.height ?? HEIGHT;
@@ -178,7 +192,7 @@ export function StickyNote({
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;
-          onSelect(data.id);
+          onSelect(data.id, e.evt.shiftKey);
         }}
         onContextMenu={(e) => {
           e.evt.preventDefault();
@@ -196,6 +210,7 @@ export function StickyNote({
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {
+          if (isMultiSelect) return;
           const node = groupRef.current;
           if (!node) return;
           const scaleX = node.scaleX();
@@ -241,7 +256,7 @@ export function StickyNote({
         />
       )}
     </Group>
-    {isSelected && (
+    {isSelected && !isMultiSelect && (
       <Transformer
         ref={trRef}
         flipEnabled={false}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Rect, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
@@ -12,12 +12,16 @@ export function RectShape({
   data,
   onSelect,
   isSelected,
+  isMultiSelect,
+  registerShapeRef,
   onShapeDragEnd,
   onContextMenu,
 }: {
   data: ObjectData;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
+  isMultiSelect?: boolean;
+  registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
 }) {
@@ -59,10 +63,20 @@ export function RectShape({
   }, [data.width, data.height, localSize]);
 
   useEffect(() => {
-    if (isSelected && shapeRef.current != null && trRef.current != null) {
-      trRef.current.nodes([shapeRef.current]);
+    if (isSelected && shapeRef.current != null) {
+      registerShapeRef?.(data.id, shapeRef.current);
+    } else {
+      registerShapeRef?.(data.id, null);
     }
-  }, [isSelected]);
+    return () => registerShapeRef?.(data.id, null);
+  }, [isSelected, data.id, registerShapeRef]);
+
+  useLayoutEffect(() => {
+    if (isSelected && !isMultiSelect && shapeRef.current != null && trRef.current != null) {
+      trRef.current.nodes([shapeRef.current]);
+      trRef.current.getLayer()?.batchDraw();
+    }
+  }, [isSelected, isMultiSelect]);
 
   return (
     <>
@@ -80,7 +94,7 @@ export function RectShape({
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;
-          onSelect(data.id);
+          onSelect(data.id, e.evt.shiftKey);
         }}
         onContextMenu={(e) => {
           e.evt.preventDefault();
@@ -97,6 +111,7 @@ export function RectShape({
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {
+          if (isMultiSelect) return;
           const node = shapeRef.current;
           if (!node) return;
           const scaleX = node.scaleX();
@@ -114,7 +129,7 @@ export function RectShape({
           });
         }}
       />
-      {isSelected && (
+      {isSelected && !isMultiSelect && (
         <Transformer
           ref={trRef}
           flipEnabled={false}

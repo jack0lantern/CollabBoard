@@ -15,6 +15,8 @@ export interface ObjectData {
   color?: string;
   text?: string;
   rotation?: number;
+  arrowStart?: boolean;
+  arrowEnd?: boolean;
 }
 
 export type ShareRole = "editor" | "viewer";

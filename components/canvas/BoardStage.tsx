@@ -13,6 +13,8 @@ import { usePresence } from "@/hooks/usePresence";
 import { ShapeRenderer } from "./shapes/ShapeRenderer";
 import { CursorOverlay } from "./CursorOverlay";
 import { GridBackground } from "./GridBackground";
+import { SelectionBox } from "./SelectionBox";
+import { MultiSelectTransformer } from "./MultiSelectTransformer";
 import { usePanZoom } from "@/hooks/usePanZoom";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useSelection } from "@/hooks/useSelection";
@@ -24,6 +26,11 @@ import {
   computeBringForward,
   computeSendBackward,
 } from "@/lib/utils/zorder";
+import { screenToBoard } from "@/lib/utils/coordinates";
+import {
+  getObjectBoundingBox,
+  rectsIntersect,
+} from "@/lib/utils/boundingBox";
 
 export function BoardStage({ boardId }: { boardId: string }) {
   const stageRef = useRef<Konva.Stage>(null);
@@ -36,12 +43,42 @@ export function BoardStage({ boardId }: { boardId: string }) {
     targetIds: string[];
   } | null>(null);
   const { scale, position, handleWheel, setPosition } = usePanZoom();
-  const { selectedIds, select, clearSelection, isSelected } = useSelection();
+  const {
+    selectedIds,
+    select,
+    setSelection,
+    addToSelection,
+    clearSelection,
+    isSelected,
+  } = useSelection();
 
-  const { objects, patchObject, addObject, removeObject } = useBoardObjects();
+  const [selectionBox, setSelectionBox] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
+  const selectionBoxRef = useRef(selectionBox);
+  selectionBoxRef.current = selectionBox;
+
+  const [shapeRefs, setShapeRefs] = useState<Map<string, Konva.Node>>(new Map());
+  const copiedObjectsRef = useRef<ObjectData[]>([]);
+
+  const registerShapeRef = useCallback((id: string, node: Konva.Node | null) => {
+    setShapeRefs((prev) => {
+      const next = new Map(prev);
+      if (node) next.set(id, node);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const { objects, patchObject, addObject: addObjectLocal, removeObject } =
+    useBoardObjects();
   const { others, updateCursor } = usePresence();
-  const { updateObject, deleteObject } = useBoardMutations();
+  const { addObject, updateObject, deleteObject } = useBoardMutations();
 
+  const objectListRef = useRef<ObjectData[]>([]);
   const rawList = Object.values(objects).filter(
     (obj) =>
       obj != null &&
@@ -52,6 +89,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
       "y" in obj
   );
   const objectList = rawList as unknown as ObjectData[];
+  objectListRef.current = objectList;
   const sortedObjects = [...objectList].sort(
     (a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0)
   );
@@ -68,6 +106,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const panStartRef = useRef<{ pointer: { x: number; y: number }; position: { x: number; y: number } } | null>(null);
   const panningMovedRef = useRef(false);
   const pendingContextMenuRef = useRef<{ x: number; y: number; targetIds: string[] } | null>(null);
+  const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -75,7 +114,11 @@ export function BoardStage({ boardId }: { boardId: string }) {
       const clickedOnEmpty = stage != null && e.target === stage;
 
       if (clickedOnEmpty && e.evt.button === 0) {
-        clearSelection();
+        const pos = stage.getPointerPosition();
+        if (pos) {
+          const board = screenToBoard(stage, pos.x, pos.y);
+          selectionStartRef.current = { x: board.x, y: board.y };
+        }
       }
 
       if (e.evt.button === 1 || e.evt.button === 2) {
@@ -120,10 +163,14 @@ export function BoardStage({ boardId }: { boardId: string }) {
   );
 
   const handleSelect = useCallback(
-    (id: string) => {
-      select(id);
+    (id: string, addToSelectionMode?: boolean) => {
+      if (addToSelectionMode) {
+        addToSelection(id);
+      } else {
+        select(id);
+      }
     },
-    [select]
+    [select, addToSelection]
   );
 
   const handleDeleteSelected = useCallback(
@@ -138,18 +185,57 @@ export function BoardStage({ boardId }: { boardId: string }) {
     [selectedIds, deleteObject, clearSelection]
   );
 
+  const handleCopy = useCallback(() => {
+    const toCopy = selectedIds
+      .map((id) => objectListRef.current.find((o) => o.id === id))
+      .filter((o): o is ObjectData => o != null);
+    copiedObjectsRef.current = toCopy.map((obj) => ({ ...obj }));
+  }, [selectedIds]);
+
+  const handlePaste = useCallback(() => {
+    if (copiedObjectsRef.current.length === 0) return;
+    const offset = 20;
+    const newObjects: ObjectData[] = copiedObjectsRef.current.map((obj) => {
+      const id = crypto.randomUUID();
+      return { ...obj, id, x: obj.x + offset, y: obj.y + offset };
+    });
+    for (const obj of newObjects) {
+      addObject(obj);
+    }
+    setSelection(newObjects.map((o) => o.id));
+    setContextMenu(null);
+  }, [addObject, setSelection]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName ?? "")) {
+        return;
+      }
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
-        if (!["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName ?? "")) {
-          e.preventDefault();
-          handleDeleteSelected();
+        e.preventDefault();
+        handleDeleteSelected();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "c" && selectedIds.length > 0) {
+        e.preventDefault();
+        const toCopy = selectedIds
+          .map((id) => objectListRef.current.find((o) => o.id === id))
+          .filter((o): o is ObjectData => o != null);
+        copiedObjectsRef.current = toCopy.map((obj) => ({ ...obj }));
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "v" && copiedObjectsRef.current.length > 0) {
+        e.preventDefault();
+        const offset = 20;
+        const newObjects: ObjectData[] = copiedObjectsRef.current.map((obj) => {
+          const id = crypto.randomUUID();
+          return { ...obj, id, x: obj.x + offset, y: obj.y + offset };
+        });
+        for (const obj of newObjects) {
+          addObject(obj);
         }
+        setSelection(newObjects.map((o) => o.id));
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedIds.length, handleDeleteSelected]);
+  }, [selectedIds.length, handleDeleteSelected, addObject, setSelection]);
 
   const handleShapeContextMenu = useCallback(
     (id: string, clientX: number, clientY: number) => {
@@ -176,6 +262,26 @@ export function BoardStage({ boardId }: { boardId: string }) {
 
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
+      const box = selectionBoxRef.current;
+      if (e.button === 0 && box) {
+        const rect = {
+          x: Math.min(box.startX, box.currentX),
+          y: Math.min(box.startY, box.currentY),
+          width: Math.abs(box.currentX - box.startX),
+          height: Math.abs(box.currentY - box.startY),
+        };
+        const ids = objectListRef.current.filter((obj) =>
+          rectsIntersect(rect, getObjectBoundingBox(obj))
+        ).map((o) => o.id);
+        if (ids.length > 0) {
+          setSelection(ids);
+        }
+      } else if (e.button === 0 && selectionStartRef.current) {
+        clearSelection();
+      }
+      setSelectionBox(null);
+      selectionStartRef.current = null;
+
       if ((e.button === 1 || e.button === 2) && panningRef.current && !panningMovedRef.current && pendingContextMenuRef.current) {
         const pending = pendingContextMenuRef.current;
         setContextMenu(pending);
@@ -190,7 +296,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
     };
     window.addEventListener("mouseup", handleMouseUp);
     return () => window.removeEventListener("mouseup", handleMouseUp);
-  }, [select]);
+  }, [select, setSelection, clearSelection]);
 
   const containerRef = useCallback((node: HTMLDivElement | null) => {
     if (node) {
@@ -213,13 +319,29 @@ export function BoardStage({ boardId }: { boardId: string }) {
       if (!stage) return;
       const pos = stage.getPointerPosition();
       if (pos) {
-        // Convert container coords to board coords so cursors sync correctly across users with different pan/zoom
         const boardX = (pos.x - stage.x()) / stage.scaleX();
         const boardY = (pos.y - stage.y()) / stage.scaleY();
         updateCursor({ x: boardX, y: boardY });
+
+        if (selectionStartRef.current) {
+          const start = selectionStartRef.current;
+          const dx = Math.abs(boardX - start.x);
+          const dy = Math.abs(boardY - start.y);
+          if (dx > 2 || dy > 2) {
+            setSelectionBox({
+              startX: start.x,
+              startY: start.y,
+              currentX: boardX,
+              currentY: boardY,
+            });
+          }
+        }
+
         if (panningRef.current && panStartRef.current) {
           panningMovedRef.current = true;
           pendingContextMenuRef.current = null;
+          selectionStartRef.current = null;
+          setSelectionBox(null);
           const deltaX = pos.x - panStartRef.current.pointer.x;
           const deltaY = pos.y - panStartRef.current.pointer.y;
           const newPosition = {
@@ -244,7 +366,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
 
   return (
     <PatchObjectContext.Provider value={patchObject}>
-      <AddObjectContext.Provider value={addObject}>
+      <AddObjectContext.Provider value={addObjectLocal}>
         <RemoveObjectContext.Provider value={removeObject}>
           <div
             ref={containerRef}
@@ -282,10 +404,30 @@ export function BoardStage({ boardId }: { boardId: string }) {
                     data={obj}
                     onSelect={handleSelect}
                     isSelected={isSelected(obj.id)}
+                    isMultiSelect={selectedIds.length > 1}
+                    registerShapeRef={registerShapeRef}
                     onShapeDragEnd={() => setLastDragEnd(Date.now())}
                     onContextMenu={handleShapeContextMenu}
                   />
                 ))}
+                <MultiSelectTransformer
+                  selectedIds={selectedIds}
+                  nodeRefs={shapeRefs}
+                  objects={objects}
+                  onTransformEnd={() => setLastDragEnd(Date.now())}
+                />
+              </Layer>
+              <Layer listening={false}>
+                {selectionBox && (
+                  <SelectionBox
+                    x={Math.min(selectionBox.startX, selectionBox.currentX)}
+                    y={Math.min(selectionBox.startY, selectionBox.currentY)}
+                    width={Math.abs(selectionBox.currentX - selectionBox.startX)}
+                    height={Math.abs(selectionBox.currentY - selectionBox.startY)}
+                  />
+                )}
+              </Layer>
+              <Layer listening={false}>
                 <CursorOverlay stageRef={stageRef} others={others} />
               </Layer>
             </Stage>
@@ -296,6 +438,14 @@ export function BoardStage({ boardId }: { boardId: string }) {
                 visible
                 onClose={() => setContextMenu(null)}
                 items={[
+                  {
+                    label: "Copy",
+                    onClick: handleCopy,
+                  },
+                  {
+                    label: "Paste",
+                    onClick: handlePaste,
+                  },
                   {
                     label: "Bring to front",
                     onClick: () => {

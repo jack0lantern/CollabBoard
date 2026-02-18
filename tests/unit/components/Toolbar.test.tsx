@@ -17,14 +17,20 @@ describe("Toolbar", () => {
     vi.clearAllMocks();
   });
 
+  it("shows sticky note button directly on toolbar", () => {
+    render(<Toolbar />);
+
+    const stickyButton = screen.getByRole("button", { name: "Add sticky note" });
+    expect(stickyButton).toBeInTheDocument();
+  });
+
   it("expands shape options when the shapes icon is clicked", () => {
     render(<Toolbar />);
 
     const shapesButton = screen.getByRole("button", { name: "Add shapes" });
     expect(shapesButton).toBeInTheDocument();
 
-    // Shape options should not be visible initially
-    expect(screen.queryByRole("button", { name: "Add sticky note" })).not.toBeInTheDocument();
+    // Shape dropdown options should not be visible initially
     expect(screen.queryByRole("button", { name: "Add rectangle" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add circle" })).not.toBeInTheDocument();
 
@@ -32,9 +38,9 @@ describe("Toolbar", () => {
     fireEvent.click(shapesButton);
 
     // Shape options should now be visible
-    expect(screen.getByRole("button", { name: "Add sticky note" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add rectangle" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add circle" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add line" })).toBeInTheDocument();
   });
 
   it("collapses shape options when clicking the shapes icon again", () => {
@@ -43,11 +49,11 @@ describe("Toolbar", () => {
     const shapesButton = screen.getByRole("button", { name: "Add shapes" });
     fireEvent.click(shapesButton);
 
-    expect(screen.getByRole("button", { name: "Add sticky note" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add rectangle" })).toBeInTheDocument();
 
     fireEvent.click(shapesButton);
 
-    expect(screen.queryByRole("button", { name: "Add sticky note" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add rectangle" })).not.toBeInTheDocument();
   });
 
   it("dropdown is portaled outside overflow container so it remains visible", () => {
@@ -64,9 +70,9 @@ describe("Toolbar", () => {
     const shapesButton = screen.getByRole("button", { name: "Add shapes" });
     fireEvent.click(shapesButton);
 
-    const stickyButton = screen.getByRole("button", { name: "Add sticky note" });
+    const rectButton = screen.getByRole("button", { name: "Add rectangle" });
     // Dropdown must NOT be inside the overflow container (would be clipped in real browser)
-    expect(overflowContainer.contains(stickyButton)).toBe(false);
+    expect(overflowContainer.contains(rectButton)).toBe(false);
 
     unmount();
     document.body.removeChild(overflowContainer);

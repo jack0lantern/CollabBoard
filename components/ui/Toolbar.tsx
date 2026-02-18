@@ -85,6 +85,22 @@ function CircleIcon() {
   );
 }
 
+function LineIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="4" y1="20" x2="20" y2="4" />
+    </svg>
+  );
+}
+
 export function Toolbar() {
   const { addObject } = useBoardMutations();
   const { objects } = useBoardObjects();
@@ -140,7 +156,6 @@ export function Toolbar() {
       color: COLORS[0],
       text: "New note",
     });
-    setShapesExpanded(false);
   }, [addObject, objects]);
 
   const addRect = useCallback(() => {
@@ -170,8 +185,28 @@ export function Toolbar() {
     setShapesExpanded(false);
   }, [addObject, objects]);
 
+  const addLine = useCallback(() => {
+    addObject({
+      id: crypto.randomUUID(),
+      type: "line",
+      x: 150,
+      y: 150,
+      zIndex: getNextZIndex(objects),
+      points: [0, 0, 100, 80],
+      color: COLORS[3],
+    });
+    setShapesExpanded(false);
+  }, [addObject, objects]);
+
   return (
     <aside className="flex flex-col gap-1 p-2 w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm">
+      <button
+        onClick={addSticky}
+        aria-label="Add sticky note"
+        className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
+      >
+        <StickyIcon />
+      </button>
       <div ref={shapesRef} className="relative">
         <button
           ref={buttonRef}
@@ -199,13 +234,6 @@ export function Toolbar() {
               }}
             >
               <button
-                onClick={addSticky}
-                aria-label="Add sticky note"
-                className="p-2 rounded-md bg-yellow-200 dark:bg-yellow-800 hover:bg-yellow-300 dark:hover:bg-yellow-700 text-yellow-900 dark:text-yellow-100 transition-colors"
-              >
-                <StickyIcon />
-              </button>
-              <button
                 onClick={addRect}
                 aria-label="Add rectangle"
                 className="p-2 rounded-md bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700 text-blue-900 dark:text-blue-100 transition-colors"
@@ -218,6 +246,13 @@ export function Toolbar() {
                 className="p-2 rounded-md bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-900 dark:text-green-100 transition-colors"
               >
                 <CircleIcon />
+              </button>
+              <button
+                onClick={addLine}
+                aria-label="Add line"
+                className="p-2 rounded-md bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 text-red-900 dark:text-red-100 transition-colors"
+              >
+                <LineIcon />
               </button>
             </div>,
             document.body
