@@ -175,7 +175,7 @@ export function Toolbar() {
       <div ref={shapesRef} className="relative">
         <button
           ref={buttonRef}
-          onClick={() => setShapesExpanded((prev) => !prev)}
+          onClick={handleShapesClick}
           aria-label="Add shapes"
           aria-expanded={shapesExpanded}
           aria-haspopup="true"

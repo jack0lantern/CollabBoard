@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseClient } from "@/lib/supabase/client";
 
 export interface Profile {
   id: string;
@@ -11,7 +11,7 @@ export interface Profile {
 }
 
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -37,7 +37,7 @@ export async function updateProfile(
   userId: string,
   updates: { display_name?: string; first_name?: string; last_name?: string; avatar_url?: string }
 ): Promise<boolean> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseClient();
   if (!supabase) return false;
 
   const { error } = await supabase

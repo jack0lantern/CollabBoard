@@ -1,29 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
 export function SignupForm() {
-  const [mounted, setMounted] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
     setLoading(true);
 
     const supabase = createSupabaseClient();
@@ -33,17 +26,17 @@ export function SignupForm() {
       return;
     }
 
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+
+    if (!trimmedFirst || !trimmedLast) {
+      setError("First name and last name are required.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const trimmedFirst = firstName.trim();
-      const trimmedLast = lastName.trim();
-
-      if (!trimmedFirst || !trimmedLast) {
-        setError("First name and last name are required.");
-        setLoading(false);
-        return;
-      }
-
-      const { data, error: authError } = await supabase.auth.signUp({
+      const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -52,24 +45,21 @@ export function SignupForm() {
             last_name: trimmedLast,
             full_name: `${trimmedFirst} ${trimmedLast}`,
           },
-          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
         },
       });
 
       if (authError) {
-        setError(authError.message);
-        setLoading(false);
+        if (authError.message.includes("already registered")) {
+          setError("An account with this email already exists.");
+        } else if (authError.message.toLowerCase().includes("password")) {
+          setError("Password should be at least 6 characters.");
+        } else {
+          setError(authError.message);
+        }
         return;
       }
 
-      // Supabase may require email confirmation; check session
-      if (data?.session) {
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        // Email confirmation required (if enabled in Supabase)
-        setSuccess("Check your email for the confirmation link.");
-      }
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError((err as Error)?.message ?? "Failed to create account");
     } finally {
@@ -89,36 +79,22 @@ export function SignupForm() {
     }
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({
+      const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (authError) {
         setError(authError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
       }
     } catch (err: unknown) {
       setError((err as Error)?.message ?? "Failed to sign up with Google");
+    } finally {
       setLoading(false);
     }
   };
-
-  if (!mounted) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Sign up</h1>
-        <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -183,9 +159,6 @@ export function SignupForm() {
         </div>
         {error && (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-        )}
-        {success && (
-          <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
         )}
         <button
           type="submit"

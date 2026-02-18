@@ -29,8 +29,8 @@ const mockSignInWithOAuth = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({
   createSupabaseClient: () => ({
     auth: {
-      signUp: (...args: unknown[]) => mockSignUp(...args),
-      signInWithOAuth: (...args: unknown[]) => mockSignInWithOAuth(...args),
+      signUp: mockSignUp,
+      signInWithOAuth: mockSignInWithOAuth,
     },
   }),
 }));
@@ -38,9 +38,17 @@ vi.mock("@/lib/supabase/client", () => ({
 import { SignupForm } from "@/components/auth/SignupForm";
 
 function fillAndSubmit(
+  firstName = "Test",
+  lastName = "User",
   email = "test@example.com",
   password = "password123"
 ) {
+  fireEvent.change(screen.getByLabelText("First name"), {
+    target: { value: firstName },
+  });
+  fireEvent.change(screen.getByLabelText("Last name"), {
+    target: { value: lastName },
+  });
   fireEvent.change(screen.getByLabelText("Email"), {
     target: { value: email },
   });
@@ -58,7 +66,7 @@ describe("SignupForm", () => {
   describe("post-auth redirect", () => {
     it("redirects to /dashboard after successful email signup", async () => {
       mockSignUp.mockResolvedValue({
-        data: { session: { user: {} } },
+        data: { user: { id: "abc123" }, session: {} },
         error: null,
       });
       render(<SignupForm />);
@@ -72,7 +80,7 @@ describe("SignupForm", () => {
 
     it("does NOT redirect to / after successful email signup", async () => {
       mockSignUp.mockResolvedValue({
-        data: { session: { user: {} } },
+        data: { user: { id: "abc123" }, session: {} },
         error: null,
       });
       render(<SignupForm />);
@@ -85,9 +93,9 @@ describe("SignupForm", () => {
       expect(mockPush).not.toHaveBeenCalledWith("/");
     });
 
-    it("calls signInWithOAuth with Google provider for Google signup", async () => {
+    it("calls signInWithOAuth for Google signup", async () => {
       mockSignInWithOAuth.mockResolvedValue({
-        data: { url: "https://accounts.google.com/oauth" },
+        data: { url: "https://google.com/oauth" },
         error: null,
       });
       render(<SignupForm />);
@@ -104,11 +112,11 @@ describe("SignupForm", () => {
     });
   });
 
-  describe("email confirmation", () => {
-    it("shows success message when email confirmation is required", async () => {
+  describe("error handling", () => {
+    it("shows error when email already in use", async () => {
       mockSignUp.mockResolvedValue({
-        data: { session: null },
-        error: null,
+        data: { user: null, session: null },
+        error: { message: "User already registered" },
       });
       render(<SignupForm />);
 
@@ -116,7 +124,7 @@ describe("SignupForm", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText("Check your email for the confirmation link.")
+          screen.getByText("An account with this email already exists.")
         ).toBeInTheDocument();
       });
     });

@@ -6,7 +6,8 @@ import {
   setPresence,
   updatePresenceCursor,
   removePresence,
-} from "@/lib/supabase/presence";
+  setupOnDisconnectCleanup,
+} from "@/lib/firebase/presence";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { PresenceData } from "@/types/presence";
 
@@ -26,41 +27,37 @@ export function usePresence() {
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Subscribe to presence and publish own presence (Supabase Realtime Presence)
   useEffect(() => {
     if (!boardId || !userId) return;
 
-    const initialPresence: PresenceData = {
+    setPresence(boardId, userId, {
       cursor: null,
       displayName: displayName ?? "Anonymous",
       avatarUrl: avatarUrl ?? null,
       lastSeen: Date.now(),
-    };
+    });
 
-    const unsubscribe = onPresenceChange(
-      boardId,
-      { userId, initialPresence },
-      (presenceMap) => {
-        const now = Date.now();
-        const otherUsers: OtherUser[] = [];
+    setupOnDisconnectCleanup(boardId, userId);
 
-        for (const [uid, data] of Object.entries(presenceMap)) {
-          if (uid === userId) continue;
-          if (now - data.lastSeen > STALE_THRESHOLD_MS) continue;
+    const unsubscribe = onPresenceChange(boardId, (presenceMap) => {
+      const now = Date.now();
+      const otherUsers: OtherUser[] = [];
 
-          otherUsers.push({
-            userId: uid,
-            cursor: data.cursor ?? null,
-            displayName: data.displayName ?? "Anonymous",
-            avatarUrl: data.avatarUrl ?? null,
-          });
-        }
+      for (const [uid, data] of Object.entries(presenceMap)) {
+        if (uid === userId) continue;
+        if (now - data.lastSeen > STALE_THRESHOLD_MS) continue;
 
-        setOthers(otherUsers);
+        otherUsers.push({
+          userId: uid,
+          cursor: data.cursor,
+          displayName: data.displayName,
+          avatarUrl: data.avatarUrl,
+        });
       }
-    );
 
-    // Heartbeat: update lastSeen every 10s
+      setOthers(otherUsers);
+    });
+
     const heartbeat = setInterval(() => {
       setPresence(boardId, userId, {
         cursor: null,
@@ -82,7 +79,6 @@ export function usePresence() {
     (cursor: { x: number; y: number } | null) => {
       if (!boardId || !userId) return;
 
-      // null (mouse leave) sends immediately
       if (cursor === null) {
         if (cursorTimerRef.current) {
           clearTimeout(cursorTimerRef.current);
@@ -93,7 +89,6 @@ export function usePresence() {
         return;
       }
 
-      // Debounce position updates to avoid flooding RTDB
       pendingCursorRef.current = cursor;
       if (cursorTimerRef.current === null) {
         cursorTimerRef.current = setTimeout(() => {

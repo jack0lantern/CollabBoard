@@ -29,9 +29,8 @@ const mockSignInWithOAuth = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({
   createSupabaseClient: () => ({
     auth: {
-      signInWithPassword: (...args: unknown[]) =>
-        mockSignInWithPassword(...args),
-      signInWithOAuth: (...args: unknown[]) => mockSignInWithOAuth(...args),
+      signInWithPassword: mockSignInWithPassword,
+      signInWithOAuth: mockSignInWithOAuth,
     },
   }),
 }));
@@ -55,7 +54,10 @@ describe("LoginForm", () => {
 
   describe("post-auth redirect", () => {
     it("redirects to /dashboard after successful email sign-in", async () => {
-      mockSignInWithPassword.mockResolvedValue({ error: null });
+      mockSignInWithPassword.mockResolvedValue({
+        data: { user: {}, session: {} },
+        error: null,
+      });
       render(<LoginForm />);
 
       fillAndSubmit();
@@ -66,7 +68,10 @@ describe("LoginForm", () => {
     });
 
     it("does NOT redirect to / after successful email sign-in", async () => {
-      mockSignInWithPassword.mockResolvedValue({ error: null });
+      mockSignInWithPassword.mockResolvedValue({
+        data: { user: {}, session: {} },
+        error: null,
+      });
       render(<LoginForm />);
 
       fillAndSubmit();
@@ -77,9 +82,9 @@ describe("LoginForm", () => {
       expect(mockPush).not.toHaveBeenCalledWith("/");
     });
 
-    it("calls signInWithOAuth with Google provider for Google sign-in", async () => {
+    it("calls signInWithOAuth for Google sign-in", async () => {
       mockSignInWithOAuth.mockResolvedValue({
-        data: { url: "https://accounts.google.com/oauth" },
+        data: { url: "https://google.com/oauth" },
         error: null,
       });
       render(<LoginForm />);
@@ -99,6 +104,7 @@ describe("LoginForm", () => {
   describe("invalid-credential error", () => {
     it('shows "Invalid username/password combination" message', async () => {
       mockSignInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
         error: { message: "Invalid login credentials" },
       });
       render(<LoginForm />);
@@ -114,6 +120,7 @@ describe("LoginForm", () => {
 
     it('shows a "made an account" link to /signup', async () => {
       mockSignInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
         error: { message: "Invalid login credentials" },
       });
       render(<LoginForm />);
@@ -127,5 +134,4 @@ describe("LoginForm", () => {
       });
     });
   });
-
 });

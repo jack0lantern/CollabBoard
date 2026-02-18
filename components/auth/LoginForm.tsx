@@ -1,21 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
-  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,17 +31,15 @@ export function LoginForm() {
       });
 
       if (authError) {
-        if (authError.message.includes("Invalid login credentials")) {
+        if (authError.message === "Invalid login credentials") {
           setError("invalid-credential");
         } else {
           setError(authError.message);
         }
-        setLoading(false);
         return;
       }
 
       router.push("/dashboard");
-      router.refresh();
     } catch (err: unknown) {
       setError((err as Error)?.message ?? "Failed to sign in");
     } finally {
@@ -66,36 +59,22 @@ export function LoginForm() {
     }
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithOAuth({
+      const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (authError) {
         setError(authError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
       }
     } catch (err: unknown) {
       setError((err as Error)?.message ?? "Failed to sign in with Google");
+    } finally {
       setLoading(false);
     }
   };
-
-  if (!mounted) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Log in</h1>
-        <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -130,14 +109,7 @@ export function LoginForm() {
         </div>
         {error && (
           <p className="text-sm text-red-600 dark:text-red-400">
-            {error === "user-not-found" ? (
-              <>
-                User does not exist.{" "}
-                <Link href="/signup" className="text-blue-600 hover:underline">
-                  Create an account?
-                </Link>
-              </>
-            ) : error === "invalid-credential" ? (
+            {error === "invalid-credential" ? (
               <>
                 Invalid username/password combination. Have you{" "}
                 <Link href="/signup" className="text-blue-600 hover:underline">

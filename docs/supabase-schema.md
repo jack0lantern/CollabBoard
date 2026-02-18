@@ -2,18 +2,18 @@
 
 ## Overview
 
-CollabBoard uses Supabase for auth, boards, board_objects, and profiles.
+CollabBoard uses a hybrid architecture: Firebase Auth + Firebase RTDB for cursors, Supabase for board state and profiles.
 
-**Auth:** Supabase Auth  
+**Auth:** Firebase Authentication  
 **Boards & objects:** Supabase PostgreSQL  
-**Presence:** Supabase Realtime Presence (no Firebase RTDB)
+**Presence / Cursors:** Firebase Realtime Database
 
-| Firebase | Supabase |
-|----------|----------|
-| Firestore `boards` | `boards` table |
-| Firestore `boards/{id}/objects` | `board_objects` table |
-| Firestore `profiles` | `profiles` table |
-| RTDB presence | Supabase Realtime Presence |
+| Layer | Technology |
+|-------|------------|
+| Auth | Firebase Auth (email/password, Google) |
+| Boards, board_objects, profiles | Supabase PostgreSQL |
+| Real-time board sync | Supabase Realtime (postgres_changes) |
+| Cursor/presence sync | Firebase RTDB (`boards/{boardId}/presence/{userId}`) |
 
 ## Tables
 
@@ -58,8 +58,8 @@ Canvas objects (sticky notes, shapes, lines).
 | meta | JSONB | Extra data |
 | updated_at | TIMESTAMPTZ | Last update |
 
-### Presence (Supabase Realtime)
-Live cursor positions use Supabase Realtime Presence on channel `board-presence:{boardId}`. No database table.
+### Presence (Firebase RTDB)
+Live cursor positions use Firebase Realtime Database at `boards/{boardId}/presence/{userId}`. No Supabase table.
 
 ## Applying the Migration
 
@@ -98,13 +98,13 @@ supabase
 // onPresenceChange(boardId, { userId, initialPresence }, callback)
 ```
 
-## Auth (Supabase)
+## Auth (Firebase)
 
-Supabase Auth handles sign-in. RLS policies use `auth.uid()` and `auth.jwt() ->> 'email'` for access control (avoid querying `auth.users`; the `authenticated` role lacks SELECT on it). Client can use Supabase directly with the user session.
+Firebase Authentication handles sign-in (email/password, Google). The Supabase client is configured with `accessToken` to pass the Firebase ID token. Supabase validates the Firebase JWT (registered as a third-party auth provider) and `auth.uid()` returns the Firebase UID. RLS policies use `auth.uid()` and `auth.jwt() ->> 'email'` for access control.
 
 ## Data Migration Notes
 
 - **board_objects**: Firebase stored objects with client-generated IDs. Supabase uses UUIDs; map old IDs during migration or accept new IDs.
 - **shared_with**: Stays as JSONB `{email: role}` to match current structure.
 - **last_snapshot**: JSONB stores the same structure as Firestore.
-- **Presence**: Uses Supabase Realtime Presence; no Firebase RTDB.
+- **Presence**: Uses Firebase RTDB for low-latency cursor sync.

@@ -9,10 +9,10 @@ import {
   subscribeToBoardsByOwner,
 } from "@/lib/supabase/boards";
 import type { Board } from "@/types";
+import type { User } from "@supabase/supabase-js";
 
 export default function DashboardPage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -26,6 +26,14 @@ export default function DashboardPage() {
       return;
     }
 
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) {
+        router.replace("/login");
+        return;
+      }
+      setUser(session.user);
+    });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -33,41 +41,30 @@ export default function DashboardPage() {
         router.replace("/login");
         return;
       }
-      setUserId(session.user.id);
-      setEmail(session.user.email ?? null);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
-        router.replace("/login");
-        setLoading(false);
-        return;
-      }
-      setUserId(session.user.id);
-      setEmail(session.user.email ?? null);
+      setUser(session.user);
     });
 
     return () => subscription.unsubscribe();
   }, [router]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!user) return;
 
-    const unsubscribe = subscribeToBoardsByOwner(userId, (newBoards) => {
+    const unsubscribe = subscribeToBoardsByOwner(user.id, (newBoards) => {
       setBoards(newBoards);
       setLoading(false);
     });
 
     return unsubscribe;
-  }, [userId]);
+  }, [user]);
 
   const handleCreateBoard = async () => {
-    if (!userId || creating) return;
+    if (!user || creating) return;
     setCreating(true);
     setError("");
 
     try {
-      const board = await createBoard("Untitled Board", userId);
+      const board = await createBoard("Untitled Board", user.id);
       if (board) {
         router.push(`/board/${board.id}`);
       } else {
@@ -103,7 +100,7 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold">My Boards</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              {email}
+              {user?.email}
             </span>
             <button
               onClick={handleSignOut}

@@ -2,9 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  let supabaseResponse = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -22,9 +20,7 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value)
         );
-        supabaseResponse = NextResponse.next({
-          request,
-        });
+        supabaseResponse = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)
         );
@@ -32,10 +28,6 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Refresh session - getUser() validates the JWT with the server and
-  // triggers a token refresh if the access token is expired.
-  // IMPORTANT: Do NOT use getSession() here — it only reads from the cookie
-  // without server validation. getClaims() only decodes locally.
   await supabase.auth.getUser();
 
   return supabaseResponse;

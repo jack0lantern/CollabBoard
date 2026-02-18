@@ -13,25 +13,23 @@ export interface AuthUser {
   avatarUrl: string | null;
 }
 
-function buildDisplayName(meta: Record<string, unknown>, email: string | undefined): string | null {
-  const first = (meta.first_name as string) ?? (meta.given_name as string) ?? null;
-  const last = (meta.last_name as string) ?? (meta.family_name as string) ?? null;
-  if (first && last) return `${first} ${last}`;
-  if (first) return first;
-  if (last) return last;
-  return (meta.full_name as string) ?? (meta.name as string) ?? email ?? null;
-}
-
-function toAuthUser(user: User | null): AuthUser | null {
-  if (!user) return null;
+function toAuthUser(user: User): AuthUser {
   const meta = user.user_metadata ?? {};
+  const firstName = meta.first_name ?? meta.given_name ?? null;
+  const lastName = meta.last_name ?? meta.family_name ?? null;
+  const displayName =
+    meta.full_name ??
+    meta.name ??
+    ([firstName, lastName].filter(Boolean).join(" ") || user.email) ??
+    null;
+
   return {
     id: user.id,
     email: user.email ?? null,
-    firstName: (meta.first_name as string) ?? (meta.given_name as string) ?? null,
-    lastName: (meta.last_name as string) ?? (meta.family_name as string) ?? null,
-    displayName: buildDisplayName(meta, user.email),
-    avatarUrl: (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
+    firstName,
+    lastName,
+    displayName,
+    avatarUrl: meta.avatar_url ?? null,
   };
 }
 
@@ -45,15 +43,14 @@ export function useCurrentUser(): AuthUser | null {
       return;
     }
 
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? toAuthUser(session.user) : null);
+    });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(toAuthUser(session?.user ?? null));
-    });
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(toAuthUser(session?.user ?? null));
+      setUser(session?.user ? toAuthUser(session.user) : null);
     });
 
     return () => subscription.unsubscribe();

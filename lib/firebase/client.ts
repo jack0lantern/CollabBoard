@@ -1,4 +1,5 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getDatabase, connectDatabaseEmulator, type Database } from "firebase/database";
 
 const firebaseConfig = {
@@ -9,7 +10,7 @@ const firebaseConfig = {
 
 const USE_EMULATOR = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
 
-const emulatorConnected = { database: false };
+const emulatorConnected = { auth: false, database: false };
 
 export function getFirebaseApp(): FirebaseApp | null {
   if (getApps().length > 0) {
@@ -19,6 +20,17 @@ export function getFirebaseApp(): FirebaseApp | null {
     return null;
   }
   return initializeApp(firebaseConfig);
+}
+
+export function getFirebaseAuth() {
+  const app = getFirebaseApp();
+  if (!app) return null;
+  const auth = getAuth(app);
+  if (USE_EMULATOR && !emulatorConnected.auth) {
+    connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
+    emulatorConnected.auth = true;
+  }
+  return auth;
 }
 
 export function getRealtimeDb(): Database | null {

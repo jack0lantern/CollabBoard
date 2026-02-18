@@ -1,12 +1,14 @@
 # CollabBoard
 
-Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, and Firebase.
+Real-time collaborative whiteboard built with Next.js, React-Konva, Firebase Auth, and Supabase.
 
 ## Stack
 
 - **Frontend:** Next.js (App Router), React-Konva, Tailwind CSS
-- **Real-time:** Firestore (objects + presence subcollections)
-- **Database & Auth:** Firebase (Firestore + Auth)
+- **Auth:** Firebase Authentication (Email/Password, Google)
+- **Database:** Supabase Postgres (boards, board_objects, profiles)
+- **Real-time board sync:** Supabase Realtime (postgres_changes)
+- **Cursor sync:** Firebase Realtime Database (low-latency presence)
 
 ## Setup
 
@@ -20,13 +22,14 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Liveblocks, 
 
    - **Firebase:** Create a project at [console.firebase.google.com](https://console.firebase.google.com)
      - Enable **Authentication** (Email/Password, Google)
-     - Enable **Firestore** (board metadata, objects, presence)
+     - Enable **Realtime Database**
      - Get client config from Project Settings > General
-     - Create a Service Account for server-side (Project Settings > Service Accounts) and add `FIREBASE_PRIVATE_KEY` to `.env.local`
+   - **Supabase:** Create a project at [supabase.com](https://supabase.com)
+     - Get URL and anon key from Settings > API
+     - Add Firebase as a third-party auth provider (Authentication > Third-party Auth)
+     - Run the schema migration: `supabase/migrations/001_initial_schema.sql` then `003_firebase_uid.sql`
 
-3. Create Firestore index (Firebase Console > Firestore > Indexes): Collection `boards`, Fields `owner_id` (Ascending), `created_at` (Descending).
-
-4. Deploy Firestore rules: `firebase deploy --only firestore`
+3. Deploy RTDB rules: `firebase deploy --only database`
 
 5. Start the dev server:
 

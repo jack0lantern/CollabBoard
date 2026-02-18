@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { usePresence } from "@/hooks/usePresence";
 import type { PresenceData } from "@/types/presence";
@@ -7,12 +7,14 @@ const mockOnPresenceChange = vi.fn();
 const mockSetPresence = vi.fn();
 const mockUpdatePresenceCursor = vi.fn();
 const mockRemovePresence = vi.fn();
+const mockSetupOnDisconnectCleanup = vi.fn();
 
-vi.mock("@/lib/supabase/presence", () => ({
+vi.mock("@/lib/firebase/presence", () => ({
   onPresenceChange: (...args: unknown[]) => mockOnPresenceChange(...args),
   setPresence: (...args: unknown[]) => mockSetPresence(...args),
   updatePresenceCursor: (...args: unknown[]) => mockUpdatePresenceCursor(...args),
   removePresence: (...args: unknown[]) => mockRemovePresence(...args),
+  setupOnDisconnectCleanup: (...args: unknown[]) => mockSetupOnDisconnectCleanup(...args),
 }));
 
 const mockBoardId = "board-789";
@@ -39,7 +41,7 @@ describe("usePresence", () => {
     mockRemovePresence.mockResolvedValue(undefined);
 
     mockOnPresenceChange.mockImplementation(
-      (_boardId: string, _options: { userId: string; initialPresence: PresenceData }, callback: typeof presenceCallback) => {
+      (_boardId: string, callback: typeof presenceCallback) => {
         presenceCallback = callback;
         return unsubscribe;
       }
@@ -55,19 +57,28 @@ describe("usePresence", () => {
     expect(result.current.others).toEqual([]);
   });
 
-  it("subscribes to presence with initial presence on mount", () => {
+  it("sets own presence and subscribes on mount", () => {
     renderHook(() => usePresence());
+    expect(mockSetPresence).toHaveBeenCalledWith(
+      mockBoardId,
+      mockUserId,
+      expect.objectContaining({
+        displayName: "Test User",
+        avatarUrl: null,
+        cursor: null,
+      })
+    );
     expect(mockOnPresenceChange).toHaveBeenCalledWith(
       mockBoardId,
-      expect.objectContaining({
-        userId: mockUserId,
-        initialPresence: expect.objectContaining({
-          displayName: "Test User",
-          avatarUrl: null,
-          cursor: null,
-        }),
-      }),
       expect.any(Function)
+    );
+  });
+
+  it("calls setupOnDisconnectCleanup on mount", () => {
+    renderHook(() => usePresence());
+    expect(mockSetupOnDisconnectCleanup).toHaveBeenCalledWith(
+      mockBoardId,
+      mockUserId
     );
   });
 
@@ -103,10 +114,8 @@ describe("usePresence", () => {
       result.current.updateCursor({ x: 150, y: 250 });
     });
 
-    // Cursor updates are debounced — not sent yet
     expect(mockUpdatePresenceCursor).not.toHaveBeenCalled();
 
-    // Advance past the debounce window (50ms)
     act(() => {
       vi.advanceTimersByTime(60);
     });
@@ -159,7 +168,7 @@ describe("usePresence", () => {
           cursor: { x: 200, y: 200 },
           displayName: "Stale User",
           avatarUrl: null,
-          lastSeen: Date.now() - 60000, // 60 seconds ago
+          lastSeen: Date.now() - 60000,
         },
       });
     });
