@@ -64,17 +64,10 @@ E2E_TEST_EMAIL=your-test-account@example.com
 E2E_TEST_PASSWORD=your-test-password
 ```
 
-**Performance 500 test** (uses Firebase Emulator, no quota limits):
+**Performance 500 test**:
 
 ```bash
-# Terminal 1: start emulators
-firebase emulators:start
-
-# Terminal 2: dev server with emulator
-NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true npm run dev
-
-# Terminal 3: run the test
-NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true npx playwright test tests/e2e/performance-500.spec.ts --project=chromium --workers=1
+npx playwright test tests/e2e/performance-500.spec.ts --project=chromium --workers=1
 ```
 
 Install Playwright browsers if needed: `npx playwright install`
