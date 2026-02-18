@@ -5,10 +5,11 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Firebase Aut
 ## Stack
 
 - **Frontend:** Next.js (App Router), React-Konva, Tailwind CSS
-- **Auth:** Firebase Authentication (Email/Password, Google)
+- **Auth:** Supabase Auth (Email/Password, Google OAuth)
 - **Database:** Supabase Postgres (boards, board_objects, profiles)
 - **Real-time board sync:** Supabase Realtime (postgres_changes)
 - **Cursor sync:** Firebase Realtime Database (low-latency presence)
+- **RTDB access:** Firebase Anonymous Auth (satisfies `auth != null`; no billing)
 
 ## Setup
 
@@ -20,18 +21,19 @@ Real-time collaborative whiteboard built with Next.js, React-Konva, Firebase Aut
 
 2. Copy `.env.example` to `.env.local` and fill in your keys:
 
-   - **Firebase:** Create a project at [console.firebase.google.com](https://console.firebase.google.com)
-     - Enable **Authentication** (Email/Password, Google)
-     - Enable **Realtime Database**
-     - Get client config from Project Settings > General
    - **Supabase:** Create a project at [supabase.com](https://supabase.com)
+     - Enable Auth (Email/Password, Google)
      - Get URL and anon key from Settings > API
-     - Add Firebase as a third-party auth provider (Authentication > Third-party Auth)
-     - Run the schema migration: `supabase/migrations/001_initial_schema.sql` then `003_firebase_uid.sql`
+     - Run migrations: `001_initial_schema.sql`, `002_add_name_fields.sql`
+     - Configure Site URL and Redirect URLs for OAuth (include production URL)
+   - **Firebase:** Create a project at [console.firebase.google.com](https://console.firebase.google.com)
+     - Enable **Realtime Database**
+     - Enable **Authentication** → **Anonymous** provider only
+     - Get API key, project ID, database URL from Project Settings
 
 3. Deploy RTDB rules: `firebase deploy --only database`
 
-5. Start the dev server:
+4. Start the dev server:
 
    ```bash
    npm run dev
@@ -77,10 +79,13 @@ Install Playwright browsers if needed: `npx playwright install`
 ```
 app/           # Next.js App Router
 components/    # React components (canvas, ui, auth, providers)
-lib/           # Firebase, utils
+lib/           # Firebase (RTDB, presence), Supabase (client, boards, profiles)
 hooks/         # Custom hooks
 types/         # TypeScript types
+docs/          # Architecture and schema docs
 ```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for architectural decisions and rationale.
 
 ## Board URL
 
