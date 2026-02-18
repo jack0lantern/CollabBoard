@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { LiveReloadInstrumentation } from "@/components/dev/LiveReloadInstrumentation";
 
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <Suspense fallback={<div className="min-h-screen" />}>
+          {children}
+        </Suspense>
         <LiveReloadInstrumentation />
       </body>
     </html>
