@@ -38,9 +38,11 @@ export function StickyNote({
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
   const [localSize, setLocalSize] = useState<{ width: number; height: number } | null>(null);
+  const [localRotation, setLocalRotation] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayRotation = localRotation ?? data.rotation ?? 0;
   const editInfoRef = useRef<{
     stage: Konva.Stage;
     pos: { x: number; y: number };
@@ -70,6 +72,17 @@ export function StickyNote({
     }
     prevDataRef.current = { width: data.width, height: data.height };
   }, [data.width, data.height, localSize]);
+
+  const prevRotationRef = useRef(data.rotation);
+  useEffect(() => {
+    if (localRotation != null) {
+      const prev = prevRotationRef.current;
+      if (data.rotation !== prev) {
+        setLocalRotation(null);
+      }
+    }
+    prevRotationRef.current = data.rotation ?? 0;
+  }, [data.rotation, localRotation]);
 
   useEffect(() => {
     if (isSelected && groupRef.current != null) {
@@ -188,6 +201,7 @@ export function StickyNote({
         ref={groupRef}
         x={displayX}
         y={displayY}
+        rotation={displayRotation}
         draggable={!isEditing}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
@@ -215,9 +229,11 @@ export function StickyNote({
           if (!node) return;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
+          const newRotation = node.rotation();
           const newWidth = Math.max(MIN_SIZE, width * scaleX);
           const newHeight = Math.max(MIN_SIZE, height * scaleY);
           setLocalSize({ width: newWidth, height: newHeight });
+          setLocalRotation(newRotation);
           node.scaleX(1);
           node.scaleY(1);
           updateObject(data.id, {
@@ -225,6 +241,7 @@ export function StickyNote({
             y: node.y(),
             width: newWidth,
             height: newHeight,
+            rotation: newRotation,
           });
         }}
       >
@@ -240,8 +257,6 @@ export function StickyNote({
         shadowOpacity={0.2}
         cornerRadius={4}
       />
-    </Group>
-    <Group x={displayX} y={displayY} listening={false}>
       {!isEditing && (
         <Text
           text={data.text ?? ""}
