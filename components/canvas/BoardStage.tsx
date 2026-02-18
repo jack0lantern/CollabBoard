@@ -56,16 +56,18 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const selectionBoxRef = useRef(selectionBox);
   selectionBoxRef.current = selectionBox;
 
-  const [shapeRefs, setShapeRefs] = useState<Map<string, Konva.Node>>(new Map());
+  const shapeRefsRef = useRef<Map<string, Konva.Node>>(new Map());
+  const [refsVersion, setRefsVersion] = useState(0);
   const copiedObjectsRef = useRef<ObjectData[]>([]);
 
   const registerShapeRef = useCallback((id: string, node: Konva.Node | null) => {
-    setShapeRefs((prev) => {
-      const next = new Map(prev);
-      if (node) next.set(id, node);
-      else next.delete(id);
-      return next;
-    });
+    const map = shapeRefsRef.current;
+    if (node) {
+      map.set(id, node);
+      setRefsVersion((v) => v + 1);
+    } else {
+      map.delete(id);
+    }
   }, []);
 
   const { objects, patchObject, addObject: addObjectLocal, removeObject } =
@@ -247,13 +249,36 @@ export function BoardStage({ boardId }: { boardId: string }) {
     [select, isSelected, selectedIds]
   );
 
+  const handleTransformerContextMenu = useCallback(
+    (clientX: number, clientY: number) => {
+      if (panningRef.current) {
+        pendingContextMenuRef.current = {
+          x: clientX,
+          y: clientY,
+          targetIds: selectedIds,
+        };
+        return;
+      }
+      setContextMenu({ x: clientX, y: clientY, targetIds: selectedIds });
+    },
+    [selectedIds]
+  );
+
   const handleStageContextMenu = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
     const stage = e.target.getStage();
     if (stage != null && e.target === stage) {
       e.evt.preventDefault();
-      setContextMenu(null);
+      const targetIds = selectedIds.length > 0 ? selectedIds : [];
+      if (panningRef.current) {
+        pendingContextMenuRef.current = { x: e.evt.clientX, y: e.evt.clientY, targetIds };
+        return;
+      }
+      if (selectedIds.length === 0) {
+        clearSelection();
+      }
+      setContextMenu({ x: e.evt.clientX, y: e.evt.clientY, targetIds });
     }
-  }, []);
+  }, [clearSelection, selectedIds]);
 
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
@@ -281,7 +306,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
         const pending = pendingContextMenuRef.current;
         setContextMenu(pending);
         if (pending.targetIds.length > 0) {
-          select(pending.targetIds[0]);
+          setSelection(pending.targetIds);
         }
       }
       panningRef.current = false;
@@ -405,9 +430,11 @@ export function BoardStage({ boardId }: { boardId: string }) {
                 ))}
                 <MultiSelectTransformer
                   selectedIds={selectedIds}
-                  nodeRefs={shapeRefs}
+                  nodeRefsRef={shapeRefsRef}
+                  refsVersion={refsVersion}
                   objects={objects}
                   onTransformEnd={() => setLastDragEnd(Date.now())}
+                  onContextMenu={handleTransformerContextMenu}
                 />
               </Layer>
               <Layer listening={false}>
@@ -430,52 +457,61 @@ export function BoardStage({ boardId }: { boardId: string }) {
                 y={contextMenu.y}
                 visible
                 onClose={() => setContextMenu(null)}
-                items={[
-                  {
-                    label: "Copy",
-                    onClick: handleCopy,
-                  },
-                  {
-                    label: "Paste",
-                    onClick: handlePaste,
-                  },
-                  {
-                    label: "Bring to front",
-                    onClick: () => {
-                      const targetIds = contextMenu.targetIds;
-                      const updates = computeBringToFront(objectList, targetIds);
-                      queueMicrotask(() => applyZOrderUpdates(updates));
-                    },
-                  },
-                  {
-                    label: "Send to back",
-                    onClick: () => {
-                      const targetIds = contextMenu.targetIds;
-                      const updates = computeSendToBack(objectList, targetIds);
-                      queueMicrotask(() => applyZOrderUpdates(updates));
-                    },
-                  },
-                  {
-                    label: "Bring forward",
-                    onClick: () => {
-                      const targetIds = contextMenu.targetIds;
-                      const updates = computeBringForward(objectList, targetIds);
-                      queueMicrotask(() => applyZOrderUpdates(updates));
-                    },
-                  },
-                  {
-                    label: "Send backward",
-                    onClick: () => {
-                      const targetIds = contextMenu.targetIds;
-                      const updates = computeSendBackward(objectList, targetIds);
-                      queueMicrotask(() => applyZOrderUpdates(updates));
-                    },
-                  },
-                  {
-                    label: "Delete",
-                    onClick: () => handleDeleteSelected(contextMenu.targetIds),
-                  },
-                ]}
+                items={
+                  contextMenu.targetIds.length === 0
+                    ? [
+                        {
+                          label: "Paste",
+                          onClick: handlePaste,
+                        },
+                      ]
+                    : [
+                        {
+                          label: "Copy",
+                          onClick: handleCopy,
+                        },
+                        {
+                          label: "Paste",
+                          onClick: handlePaste,
+                        },
+                        {
+                          label: "Bring to front",
+                          onClick: () => {
+                            const targetIds = contextMenu.targetIds;
+                            const updates = computeBringToFront(objectList, targetIds);
+                            queueMicrotask(() => applyZOrderUpdates(updates));
+                          },
+                        },
+                        {
+                          label: "Send to back",
+                          onClick: () => {
+                            const targetIds = contextMenu.targetIds;
+                            const updates = computeSendToBack(objectList, targetIds);
+                            queueMicrotask(() => applyZOrderUpdates(updates));
+                          },
+                        },
+                        {
+                          label: "Bring forward",
+                          onClick: () => {
+                            const targetIds = contextMenu.targetIds;
+                            const updates = computeBringForward(objectList, targetIds);
+                            queueMicrotask(() => applyZOrderUpdates(updates));
+                          },
+                        },
+                        {
+                          label: "Send backward",
+                          onClick: () => {
+                            const targetIds = contextMenu.targetIds;
+                            const updates = computeSendBackward(objectList, targetIds);
+                            queueMicrotask(() => applyZOrderUpdates(updates));
+                          },
+                        },
+                        {
+                          label: "Delete",
+                          onClick: () => handleDeleteSelected(contextMenu.targetIds),
+                        },
+                      ]
+                }
               />
             )}
           </div>

@@ -65,7 +65,7 @@ export function RectShape({
     prevDataRef.current = { width: data.width, height: data.height };
   }, [data.width, data.height, localSize]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isSelected && shapeRef.current != null) {
       registerShapeRef?.(data.id, shapeRef.current);
     } else {
@@ -141,16 +141,27 @@ export function RectShape({
           flipEnabled
           keepRatio={false}
           ignoreStroke
-          boundBoxFunc={(oldBox, newBox) => {
-            if (!anchorBoxRef.current) anchorBoxRef.current = oldBox;
-            return boundBoxWithAnchorPreservation(
+          onTransformStart={() => {
+            const node = shapeRef.current;
+            if (node) {
+              anchorBoxRef.current = {
+                x: node.x(),
+                y: node.y(),
+                width: node.width(),
+                height: node.height(),
+                rotation: node.rotation(),
+              };
+            }
+          }}
+          boundBoxFunc={(oldBox, newBox) =>
+            boundBoxWithAnchorPreservation(
               oldBox,
               newBox,
               MIN_SIZE,
               MIN_SIZE,
               anchorBoxRef.current
-            );
-          }}
+            )
+          }
         />
       )}
     </>

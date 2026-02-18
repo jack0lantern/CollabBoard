@@ -87,7 +87,7 @@ export function StickyNote({
     prevRotationRef.current = data.rotation ?? 0;
   }, [data.rotation, localRotation]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isSelected && groupRef.current != null) {
       registerShapeRef?.(data.id, groupRef.current);
     } else {
@@ -289,16 +289,31 @@ export function StickyNote({
         flipEnabled
         keepRatio={false}
         ignoreStroke
-        boundBoxFunc={(oldBox, newBox) => {
-          if (!anchorBoxRef.current) anchorBoxRef.current = oldBox;
-          return boundBoxWithAnchorPreservation(
+        onTransformStart={() => {
+          const node = groupRef.current;
+          if (node) {
+            const layer = node.getLayer();
+            const rect = node.getClientRect({
+              relativeTo: layer ?? undefined,
+            });
+            anchorBoxRef.current = {
+              x: rect.x,
+              y: rect.y,
+              width: rect.width,
+              height: rect.height,
+              rotation: node.rotation(),
+            };
+          }
+        }}
+        boundBoxFunc={(oldBox, newBox) =>
+          boundBoxWithAnchorPreservation(
             oldBox,
             newBox,
             MIN_SIZE,
             MIN_SIZE,
             anchorBoxRef.current
-          );
-        }}
+          )
+        }
       />
     )}
     </>

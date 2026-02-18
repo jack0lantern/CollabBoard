@@ -99,9 +99,6 @@ export function isFullyContained(
   );
 }
 
-/** Threshold to detect which edge was dragged (avoids floating-point noise). */
-const ANCHOR_THRESHOLD = 0.5;
-
 export type TransformBox = {
   x: number;
   y: number;
@@ -125,8 +122,17 @@ export function boundBoxWithAnchorPreservation(
   let { x, y, width, height, rotation } = newBox;
 
   const ref = anchorBox ?? oldBox;
-  const leftMoved = Math.abs(newBox.x - ref.x) > ANCHOR_THRESHOLD;
-  const topMoved = Math.abs(newBox.y - ref.y) > ANCHOR_THRESHOLD;
+  // Infer anchor from which edge moved less (more robust than position threshold)
+  const leftDelta = Math.abs(newBox.x - ref.x);
+  const rightDelta = Math.abs(
+    (newBox.x + newBox.width) - (ref.x + ref.width)
+  );
+  const leftMoved = leftDelta > rightDelta;
+  const topDelta = Math.abs(newBox.y - ref.y);
+  const bottomDelta = Math.abs(
+    (newBox.y + newBox.height) - (ref.y + ref.height)
+  );
+  const topMoved = topDelta > bottomDelta;
 
   if (width < 0) {
     // User dragged past opposite edge - allow flip, keep anchor fixed

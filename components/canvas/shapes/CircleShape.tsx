@@ -74,7 +74,7 @@ export function CircleShape({
     };
   }, [data.radiusX, data.radiusY, data.radius, localSize]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isSelected && shapeRef.current != null) {
       registerShapeRef?.(data.id, shapeRef.current);
     } else {
@@ -152,8 +152,21 @@ export function CircleShape({
           flipEnabled
           keepRatio={false}
           ignoreStroke
+          onTransformStart={() => {
+            const node = shapeRef.current;
+            if (node) {
+              const rx = node.radiusX();
+              const ry = node.radiusY();
+              anchorBoxRef.current = {
+                x: node.x() - rx,
+                y: node.y() - ry,
+                width: rx * 2,
+                height: ry * 2,
+                rotation: node.rotation(),
+              };
+            }
+          }}
           boundBoxFunc={(oldBox, newBox) => {
-            if (!anchorBoxRef.current) anchorBoxRef.current = oldBox;
             const minDim = MIN_RADIUS * 2;
             return boundBoxWithAnchorPreservation(
               oldBox,

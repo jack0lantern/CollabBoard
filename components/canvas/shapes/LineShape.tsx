@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Group, Arrow, Line, Circle } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
@@ -64,7 +64,7 @@ export function LineShape({
   const safeScale = Math.max(0.01, stageScale);
   const inverseScale = 1 / safeScale;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isSelected && groupRef.current != null) {
       registerShapeRef?.(data.id, groupRef.current);
     } else {
