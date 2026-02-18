@@ -1,9 +1,13 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: { error?: string };
+};
+
+export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <div className="space-y-6">
-      <LoginForm />
+      <LoginForm authError={searchParams.error} />
     </div>
   );
 }
