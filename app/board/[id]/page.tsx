@@ -64,10 +64,8 @@ export default function BoardPage({
     );
   }
 
-  const initialSnapshot = board.last_snapshot ?? null;
-
   return (
-    <BoardClientWrapper boardId={id} initialSnapshot={initialSnapshot}>
+    <BoardClientWrapper boardId={id}>
       <div className="h-screen flex flex-col relative">
         <BoardHeader
           boardId={id}

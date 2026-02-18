@@ -1,9 +1,59 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { onBoardObjectsChange } from "@/lib/supabase/boards";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
+import {
+  onBoardObjectsChange,
+  replaceBoardObjects,
+} from "@/lib/supabase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { ObjectData } from "@/types";
+
+const MAX_UNDO_STACK = 50;
+
+/** Compare two ObjectData for equality. Preserves references when unchanged. */
+function objectDataEqual(a: ObjectData, b: ObjectData): boolean {
+  if (a.id !== b.id || a.type !== b.type || a.x !== b.x || a.y !== b.y) return false;
+  if ((a.zIndex ?? 0) !== (b.zIndex ?? 0)) return false;
+  if ((a.width ?? 0) !== (b.width ?? 0)) return false;
+  if ((a.height ?? 0) !== (b.height ?? 0)) return false;
+  if ((a.radius ?? 0) !== (b.radius ?? 0)) return false;
+  if ((a.radiusX ?? 0) !== (b.radiusX ?? 0)) return false;
+  if ((a.radiusY ?? 0) !== (b.radiusY ?? 0)) return false;
+  if ((a.rotation ?? 0) !== (b.rotation ?? 0)) return false;
+  if ((a.color ?? "") !== (b.color ?? "")) return false;
+  if ((a.text ?? "") !== (b.text ?? "")) return false;
+  if ((a.arrowStart ?? false) !== (b.arrowStart ?? false)) return false;
+  if ((a.arrowEnd ?? false) !== (b.arrowEnd ?? false)) return false;
+  const pa = a.points ?? [];
+  const pb = b.points ?? [];
+  if (pa.length !== pb.length) return false;
+  return pa.every((v, i) => v === pb[i]);
+}
+
+/** Merge target snapshot into state, preserving references for unchanged objects. */
+function mergeSnapshot(
+  current: Record<string, ObjectData>,
+  target: Record<string, ObjectData>
+): Record<string, ObjectData> {
+  const next: Record<string, ObjectData> = {};
+  for (const id of Object.keys(target)) {
+    const targetObj = target[id];
+    const currentObj = current[id];
+    if (currentObj && objectDataEqual(currentObj, targetObj)) {
+      next[id] = currentObj;
+    } else {
+      next[id] = targetObj;
+    }
+  }
+  return next;
+}
 
 type PatchFn = (id: string, updates: Partial<ObjectData>) => void;
 type AddFn = (id: string, data: ObjectData) => void;
@@ -14,6 +64,10 @@ export interface BoardObjectsValue {
   patchObject: PatchFn;
   addObject: AddFn;
   removeObject: RemoveFn;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 export const PatchObjectContext = createContext<PatchFn | null>(null);
@@ -25,7 +79,9 @@ export const BoardObjectsContext = createContext<BoardObjectsValue | null>(null)
 export function useBoardObjectsContext(): BoardObjectsValue {
   const ctx = useContext(BoardObjectsContext);
   if (!ctx) {
-    throw new Error("useBoardObjectsContext must be used within BoardObjectsProvider");
+    throw new Error(
+      "useBoardObjectsContext must be used within BoardObjectsProvider"
+    );
   }
   return ctx;
 }
@@ -33,26 +89,81 @@ export function useBoardObjectsContext(): BoardObjectsValue {
 export function useBoardObjects() {
   const { boardId } = useBoardContext();
   const [objects, setObjects] = useState<Record<string, ObjectData>>({});
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const undoStackRef = useRef<Record<string, ObjectData>[]>([]);
+  const redoStackRef = useRef<Record<string, ObjectData>[]>([]);
+  const objectsRef = useRef(objects);
+  objectsRef.current = objects;
+
+  const pushUndo = useCallback(() => {
+    const snapshot = objectsRef.current;
+    undoStackRef.current.push(structuredClone(snapshot));
+    if (undoStackRef.current.length > MAX_UNDO_STACK) {
+      undoStackRef.current.shift();
+    }
+    redoStackRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
+  }, []);
+
+  const undo = useCallback(async () => {
+    if (undoStackRef.current.length === 0) return;
+    const prev = undoStackRef.current.pop();
+    if (prev == null) return;
+
+    redoStackRef.current.push(structuredClone(objectsRef.current));
+    setObjects((current) => mergeSnapshot(current, prev));
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(true);
+
+    if (boardId) {
+      await replaceBoardObjects(boardId, prev);
+    }
+  }, [boardId]);
+
+  const redo = useCallback(async () => {
+    if (redoStackRef.current.length === 0) return;
+    const next = redoStackRef.current.pop();
+    if (next == null) return;
+
+    undoStackRef.current.push(structuredClone(objectsRef.current));
+    setObjects((current) => mergeSnapshot(current, next));
+    setCanUndo(true);
+    setCanRedo(redoStackRef.current.length > 0);
+
+    if (boardId) {
+      await replaceBoardObjects(boardId, next);
+    }
+  }, [boardId]);
 
   const patchObject = useCallback<PatchFn>((id, updates) => {
+    pushUndo();
     setObjects((prev) => {
       const existing = prev[id];
       if (!existing) return prev;
       return { ...prev, [id]: { ...existing, ...updates } };
     });
-  }, []);
+  }, [pushUndo]);
 
   const addObject = useCallback<AddFn>((id, data) => {
+    pushUndo();
     setObjects((prev) => ({ ...prev, [id]: data }));
-  }, []);
+  }, [pushUndo]);
 
   const removeObject = useCallback<RemoveFn>((id) => {
+    pushUndo();
     setObjects((prev) => {
       const next = { ...prev };
       delete next[id];
       return next;
     });
-  }, []);
+  }, [pushUndo]);
+
+  useEffect(() => {
+    setCanUndo(undoStackRef.current.length > 0);
+  }, [objects]);
 
   useEffect(() => {
     if (!boardId) return;
@@ -76,5 +187,14 @@ export function useBoardObjects() {
     return unsubscribe;
   }, [boardId]);
 
-  return { objects, patchObject, addObject, removeObject };
+  return {
+    objects,
+    patchObject,
+    addObject,
+    removeObject,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  };
 }

@@ -11,6 +11,7 @@ import { GridBackground } from "./GridBackground";
 import { SelectionBox } from "./SelectionBox";
 import { MultiSelectTransformer } from "./MultiSelectTransformer";
 import { usePanZoom } from "@/hooks/usePanZoom";
+import { useGrid } from "@/components/providers/GridProvider";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useSelection } from "@/hooks/useSelection";
 import { ContextMenu } from "@/components/ui/ContextMenu";
@@ -38,6 +39,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
     targetIds: string[];
   } | null>(null);
   const { scale, position, handleWheel, setPosition } = usePanZoom();
+  const { gridVisible } = useGrid();
   const {
     selectedIds,
     select,
@@ -169,6 +171,10 @@ export function BoardStage({ boardId }: { boardId: string }) {
     },
     [select, addToSelection]
   );
+
+  const handleShapeDragEnd = useCallback(() => {
+    setLastDragEnd(Date.now());
+  }, []);
 
   const handleDeleteSelected = useCallback(
     (ids?: string[]) => {
@@ -415,7 +421,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
               onContextMenu={handleStageContextMenu}
             >
               <Layer>
-                <GridBackground />
+                {gridVisible && <GridBackground />}
                 {sortedObjects.map((obj) => (
                   <ShapeRenderer
                     key={obj.id}
@@ -424,7 +430,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
                     isSelected={isSelected(obj.id)}
                     isMultiSelect={selectedIds.length > 1}
                     registerShapeRef={registerShapeRef}
-                    onShapeDragEnd={() => setLastDragEnd(Date.now())}
+                    onShapeDragEnd={handleShapeDragEnd}
                     onContextMenu={handleShapeContextMenu}
                   />
                 ))}

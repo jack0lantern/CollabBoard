@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { StickyNote } from "./StickyNote";
@@ -7,7 +8,7 @@ import { RectShape } from "./RectShape";
 import { CircleShape } from "./CircleShape";
 import { LineShape } from "./LineShape";
 
-export function ShapeRenderer({
+export const ShapeRenderer = memo(function ShapeRenderer({
   data,
   onSelect,
   isSelected,
@@ -47,4 +48,4 @@ export function ShapeRenderer({
     default:
       return null;
   }
-}
+});

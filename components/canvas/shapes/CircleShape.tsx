@@ -40,6 +40,7 @@ export function CircleShape({
   const radiusY = localSize?.radiusY ?? data.radiusY ?? data.radius ?? DEFAULT_RADIUS;
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayRotation = data.rotation ?? 0;
 
   const prevPosRef = useRef({ x: data.x, y: data.y });
   useEffect(() => {
@@ -96,6 +97,7 @@ export function CircleShape({
         ref={shapeRef}
         x={displayX}
         y={displayY}
+        rotation={displayRotation}
         radiusX={radiusX}
         radiusY={radiusY}
         fill={data.color ?? "#10b981"}
@@ -138,12 +140,15 @@ export function CircleShape({
           setLocalSize({ radiusX: newRadiusX, radiusY: newRadiusY });
           node.scaleX(1);
           node.scaleY(1);
+          const newRotation = node.rotation();
           updateObject(data.id, {
             x: node.x(),
             y: node.y(),
             radiusX: newRadiusX,
             radiusY: newRadiusY,
+            rotation: newRotation,
           });
+          node.rotation(0);
         }}
       />
       {isSelected && !isMultiSelect && (

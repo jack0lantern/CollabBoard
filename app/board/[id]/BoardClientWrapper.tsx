@@ -2,24 +2,16 @@
 
 import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvider";
 import { BoardObjectsProvider } from "@/components/providers/BoardObjectsProvider";
-import { useBoardSync } from "@/hooks/useBoardSync";
+import { GridProvider } from "@/components/providers/GridProvider";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { ensureAnonymousAuth } from "@/lib/firebase/anonymous-auth";
 import { useEffect, useState } from "react";
-import type { ObjectData } from "@/types";
-
-function SyncManager() {
-  useBoardSync();
-  return null;
-}
 
 export function BoardClientWrapper({
   boardId,
-  initialSnapshot,
   children,
 }: {
   boardId: string;
-  initialSnapshot: Record<string, ObjectData> | null;
   children: React.ReactNode;
 }) {
   const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
@@ -76,10 +68,10 @@ export function BoardClientWrapper({
       userId={firebaseUid}
       displayName={displayName}
       avatarUrl={avatarUrl}
-      initialSnapshot={initialSnapshot}
     >
-      <SyncManager />
-      <BoardObjectsProvider>{children}</BoardObjectsProvider>
+      <GridProvider>
+        <BoardObjectsProvider>{children}</BoardObjectsProvider>
+      </GridProvider>
     </RealtimeBoardProvider>
   );
 }

@@ -39,6 +39,7 @@ export function RectShape({
   const height = localSize?.height ?? data.height ?? 80;
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayRotation = data.rotation ?? 0;
 
   const prevPosRef = useRef({ x: data.x, y: data.y });
   useEffect(() => {
@@ -87,6 +88,7 @@ export function RectShape({
         ref={shapeRef}
         x={displayX}
         y={displayY}
+        rotation={displayRotation}
         width={Math.max(MIN_SIZE, Math.abs(width))}
         height={Math.max(MIN_SIZE, Math.abs(height))}
         fill={data.color ?? "#3b82f6"}
@@ -127,12 +129,15 @@ export function RectShape({
           setLocalSize({ width: newWidth, height: newHeight });
           node.scaleX(1);
           node.scaleY(1);
+          const newRotation = node.rotation();
           updateObject(data.id, {
             x: node.x(),
             y: node.y(),
             width: newWidth,
             height: newHeight,
+            rotation: newRotation,
           });
+          node.rotation(0);
         }}
       />
       {isSelected && !isMultiSelect && (

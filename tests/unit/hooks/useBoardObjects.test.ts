@@ -6,9 +6,12 @@ import type { ObjectData } from "@/types";
 
 // Mock the Firestore boards module
 const mockOnBoardObjectsChange = vi.fn();
+const mockReplaceBoardObjects = vi.fn();
 
 vi.mock("@/lib/supabase/boards", () => ({
-  onBoardObjectsChange: (...args: unknown[]) => mockOnBoardObjectsChange(...args),
+  onBoardObjectsChange: (...args: unknown[]) =>
+    mockOnBoardObjectsChange(...args),
+  replaceBoardObjects: (...args: unknown[]) => mockReplaceBoardObjects(...args),
 }));
 
 // Mock the BoardContext
@@ -28,6 +31,7 @@ describe("useBoardObjects", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     unsubscribe = vi.fn();
+    mockReplaceBoardObjects.mockResolvedValue(undefined);
     mockOnBoardObjectsChange.mockImplementation(
       (_boardId: string, callbacks: typeof capturedCallbacks) => {
         capturedCallbacks = callbacks;
@@ -144,5 +148,192 @@ describe("useBoardObjects", () => {
     });
 
     expect(Object.keys(result.current.objects)).toHaveLength(10);
+  });
+
+  describe("undo/redo", () => {
+    it("returns undo, redo, canUndo, canRedo", () => {
+      const { result } = renderHook(() => useBoardObjects());
+      expect(result.current.undo).toBeDefined();
+      expect(result.current.redo).toBeDefined();
+      expect(result.current.canUndo).toBe(false);
+      expect(result.current.canRedo).toBe(false);
+    });
+
+    it("canUndo is true after addObject", () => {
+      const { result } = renderHook(() => useBoardObjects());
+
+      act(() => {
+        result.current.addObject("obj-1", {
+          id: "obj-1",
+          type: "sticky",
+          x: 100,
+          y: 100,
+          text: "Note",
+        });
+      });
+
+      expect(result.current.canUndo).toBe(true);
+      expect(result.current.canRedo).toBe(false);
+    });
+
+    it("undo restores previous state after addObject", async () => {
+      const { result } = renderHook(() => useBoardObjects());
+
+      act(() => {
+        result.current.addObject("obj-1", {
+          id: "obj-1",
+          type: "sticky",
+          x: 100,
+          y: 100,
+          text: "Note",
+        });
+      });
+
+      expect(Object.keys(result.current.objects)).toHaveLength(1);
+
+      await act(async () => {
+        await result.current.undo();
+      });
+
+      expect(Object.keys(result.current.objects)).toHaveLength(0);
+      expect(mockReplaceBoardObjects).toHaveBeenCalledWith(
+        mockBoardId,
+        expect.objectContaining({})
+      );
+    });
+
+    it("undo restores previous state after patchObject", async () => {
+      const { result } = renderHook(() => useBoardObjects());
+
+      act(() => {
+        capturedCallbacks.onAdded("obj-1", {
+          id: "obj-1",
+          type: "rect",
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 80,
+        });
+      });
+
+      act(() => {
+        result.current.patchObject("obj-1", { x: 50, y: 50 });
+      });
+
+      expect(result.current.objects["obj-1"].x).toBe(50);
+
+      await act(async () => {
+        await result.current.undo();
+      });
+
+      expect(result.current.objects["obj-1"].x).toBe(0);
+      expect(result.current.objects["obj-1"].y).toBe(0);
+    });
+
+    it("redo restores undone state", async () => {
+      const { result } = renderHook(() => useBoardObjects());
+      const sticky: ObjectData = {
+        id: "obj-1",
+        type: "sticky",
+        x: 100,
+        y: 100,
+        text: "Note",
+      };
+
+      act(() => {
+        result.current.addObject("obj-1", sticky);
+      });
+
+      await act(async () => {
+        await result.current.undo();
+      });
+
+      expect(Object.keys(result.current.objects)).toHaveLength(0);
+
+      await act(async () => {
+        await result.current.redo();
+      });
+
+      expect(result.current.objects["obj-1"]).toEqual(sticky);
+      expect(mockReplaceBoardObjects).toHaveBeenCalledWith(
+        mockBoardId,
+        expect.objectContaining({ "obj-1": sticky })
+      );
+    });
+
+    it("canRedo is true after undo", async () => {
+      const { result } = renderHook(() => useBoardObjects());
+
+      act(() => {
+        result.current.addObject("obj-1", {
+          id: "obj-1",
+          type: "sticky",
+          x: 100,
+          y: 100,
+        });
+      });
+
+      await act(async () => {
+        await result.current.undo();
+      });
+
+      expect(result.current.canUndo).toBe(false);
+      expect(result.current.canRedo).toBe(true);
+    });
+
+    it("redo stack is cleared when new action is performed after undo", async () => {
+      const { result } = renderHook(() => useBoardObjects());
+
+      act(() => {
+        result.current.addObject("obj-1", {
+          id: "obj-1",
+          type: "sticky",
+          x: 100,
+          y: 100,
+        });
+      });
+
+      await act(async () => {
+        await result.current.undo();
+      });
+
+      act(() => {
+        result.current.addObject("obj-2", {
+          id: "obj-2",
+          type: "rect",
+          x: 200,
+          y: 200,
+        });
+      });
+
+      expect(result.current.canRedo).toBe(false);
+    });
+
+    it("removeObject pushes to undo stack", async () => {
+      const { result } = renderHook(() => useBoardObjects());
+
+      act(() => {
+        capturedCallbacks.onAdded("obj-1", {
+          id: "obj-1",
+          type: "circle",
+          x: 0,
+          y: 0,
+          radius: 30,
+        });
+      });
+
+      act(() => {
+        result.current.removeObject("obj-1");
+      });
+
+      expect(Object.keys(result.current.objects)).toHaveLength(0);
+
+      await act(async () => {
+        await result.current.undo();
+      });
+
+      expect(result.current.objects["obj-1"]).toBeDefined();
+      expect(result.current.objects["obj-1"].radius).toBe(30);
+    });
   });
 });

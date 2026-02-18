@@ -194,21 +194,6 @@ export async function updateBoardSharing(
   return !error;
 }
 
-export async function updateBoardSnapshot(
-  id: string,
-  snapshot: Record<string, unknown>
-): Promise<boolean> {
-  const supabase = createSupabaseClient();
-  if (!supabase) return false;
-
-  const { error } = await supabase
-    .from("boards")
-    .update({ last_snapshot: snapshot })
-    .eq("id", id);
-
-  return !error;
-}
-
 export function subscribeToBoardsByOwner(
   ownerId: string,
   callback: (boards: Board[]) => void
@@ -337,6 +322,27 @@ export async function seedBoardObjects(
   await supabase.from("board_objects").upsert(rows, {
     onConflict: "id",
   });
+}
+
+/** Replace all board objects with the given snapshot (for undo/redo). */
+export async function replaceBoardObjects(
+  boardId: string,
+  objects: Record<string, ObjectData>
+): Promise<void> {
+  const supabase = createSupabaseClient();
+  if (!supabase) return;
+
+  await supabase
+    .from("board_objects")
+    .delete()
+    .eq("board_id", boardId);
+
+  const rows = Object.entries(objects).map(([id, obj]) =>
+    objectToRow({ ...sanitizeObjectData(obj), id }, boardId)
+  );
+  if (rows.length > 0) {
+    await supabase.from("board_objects").insert(rows);
+  }
 }
 
 export function onBoardObjectsChange(

@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  type ReactNode,
-} from "react";
-import {
-  getBoardObjects,
-  seedBoardObjects,
-} from "@/lib/supabase/boards";
-import type { ObjectData } from "@/types";
+import { createContext, useContext, type ReactNode } from "react";
 
 interface BoardContextValue {
   boardId: string;
@@ -34,7 +24,6 @@ interface RealtimeBoardProviderProps {
   userId: string;
   displayName: string;
   avatarUrl: string | null;
-  initialSnapshot: Record<string, ObjectData> | null;
   children: ReactNode;
 }
 
@@ -43,32 +32,8 @@ export function RealtimeBoardProvider({
   userId,
   displayName,
   avatarUrl,
-  initialSnapshot,
   children,
 }: RealtimeBoardProviderProps) {
-  // Seed board_objects from snapshot if empty
-  useEffect(() => {
-    if (!boardId || !initialSnapshot) return;
-
-    let cancelled = false;
-
-    async function seedIfEmpty() {
-      const existing = await getBoardObjects(boardId);
-      if (cancelled) return;
-
-      const hasObjects = Object.keys(existing).length > 0;
-      if (!hasObjects && initialSnapshot) {
-        await seedBoardObjects(boardId, initialSnapshot);
-      }
-    }
-
-    seedIfEmpty();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [boardId, initialSnapshot]);
-
   return (
     <BoardContext.Provider value={{ boardId, userId, displayName, avatarUrl }}>
       {children}

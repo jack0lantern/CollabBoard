@@ -22,6 +22,13 @@ function setCursor(e: Konva.KonvaEventObject<MouseEvent>, cursor: string) {
   if (container) container.style.cursor = cursor;
 }
 
+function rotatePoint(x: number, y: number, degrees: number) {
+  const rad = (degrees * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return { x: x * cos - y * sin, y: x * sin + y * cos };
+}
+
 export function LineShape({
   data,
   onSelect,
@@ -55,6 +62,7 @@ export function LineShape({
   pointsRef.current = points;
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayRotation = data.rotation ?? 0;
   const displayPoints = points;
 
   const lineColor = data.color ?? "#6b7280";
@@ -124,8 +132,11 @@ export function LineShape({
     const target = e.target;
     const newPoints = [...pointsRef.current];
     const baseIdx = knobIndex * 2;
-    newPoints[baseIdx] = target.x() - displayX;
-    newPoints[baseIdx + 1] = target.y() - displayY;
+    const worldDx = target.x() - displayX;
+    const worldDy = target.y() - displayY;
+    const local = rotatePoint(worldDx, worldDy, -displayRotation);
+    newPoints[baseIdx] = local.x;
+    newPoints[baseIdx + 1] = local.y;
     setLocalPoints(newPoints);
     updateObject(data.id, { points: newPoints });
     onShapeDragEnd?.();
@@ -134,13 +145,14 @@ export function LineShape({
 
   const handleKnobDragMove = (knobIndex: 0 | 1) => (e: Konva.KonvaEventObject<DragEvent>) => {
     const target = e.target;
-    const relX = target.x() - displayX;
-    const relY = target.y() - displayY;
+    const worldDx = target.x() - displayX;
+    const worldDy = target.y() - displayY;
+    const local = rotatePoint(worldDx, worldDy, -displayRotation);
     const pts = pointsRef.current;
     const newPoints =
       knobIndex === 0
-        ? [relX, relY, pts[2], pts[3]]
-        : [pts[0], pts[1], relX, relY];
+        ? [local.x, local.y, pts[2], pts[3]]
+        : [pts[0], pts[1], local.x, local.y];
     const line = lineRef.current;
     if (line) {
       line.points(newPoints);
@@ -160,10 +172,12 @@ export function LineShape({
     onMouseLeave: handleLineMouseLeave,
   };
 
-  const knob0X = displayX + points[0];
-  const knob0Y = displayY + points[1];
-  const knob1X = displayX + points[2];
-  const knob1Y = displayY + points[3];
+  const r0 = rotatePoint(points[0], points[1], displayRotation);
+  const r1 = rotatePoint(points[2], points[3], displayRotation);
+  const knob0X = displayX + r0.x;
+  const knob0Y = displayY + r0.y;
+  const knob1X = displayX + r1.x;
+  const knob1Y = displayY + r1.y;
 
   return (
     <Fragment>
@@ -173,6 +187,7 @@ export function LineShape({
         ref={groupRef}
         x={displayX}
         y={displayY}
+        rotation={displayRotation}
         draggable
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;

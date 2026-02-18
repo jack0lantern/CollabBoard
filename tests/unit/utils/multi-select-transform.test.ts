@@ -82,6 +82,35 @@ describe("multi-select transform", () => {
       expect(updated.points).toEqual([0, 0, 200, 120]);
     });
 
+    it("rotation is included in output for rect, circle, line when group is rotated", () => {
+      const rect: ObjectData = {
+        id: "r1",
+        type: "rect",
+        x: 100,
+        y: 100,
+        width: 80,
+        height: 60,
+      };
+      const circle: ObjectData = {
+        id: "c1",
+        type: "circle",
+        x: 200,
+        y: 200,
+        radius: 40,
+      };
+      const line: ObjectData = {
+        id: "l1",
+        type: "line",
+        x: 0,
+        y: 0,
+        points: [0, 0, 100, 80],
+      };
+      const rotation = 45;
+      expect(computeTransformedObject(rect, { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation }).rotation).toBe(45);
+      expect(computeTransformedObject(circle, { x: 200, y: 200, scaleX: 1, scaleY: 1, rotation }).rotation).toBe(45);
+      expect(computeTransformedObject(line, { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation }).rotation).toBe(45);
+    });
+
     it("identity transform does not cause dimension flicker", () => {
       const rect: ObjectData = {
         id: "r1",

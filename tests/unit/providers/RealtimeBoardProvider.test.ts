@@ -3,13 +3,6 @@ import { renderHook } from "@testing-library/react";
 import React from "react";
 
 // We need to test the context provider exports
-const mockGetBoardObjects = vi.fn();
-const mockSeedBoardObjects = vi.fn();
-
-vi.mock("@/lib/supabase/boards", () => ({
-  getBoardObjects: (...args: unknown[]) => mockGetBoardObjects(...args),
-  seedBoardObjects: (...args: unknown[]) => mockSeedBoardObjects(...args),
-}));
 
 const { useBoardContext, RealtimeBoardProvider } = await import(
   "@/components/providers/RealtimeBoardProvider"
@@ -18,8 +11,6 @@ const { useBoardContext, RealtimeBoardProvider } = await import(
 describe("RealtimeBoardProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetBoardObjects.mockResolvedValue({});
-    mockSeedBoardObjects.mockResolvedValue(undefined);
   });
 
   it("provides boardId through context", () => {
@@ -31,7 +22,6 @@ describe("RealtimeBoardProvider", () => {
           userId: "user-1",
           displayName: "Test User",
           avatarUrl: null,
-          initialSnapshot: null,
         },
         children
       );
@@ -49,7 +39,6 @@ describe("RealtimeBoardProvider", () => {
           userId: "user-1",
           displayName: "Test User",
           avatarUrl: null,
-          initialSnapshot: null,
         },
         children
       );
@@ -67,7 +56,6 @@ describe("RealtimeBoardProvider", () => {
           userId: "user-1",
           displayName: "Jane Doe",
           avatarUrl: "https://example.com/avatar.png",
-          initialSnapshot: null,
         },
         children
       );
