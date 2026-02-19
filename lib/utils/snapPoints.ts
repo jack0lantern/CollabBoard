@@ -5,6 +5,7 @@ const DEFAULT_RECT = { width: 100, height: 80 };
 const DEFAULT_CIRCLE = 50;
 const DEFAULT_STICKY = { width: 200, height: 150 };
 const DEFAULT_FRAME = { width: 600, height: 400 };
+const DEFAULT_TEXT = { width: 200, height: 32 };
 
 function rotatePoint(x: number, y: number, degrees: number) {
   const rad = (degrees * Math.PI) / 180;
@@ -88,6 +89,28 @@ export function getObjectSnapPoints(obj: ObjectData): { x: number; y: number }[]
     case "frame": {
       const w = obj.width ?? DEFAULT_FRAME.width;
       const h = obj.height ?? DEFAULT_FRAME.height;
+      const ox = obj.x;
+      const oy = obj.y;
+      const corners = [
+        { x: 0, y: 0 },
+        { x: w, y: 0 },
+        { x: w, y: h },
+        { x: 0, y: h },
+      ];
+      const edges = [
+        { x: w / 2, y: 0 },
+        { x: w, y: h / 2 },
+        { x: w / 2, y: h },
+        { x: 0, y: h / 2 },
+      ];
+      return [...corners, ...edges].map((p) => {
+        const r = rotatePoint(p.x, p.y, rot);
+        return { x: ox + r.x, y: oy + r.y };
+      });
+    }
+    case "text": {
+      const w = obj.width ?? DEFAULT_TEXT.width;
+      const h = obj.height ?? DEFAULT_TEXT.height;
       const ox = obj.x;
       const oy = obj.y;
       const corners = [
@@ -214,6 +237,31 @@ export function getNodeSnapPoints(
     const rect = group.findOne?.("Rect") as Konva.Rect | undefined;
     const w = (rect?.width?.() ?? DEFAULT_FRAME.width) * scaleX;
     const h = (rect?.height?.() ?? DEFAULT_FRAME.height) * scaleY;
+    const corners = [
+      { x: 0, y: 0 },
+      { x: w, y: 0 },
+      { x: w, y: h },
+      { x: 0, y: h },
+    ];
+    const edges = [
+      { x: w / 2, y: 0 },
+      { x: w, y: h / 2 },
+      { x: w / 2, y: h },
+      { x: 0, y: h / 2 },
+    ];
+    return [...corners, ...edges].map((p) => {
+      const r = rotatePoint(p.x, p.y, rot);
+      return { x: ox + r.x, y: oy + r.y };
+    });
+  }
+
+  if (type === "text") {
+    const group = node as Konva.Group;
+    const ox = group.x();
+    const oy = group.y();
+    const text = group.findOne?.("Text") as Konva.Text | undefined;
+    const w = (text?.width?.() ?? DEFAULT_TEXT.width) * scaleX;
+    const h = (text?.height?.() ?? DEFAULT_TEXT.height) * scaleY;
     const corners = [
       { x: 0, y: 0 },
       { x: w, y: 0 },

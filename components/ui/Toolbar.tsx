@@ -135,6 +135,24 @@ function FrameIcon() {
   );
 }
 
+function TextIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 7V4h16v3" />
+      <path d="M9 20h6" />
+      <path d="M12 4v16" />
+    </svg>
+  );
+}
+
 export function Toolbar() {
   const { addObject } = useBoardMutations();
   const { objects } = useBoardObjectsContext();
@@ -261,6 +279,22 @@ export function Toolbar() {
     });
   }, [addObject, objects]);
 
+  const addText = useCallback(() => {
+    addObject({
+      id: crypto.randomUUID(),
+      type: "text",
+      x: 100,
+      y: 100,
+      zIndex: getNextZIndex(objects),
+      width: 200,
+      height: 32,
+      text: "Text",
+      fontSize: 16,
+      fontFamily: "sans-serif",
+      textColor: "#000000",
+    });
+  }, [addObject, objects]);
+
   return (
     <aside className="flex flex-col gap-1 p-2 w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm">
       <button
@@ -276,6 +310,13 @@ export function Toolbar() {
         className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
       >
         <FrameIcon />
+      </button>
+      <button
+        onClick={addText}
+        aria-label="Add text"
+        className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
+      >
+        <TextIcon />
       </button>
       <div ref={shapesRef} className="relative">
         <button

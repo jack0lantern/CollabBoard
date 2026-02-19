@@ -59,6 +59,25 @@ export function computeTransformedObject(
         rotation: 0,
       };
     }
+    case "text": {
+      const w = (obj.width ?? 200) * scaleX;
+      const h = (obj.height ?? 32) * scaleY;
+      const newW = Math.max(MIN_SIZE, Math.abs(w));
+      const newH = Math.max(MIN_SIZE, Math.abs(h));
+      const oldW = obj.width ?? 200;
+      const oldH = obj.height ?? 32;
+      const scaleAvg = Math.sqrt((newW / oldW) * (newH / oldH));
+      const baseFontSize = obj.fontSize ?? 16;
+      const newFontSize = Math.round(Math.max(8, Math.min(120, baseFontSize * scaleAvg)));
+      return {
+        x,
+        y,
+        width: newW,
+        height: newH,
+        fontSize: newFontSize,
+        rotation: rotation ?? undefined,
+      };
+    }
     case "line": {
       const pts = obj.points ?? [0, 0, 100, 100];
       const newPoints = pts.map((p, i) =>

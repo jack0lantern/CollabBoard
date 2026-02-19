@@ -71,8 +71,25 @@ describe("ObjectData type", () => {
     expect(frame.title).toBe("My Frame");
   });
 
+  it("validates text shape structure", () => {
+    const text: ObjectData = {
+      id: "text-1",
+      type: "text",
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 32,
+      text: "Standalone text",
+      fontSize: 16,
+      fontFamily: "sans-serif",
+      textColor: "#000000",
+    };
+    expect(text.type).toBe("text");
+    expect(text.text).toBe("Standalone text");
+  });
+
   it("accepts all valid ShapeType values", () => {
-    const types: ShapeType[] = ["sticky", "rect", "circle", "line", "frame"];
+    const types: ShapeType[] = ["sticky", "rect", "circle", "line", "frame", "text"];
     types.forEach((type) => {
       const obj: ObjectData = { id: "id", type, x: 0, y: 0 };
       expect(obj.type).toBe(type);

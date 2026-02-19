@@ -158,6 +158,7 @@ export function StickyNote({
     textarea.style.fontFamily = data.fontFamily ?? DEFAULT_FONT_FAMILY;
     textarea.style.fontWeight = data.fontWeight ?? "normal";
     textarea.style.fontStyle = data.fontStyle ?? "normal";
+    textarea.style.textDecoration = data.textDecoration ?? "none";
     textarea.style.color = data.textColor ?? DEFAULT_TEXT_COLOR;
     textarea.style.border = "none";
     textarea.style.padding = "0";
@@ -299,22 +300,36 @@ export function StickyNote({
         cornerRadius={4}
       />
       {!isEditing && (
-        <Text
-          text={data.text ?? ""}
-          x={flipX ? width + TEXT_PADDING : TEXT_PADDING}
-          y={flipY ? height + TEXT_PADDING : TEXT_PADDING}
-          width={absWidth - TEXT_PADDING * 2}
-          height={absHeight - TEXT_PADDING * 2}
-          fontSize={data.fontSize ?? DEFAULT_FONT_SIZE}
-          fontFamily={data.fontFamily ?? DEFAULT_FONT_FAMILY}
-          fontStyle={
-            [data.fontWeight === "bold" && "bold", data.fontStyle === "italic" && "italic"]
-              .filter(Boolean)
-              .join(" ") || "normal"
-          }
-          fill={data.textColor ?? DEFAULT_TEXT_COLOR}
-          listening={false}
-        />
+        <>
+          {data.textHighlightColor != null &&
+            data.textHighlightColor !== "" && (
+              <Rect
+                x={flipX ? width + TEXT_PADDING : TEXT_PADDING}
+                y={flipY ? height + TEXT_PADDING : TEXT_PADDING}
+                width={absWidth - TEXT_PADDING * 2}
+                height={absHeight - TEXT_PADDING * 2}
+                fill={data.textHighlightColor}
+                listening={false}
+              />
+            )}
+          <Text
+            text={data.text ?? ""}
+            x={flipX ? width + TEXT_PADDING : TEXT_PADDING}
+            y={flipY ? height + TEXT_PADDING : TEXT_PADDING}
+            width={absWidth - TEXT_PADDING * 2}
+            height={absHeight - TEXT_PADDING * 2}
+            fontSize={data.fontSize ?? DEFAULT_FONT_SIZE}
+            fontFamily={data.fontFamily ?? DEFAULT_FONT_FAMILY}
+            fontStyle={
+              [data.fontWeight === "bold" && "bold", data.fontStyle === "italic" && "italic"]
+                .filter(Boolean)
+                .join(" ") || "normal"
+            }
+            textDecoration={data.textDecoration ?? "none"}
+            fill={data.textColor ?? DEFAULT_TEXT_COLOR}
+            listening={false}
+          />
+        </>
       )}
     </Group>
     {isSelected && !isMultiSelect && (

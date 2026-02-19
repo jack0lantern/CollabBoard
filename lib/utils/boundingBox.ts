@@ -4,6 +4,7 @@ const DEFAULT_RECT = { width: 100, height: 80 };
 const DEFAULT_CIRCLE = 50;
 const DEFAULT_STICKY = { width: 200, height: 150 };
 const DEFAULT_FRAME = { width: 600, height: 400 };
+const DEFAULT_TEXT = { width: 200, height: 32 };
 
 /**
  * Get the bounding box of an object in board coordinates.
@@ -45,6 +46,13 @@ export function getObjectBoundingBox(obj: ObjectData): {
         y: obj.y,
         width: obj.width ?? DEFAULT_FRAME.width,
         height: obj.height ?? DEFAULT_FRAME.height,
+      };
+    case "text":
+      return {
+        x: obj.x,
+        y: obj.y,
+        width: obj.width ?? DEFAULT_TEXT.width,
+        height: obj.height ?? DEFAULT_TEXT.height,
       };
     case "line": {
       const pts = obj.points ?? [0, 0, 100, 100];
@@ -142,6 +150,8 @@ function anchorFromActiveHandle(activeAnchor: string | null | undefined): {
  * anchored. When the user drags one handle, the opposite handle stays fixed.
  * Uses getActiveAnchor() when available for reliable corner/edge detection; falls back
  * to delta-based inference otherwise.
+ * When preserveAspectRatio is true (e.g. for text), clamping scales both dimensions
+ * uniformly to maintain the box's aspect ratio.
  */
 export function boundBoxWithAnchorPreservation(
   oldBox: TransformBox,
@@ -149,7 +159,8 @@ export function boundBoxWithAnchorPreservation(
   minWidth: number,
   minHeight: number,
   anchorBox?: TransformBox | null,
-  activeAnchor?: string | null
+  activeAnchor?: string | null,
+  preserveAspectRatio?: boolean
 ): TransformBox {
   const ref = anchorBox ?? oldBox;
   const { rotation } = newBox;
@@ -184,13 +195,21 @@ export function boundBoxWithAnchorPreservation(
   const needsHeightClamp = height < minHeight;
 
   if (needsWidthClamp || needsHeightClamp) {
-    if (needsWidthClamp) {
-      width = minWidth;
-      x = leftMoved ? anchorCornerX - minWidth : anchorCornerX;
-    }
-    if (needsHeightClamp) {
-      height = minHeight;
-      y = topMoved ? anchorCornerY - minHeight : anchorCornerY;
+    if (preserveAspectRatio && width > 0 && height > 0) {
+      const scale = Math.max(minWidth / width, minHeight / height);
+      width *= scale;
+      height *= scale;
+      x = leftMoved ? anchorCornerX - width : anchorCornerX;
+      y = topMoved ? anchorCornerY - height : anchorCornerY;
+    } else {
+      if (needsWidthClamp) {
+        width = minWidth;
+        x = leftMoved ? anchorCornerX - minWidth : anchorCornerX;
+      }
+      if (needsHeightClamp) {
+        height = minHeight;
+        y = topMoved ? anchorCornerY - minHeight : anchorCornerY;
+      }
     }
   }
 

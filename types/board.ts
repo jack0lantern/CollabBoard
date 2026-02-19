@@ -1,4 +1,4 @@
-export type ShapeType = "sticky" | "rect" | "circle" | "line" | "frame";
+export type ShapeType = "sticky" | "rect" | "circle" | "line" | "frame" | "text";
 
 /** Connection from a line endpoint to a snap point on another object */
 export interface LineConnection {
@@ -31,8 +31,12 @@ export interface ObjectData {
   fontWeight?: string;
   /** Font style: "normal" | "italic" */
   fontStyle?: string;
+  /** Text decoration: "none" | "underline" */
+  textDecoration?: string;
   /** Text color (fill) */
   textColor?: string;
+  /** Highlight/background color for text (highlighter effect) */
+  textHighlightColor?: string;
   /** Border/stroke color */
   strokeColor?: string;
   /** Border/stroke width in pixels */

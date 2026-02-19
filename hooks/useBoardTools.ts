@@ -126,7 +126,8 @@ export function useBoardTools() {
       } else if (
         obj.type === "rect" ||
         obj.type === "sticky" ||
-        obj.type === "frame"
+        obj.type === "frame" ||
+        obj.type === "text"
       ) {
         updateObject(objectId, { width, height });
       } else {
@@ -141,7 +142,7 @@ export function useBoardTools() {
     (objectId: string, newText: string) => {
       const obj = objects[objectId];
       if (!obj) return false;
-      if (obj.type !== "sticky") return false;
+      if (obj.type !== "sticky" && obj.type !== "text") return false;
       updateObject(objectId, { text: newText });
       return true;
     },

@@ -8,6 +8,7 @@ import { RectShape } from "./RectShape";
 import { CircleShape } from "./CircleShape";
 import { LineShape } from "./LineShape";
 import { FrameShape } from "./FrameShape";
+import { TextShape } from "./TextShape";
 
 export const ShapeRenderer = memo(function ShapeRenderer({
   data,
@@ -90,6 +91,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
           dragMoveVersion={dragMoveVersion}
         />
       );
+    case "text":
+      return <TextShape {...common} />;
     default:
       return null;
   }

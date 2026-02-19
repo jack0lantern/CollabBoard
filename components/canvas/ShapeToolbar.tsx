@@ -47,11 +47,12 @@ const FONT_FAMILIES = [
   "sans-serif",
 ];
 
-const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32];
+const FONT_SIZE_MIN = 8;
+const FONT_SIZE_MAX = 120;
 
 const STROKE_WIDTHS = [0, 1, 2, 3, 4, 6, 8];
 
-const SHAPES_WITH_TEXT: ShapeType[] = ["sticky"];
+const SHAPES_WITH_TEXT: ShapeType[] = ["sticky", "text"];
 const SHAPES_WITH_FILL: ShapeType[] = ["sticky", "rect", "circle", "frame"];
 const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "line", "frame"];
 
@@ -155,18 +156,20 @@ export function ShapeToolbar({
               </option>
             ))}
           </select>
-          <select
+          <input
+            type="number"
+            min={FONT_SIZE_MIN}
+            max={FONT_SIZE_MAX}
             value={object.fontSize ?? 14}
-            onChange={(e) => onUpdate({ fontSize: Number(e.target.value) })}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (!Number.isNaN(v) && v >= FONT_SIZE_MIN && v <= FONT_SIZE_MAX) {
+                onUpdate({ fontSize: v });
+              }
+            }}
             className="h-8 w-14 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
             title="Font size"
-          >
-            {FONT_SIZES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          />
           <div className="flex gap-0.5">
             <button
               type="button"
@@ -200,6 +203,23 @@ export function ShapeToolbar({
             >
               I
             </button>
+            <button
+              type="button"
+              onClick={() =>
+                onUpdate({
+                  textDecoration:
+                    object.textDecoration === "underline" ? "none" : "underline",
+                })
+              }
+              className={`h-8 w-8 rounded px-1 text-sm underline ${
+                object.textDecoration === "underline"
+                  ? "bg-gray-200 dark:bg-gray-600"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+              title="Underline"
+            >
+              U
+            </button>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -212,6 +232,33 @@ export function ShapeToolbar({
               className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
               title="Text color"
             />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Highlight
+            </span>
+            <input
+              type="color"
+              value={object.textHighlightColor ?? "#fef08a"}
+              onChange={(e) =>
+                debouncedUpdate({ textHighlightColor: e.target.value })
+              }
+              className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+              title="Highlight color"
+            />
+            {object.textHighlightColor != null &&
+              object.textHighlightColor !== "" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdate({ textHighlightColor: undefined })
+                  }
+                  className="h-8 px-2 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Remove highlight"
+                >
+                  Clear
+                </button>
+              )}
           </div>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
         </>

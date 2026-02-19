@@ -111,6 +111,25 @@ describe("boundBoxWithAnchorPreservation", () => {
     expect(result.x).toBe(anchor.x);
     expect(result.y).toBe(anchor.y);
   });
+
+  it("preserves aspect ratio when clamping with preserveAspectRatio (e.g. text)", () => {
+    const newBox = { x: 100, y: 100, width: 10, height: 4, rotation: 0 };
+    const result = boundBoxWithAnchorPreservation(
+      anchor,
+      newBox,
+      minW,
+      minH,
+      anchor,
+      "bottom-right",
+      true
+    );
+    const scale = Math.max(minW / 10, minH / 4);
+    expect(result.width).toBe(10 * scale);
+    expect(result.height).toBe(4 * scale);
+    expect(result.width / result.height).toBeCloseTo(10 / 4);
+    expect(result.x).toBe(anchor.x);
+    expect(result.y).toBe(anchor.y);
+  });
 });
 
 describe("getObjectBoundingBox", () => {
