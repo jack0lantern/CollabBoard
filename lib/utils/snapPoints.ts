@@ -301,6 +301,48 @@ export interface SnapResultWithConnection {
 /**
  * Find the closest snap point across objects, returning connection info when snapped.
  */
+/**
+ * Find the best pair of snap points to connect two objects with a line.
+ * Returns the start/end positions and LineConnections for both endpoints.
+ */
+export function findConnectorEndpoints(
+  fromObj: ObjectData,
+  toObj: ObjectData
+): {
+  x: number;
+  y: number;
+  points: number[];
+  lineStartConnection: LineConnection;
+  lineEndConnection: LineConnection;
+} | null {
+  const fromPoints = getObjectSnapPoints(fromObj);
+  const toPoints = getObjectSnapPoints(toObj);
+  let bestDistSq = Infinity;
+  let bestFromIdx = 0;
+  let bestToIdx = 0;
+  for (let i = 0; i < fromPoints.length; i++) {
+    for (let j = 0; j < toPoints.length; j++) {
+      const dx = toPoints[j].x - fromPoints[i].x;
+      const dy = toPoints[j].y - fromPoints[i].y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < bestDistSq) {
+        bestDistSq = distSq;
+        bestFromIdx = i;
+        bestToIdx = j;
+      }
+    }
+  }
+  const start = fromPoints[bestFromIdx];
+  const end = toPoints[bestToIdx];
+  return {
+    x: start.x,
+    y: start.y,
+    points: [0, 0, end.x - start.x, end.y - start.y],
+    lineStartConnection: { objectId: fromObj.id, pointIndex: bestFromIdx },
+    lineEndConnection: { objectId: toObj.id, pointIndex: bestToIdx },
+  };
+}
+
 export function findClosestSnapPointWithConnection(
   worldX: number,
   worldY: number,

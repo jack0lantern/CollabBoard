@@ -67,6 +67,7 @@ export function LineShape({
   const groupRef = useRef<Konva.Group | null>(null);
   const lineRef = useRef<Konva.Line | Konva.Arrow | null>(null);
   const pointsRef = useRef<number[]>([]);
+  const dragStartPointsRef = useRef<number[] | null>(null);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -106,6 +107,12 @@ export function LineShape({
   const displayPoints = useMemo(() => {
     const base = localPoints ?? data.points ?? [0, 0, 100, 100];
     const pts = [...base];
+    // Don't apply connections during whole-line drag—user is intentionally moving the line.
+    // Use captured points from drag start to retain size and direction.
+    if (isDragging && dragStartPointsRef.current != null) {
+      return [...dragStartPointsRef.current];
+    }
+    if (isDragging) return pts;
     const startConn = data.lineStartConnection;
     const endConn = data.lineEndConnection;
     if (startConn) {
@@ -150,6 +157,7 @@ export function LineShape({
     displayRotation,
     getLiveSnapPoints,
     dragMoveVersion,
+    isDragging,
   ]);
 
   pointsRef.current = displayPoints;
@@ -310,7 +318,10 @@ export function LineShape({
           e.evt.preventDefault();
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
-        onDragStart={() => setIsDragging(true)}
+        onDragStart={() => {
+          dragStartPointsRef.current = [...pointsRef.current];
+          setIsDragging(true);
+        }}
         onDragMove={(e) => {
           const x = e.target.x();
           const y = e.target.y();
@@ -320,12 +331,16 @@ export function LineShape({
         onDragEnd={(e) => {
           const newX = e.target.x();
           const newY = e.target.y();
+          const pointsToPersist = dragStartPointsRef.current ?? pointsRef.current;
+          dragStartPointsRef.current = null;
           setLocalPos({ x: newX, y: newY });
           setIsDragging(false);
           updateObject(data.id, {
             x: newX,
             y: newY,
-            points: pointsRef.current,
+            points: pointsToPersist,
+            lineStartConnection: undefined,
+            lineEndConnection: undefined,
           });
           onDragEndAt?.(data.id, newX, newY);
           onShapeDragEnd?.();
