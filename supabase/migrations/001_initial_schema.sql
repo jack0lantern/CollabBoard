@@ -1,4 +1,4 @@
--- CollabBoard: Supabase schema migration from Firebase
+-- CollabBoard: Supabase schema (merged migrations)
 -- Auth: Supabase Auth. Presence: Firebase RTDB (not in Supabase).
 -- Run in Supabase SQL Editor or via: supabase db push
 
@@ -11,6 +11,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT,
+  first_name TEXT,
+  last_name TEXT,
   avatar_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -39,7 +41,7 @@ CREATE INDEX idx_boards_owner_created ON boards(owner_id, created_at DESC);
 CREATE TABLE board_objects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   board_id UUID NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('sticky', 'rect', 'circle', 'line')),
+  type TEXT NOT NULL CHECK (type IN ('sticky', 'rect', 'circle', 'line', 'frame', 'text')),
   x DOUBLE PRECISION NOT NULL DEFAULT 0,
   y DOUBLE PRECISION NOT NULL DEFAULT 0,
   z_index INTEGER DEFAULT 0,
@@ -54,6 +56,22 @@ CREATE TABLE board_objects (
   rotation DOUBLE PRECISION DEFAULT 0,
   -- Extra shape-specific data (flexible)
   meta JSONB DEFAULT '{}',
+  -- Shape formatting (Miro-like)
+  font_family TEXT,
+  font_size INTEGER,
+  font_weight TEXT,
+  font_style TEXT,
+  text_color TEXT,
+  stroke_color TEXT,
+  stroke_width INTEGER DEFAULT 0,
+  arrow_start BOOLEAN DEFAULT FALSE,
+  arrow_end BOOLEAN DEFAULT FALSE,
+  -- Line connections (snapped endpoints)
+  line_start_connection JSONB,
+  line_end_connection JSONB,
+  -- Frame-specific
+  title TEXT,
+  frame_color TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -105,6 +123,10 @@ CREATE POLICY "Owners can update boards" ON boards
 CREATE POLICY "Owners can delete boards" ON boards
   FOR DELETE USING (auth.uid() = owner_id);
 
+-- Boards: anon can read any board (link-sharing model)
+CREATE POLICY "Anon can read any board" ON boards
+  FOR SELECT TO anon USING (true);
+
 -- Board objects: read/write if user has board access
 CREATE POLICY "Users with board access can read objects" ON board_objects
   FOR SELECT USING (
@@ -137,6 +159,19 @@ CREATE POLICY "Users with board access can delete objects" ON board_objects
       (auth.jwt() ->> 'email')
     )
   );
+
+-- Board objects: anon can CRUD on any board
+CREATE POLICY "Anon can read board objects" ON board_objects
+  FOR SELECT TO anon USING (true);
+
+CREATE POLICY "Anon can insert board objects" ON board_objects
+  FOR INSERT TO anon WITH CHECK (true);
+
+CREATE POLICY "Anon can update board objects" ON board_objects
+  FOR UPDATE TO anon USING (true);
+
+CREATE POLICY "Anon can delete board objects" ON board_objects
+  FOR DELETE TO anon USING (true);
 
 -- =============================================================================
 -- 5. TRIGGERS
@@ -171,10 +206,21 @@ ALTER TABLE boards REPLICA IDENTITY FULL;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, display_name, avatar_url)
+  INSERT INTO public.profiles (id, display_name, first_name, last_name, avatar_url)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name'),
+    COALESCE(
+      NEW.raw_user_meta_data->>'full_name',
+      NEW.raw_user_meta_data->>'name'
+    ),
+    COALESCE(
+      NEW.raw_user_meta_data->>'first_name',
+      NEW.raw_user_meta_data->>'given_name'
+    ),
+    COALESCE(
+      NEW.raw_user_meta_data->>'last_name',
+      NEW.raw_user_meta_data->>'family_name'
+    ),
     NEW.raw_user_meta_data->>'avatar_url'
   )
   ON CONFLICT (id) DO NOTHING;
