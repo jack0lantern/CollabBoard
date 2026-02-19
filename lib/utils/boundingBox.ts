@@ -3,6 +3,7 @@ import type { ObjectData } from "@/types";
 const DEFAULT_RECT = { width: 100, height: 80 };
 const DEFAULT_CIRCLE = 50;
 const DEFAULT_STICKY = { width: 200, height: 150 };
+const DEFAULT_FRAME = { width: 600, height: 400 };
 
 /**
  * Get the bounding box of an object in board coordinates.
@@ -37,6 +38,13 @@ export function getObjectBoundingBox(obj: ObjectData): {
         y: obj.y,
         width: obj.width ?? DEFAULT_STICKY.width,
         height: obj.height ?? DEFAULT_STICKY.height,
+      };
+    case "frame":
+      return {
+        x: obj.x,
+        y: obj.y,
+        width: obj.width ?? DEFAULT_FRAME.width,
+        height: obj.height ?? DEFAULT_FRAME.height,
       };
     case "line": {
       const pts = obj.points ?? [0, 0, 100, 100];
@@ -201,4 +209,47 @@ export function rectsIntersect(
     a.y < b.y + b.height &&
     a.y + a.height > b.y
   );
+}
+
+/**
+ * Get objects that overlap the frame's bounding box and have a higher z-index.
+ * Used when dragging a frame to move its contents along with it.
+ */
+export function getObjectsOnTopOfFrame(
+  frameId: string,
+  frameBox: { x: number; y: number; width: number; height: number },
+  frameZIndex: number,
+  allObjects: ObjectData[]
+): ObjectData[] {
+  const result: ObjectData[] = [];
+  for (const obj of allObjects) {
+    if (obj.id === frameId) continue;
+    if ((obj.zIndex ?? 0) <= frameZIndex) continue;
+    const objBox = getObjectBoundingBox(obj);
+    if (rectsIntersect(frameBox, objBox)) {
+      result.push(obj);
+    }
+  }
+  return result;
+}
+
+/**
+ * Get the highest zIndex among frames that intersect the given object's bounding box.
+ * Returns null if no frames intersect.
+ */
+export function getTopmostFrameZIndex(
+  obj: ObjectData,
+  allObjects: ObjectData[]
+): number | null {
+  const objBox = getObjectBoundingBox(obj);
+  let maxZ: number | null = null;
+  for (const o of allObjects) {
+    if (o.type !== "frame" || o.id === obj.id) continue;
+    const frameBox = getObjectBoundingBox(o);
+    if (rectsIntersect(objBox, frameBox)) {
+      const z = o.zIndex ?? 0;
+      maxZ = maxZ == null ? z : Math.max(maxZ, z);
+    }
+  }
+  return maxZ;
 }

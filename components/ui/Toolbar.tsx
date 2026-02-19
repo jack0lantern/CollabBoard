@@ -101,6 +101,23 @@ function LineIcon() {
   );
 }
 
+function FrameIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="2" width="20" height="20" rx="2" />
+      <line x1="2" y1="8" x2="22" y2="8" />
+    </svg>
+  );
+}
+
 export function Toolbar() {
   const { addObject } = useBoardMutations();
   const { objects } = useBoardObjectsContext();
@@ -198,6 +215,21 @@ export function Toolbar() {
     setShapesExpanded(false);
   }, [addObject, objects]);
 
+  const addFrame = useCallback(() => {
+    addObject({
+      id: crypto.randomUUID(),
+      type: "frame",
+      x: 100,
+      y: 100,
+      zIndex: getNextZIndex(objects),
+      width: 600,
+      height: 400,
+      frameColor: "#ffffff",
+      strokeColor: "#e5e7eb",
+      strokeWidth: 1,
+    });
+  }, [addObject, objects]);
+
   return (
     <aside className="flex flex-col gap-1 p-2 w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm">
       <button
@@ -206,6 +238,13 @@ export function Toolbar() {
         className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
       >
         <StickyIcon />
+      </button>
+      <button
+        onClick={addFrame}
+        aria-label="Add frame"
+        className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
+      >
+        <FrameIcon />
       </button>
       <div ref={shapesRef} className="relative">
         <button

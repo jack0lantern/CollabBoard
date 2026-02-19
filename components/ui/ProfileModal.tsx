@@ -39,7 +39,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       const ok = await updateProfile(user.id, {
-        display_name: displayName.trim() || null,
+        display_name: displayName.trim() || undefined,
       });
       if (!ok) setError("Failed to update profile");
     } catch {

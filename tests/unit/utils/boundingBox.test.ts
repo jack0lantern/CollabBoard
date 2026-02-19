@@ -134,6 +134,18 @@ describe("getObjectBoundingBox", () => {
     });
     expect(box).toEqual({ x: 70, y: 70, width: 60, height: 60 });
   });
+
+  it("returns frame box for frame type", () => {
+    const box = getObjectBoundingBox({
+      id: "f1",
+      type: "frame",
+      x: 50,
+      y: 80,
+      width: 600,
+      height: 400,
+    });
+    expect(box).toEqual({ x: 50, y: 80, width: 600, height: 400 });
+  });
 });
 
 describe("computeGroupBoundingBox", () => {

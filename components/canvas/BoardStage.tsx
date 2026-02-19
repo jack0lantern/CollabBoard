@@ -26,6 +26,9 @@ import { screenToBoard } from "@/lib/utils/coordinates";
 import {
   getObjectBoundingBox,
   rectsIntersect,
+  computeGroupBoundingBox,
+  getTopmostFrameZIndex,
+  getObjectsOnTopOfFrame,
 } from "@/lib/utils/boundingBox";
 import { getNodeSnapPoints } from "@/lib/utils/snapPoints";
 import { ShapeToolbar } from "./ShapeToolbar";
@@ -123,6 +126,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const panningMovedRef = useRef(false);
   const pendingContextMenuRef = useRef<{ x: number; y: number; targetIds: string[] } | null>(null);
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
+  const cursorBoardPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -193,6 +197,72 @@ export function BoardStage({ boardId }: { boardId: string }) {
     setLastDragEnd(Date.now());
   }, []);
 
+  const lastDragMoveZUpdateRef = useRef<{
+    objectId: string;
+    time: number;
+  }>({ objectId: "", time: 0 });
+  const DRAG_MOVE_THROTTLE_MS = 50;
+
+  const handleDragEndAt = useCallback(
+    (objectId: string, newX: number, newY: number) => {
+      const obj = objectListRef.current.find((o) => o.id === objectId);
+      if (!obj || obj.type === "frame") return;
+      const objWithNewPos = { ...obj, x: newX, y: newY };
+      const maxFrameZ = getTopmostFrameZIndex(
+        objWithNewPos,
+        objectListRef.current
+      );
+      if (maxFrameZ != null && (obj.zIndex ?? 0) <= maxFrameZ) {
+        updateObject(objectId, { zIndex: maxFrameZ + 1 });
+      }
+    },
+    [updateObject]
+  );
+
+  const handleFrameDragWithContents = useCallback(
+    (
+      frameId: string,
+      prevX: number,
+      prevY: number,
+      deltaX: number,
+      deltaY: number
+    ) => {
+      const frame = objectListRef.current.find((o) => o.id === frameId);
+      if (!frame || frame.type !== "frame") return;
+      const frameBox = getObjectBoundingBox({ ...frame, x: prevX, y: prevY });
+      const frameZ = frame.zIndex ?? 0;
+      const objectsOnTop = getObjectsOnTopOfFrame(
+        frameId,
+        frameBox,
+        frameZ,
+        objectListRef.current
+      );
+      for (const obj of objectsOnTop) {
+        updateObject(obj.id, {
+          x: obj.x + deltaX,
+          y: obj.y + deltaY,
+        });
+      }
+    },
+    [updateObject]
+  );
+
+  const handleDragMoveAt = useCallback(
+    (objectId: string, newX: number, newY: number) => {
+      const now = Date.now();
+      const last = lastDragMoveZUpdateRef.current;
+      if (
+        last.objectId === objectId &&
+        now - last.time < DRAG_MOVE_THROTTLE_MS
+      ) {
+        return;
+      }
+      lastDragMoveZUpdateRef.current = { objectId, time: now };
+      handleDragEndAt(objectId, newX, newY);
+    },
+    [handleDragEndAt]
+  );
+
   const handleDeleteSelected = useCallback(
     (ids?: string[]) => {
       const toDelete = ids ?? selectedIds;
@@ -226,6 +296,58 @@ export function BoardStage({ boardId }: { boardId: string }) {
     setContextMenu(null);
   }, [addObject, setSelection]);
 
+  const handleAddFrame = useCallback(
+    (atX: number, atY: number) => {
+      const FRAME_WIDTH = 600;
+      const FRAME_HEIGHT = 400;
+      const maxZ = Math.max(0, ...objectListRef.current.map((o) => o.zIndex ?? 0));
+      addObject({
+        id: crypto.randomUUID(),
+        type: "frame",
+        x: atX - FRAME_WIDTH / 2,
+        y: atY - FRAME_HEIGHT / 2,
+        zIndex: maxZ + 1,
+        width: FRAME_WIDTH,
+        height: FRAME_HEIGHT,
+        frameColor: "#ffffff",
+        strokeColor: "#e5e7eb",
+        strokeWidth: 1,
+      });
+    },
+    [addObject]
+  );
+
+  const handleCreateFrameFromSelection = useCallback(() => {
+    const ids = contextMenu?.targetIds ?? selectedIds;
+    if (ids.length < 2) return;
+    const selected = ids
+      .map((id) => objectListRef.current.find((o) => o.id === id))
+      .filter((o): o is ObjectData => o != null);
+    if (selected.length < 2) return;
+    const box = computeGroupBoundingBox(selected);
+    const PADDING = 24;
+    const frameX = box.x - PADDING;
+    const frameY = box.y - PADDING;
+    const frameWidth = box.width + PADDING * 2;
+    const frameHeight = box.height + PADDING * 2;
+    const minZ = Math.min(0, ...objectListRef.current.map((o) => o.zIndex ?? 0));
+    const newFrame: ObjectData = {
+      id: crypto.randomUUID(),
+      type: "frame",
+      x: frameX,
+      y: frameY,
+      zIndex: minZ - 1,
+      width: frameWidth,
+      height: frameHeight,
+      frameColor: "#ffffff",
+      strokeColor: "#e5e7eb",
+      strokeWidth: 1,
+    };
+    addObject(newFrame);
+    setSelection([newFrame.id]);
+    setContextMenu(null);
+  }, [addObject, setSelection, selectedIds, contextMenu?.targetIds]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName ?? "")) {
@@ -234,6 +356,19 @@ export function BoardStage({ boardId }: { boardId: string }) {
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
         e.preventDefault();
         handleDeleteSelected();
+      } else if (e.key === "f" || e.key === "F") {
+        if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          const pos = cursorBoardPosRef.current;
+          const isDefaultPos = pos.x === 0 && pos.y === 0;
+          const centerX = isDefaultPos
+            ? (dimensions.width / 2 - position.x) / scale
+            : pos.x;
+          const centerY = isDefaultPos
+            ? (dimensions.height / 2 - position.y) / scale
+            : pos.y;
+          handleAddFrame(centerX, centerY);
+        }
       } else if ((e.metaKey || e.ctrlKey) && e.key === "c" && selectedIds.length > 0) {
         e.preventDefault();
         const toCopy = selectedIds
@@ -255,7 +390,16 @@ export function BoardStage({ boardId }: { boardId: string }) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedIds.length, handleDeleteSelected, addObject, setSelection]);
+  }, [
+    selectedIds.length,
+    handleDeleteSelected,
+    addObject,
+    setSelection,
+    handleAddFrame,
+    dimensions,
+    position,
+    scale,
+  ]);
 
   const handleShapeContextMenu = useCallback(
     (id: string, clientX: number, clientY: number) => {
@@ -379,6 +523,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
       if (pos) {
         const boardX = (pos.x - stage.x()) / stage.scaleX();
         const boardY = (pos.y - stage.y()) / stage.scaleY();
+        cursorBoardPosRef.current = { x: boardX, y: boardY };
         updateCursor({ x: boardX, y: boardY });
 
         if (selectionStartRef.current) {
@@ -469,6 +614,9 @@ export function BoardStage({ boardId }: { boardId: string }) {
                     onDragMoveTick={onDragMoveTick}
                     getLiveSnapPoints={getLiveSnapPoints}
                     dragMoveVersion={dragMoveVersion}
+                    onDragEndAt={handleDragEndAt}
+                    onDragMoveAt={handleDragMoveAt}
+                    onFrameDragWithContents={handleFrameDragWithContents}
                   />
                 ))}
                 <MultiSelectTransformer
@@ -479,6 +627,8 @@ export function BoardStage({ boardId }: { boardId: string }) {
                   onTransformEnd={() => setLastDragEnd(Date.now())}
                   onTransform={onDragMoveTick}
                   onContextMenu={handleTransformerContextMenu}
+                  onDragEndAt={handleDragEndAt}
+                  onDragMoveAt={handleDragMoveAt}
                 />
               </Layer>
               <Layer listening={false}>
@@ -538,6 +688,14 @@ export function BoardStage({ boardId }: { boardId: string }) {
                           label: "Paste",
                           onClick: handlePaste,
                         },
+                        ...(contextMenu.targetIds.length >= 2
+                          ? [
+                              {
+                                label: "Create frame",
+                                onClick: handleCreateFrameFromSelection,
+                              },
+                            ]
+                          : []),
                         {
                           label: "Bring to front",
                           onClick: () => {

@@ -54,8 +54,25 @@ describe("ObjectData type", () => {
     expect(line.type).toBe("line");
   });
 
+  it("validates frame shape structure", () => {
+    const frame: ObjectData = {
+      id: "frame-1",
+      type: "frame",
+      x: 100,
+      y: 100,
+      width: 600,
+      height: 400,
+      frameColor: "#ffffff",
+      strokeColor: "#e5e7eb",
+      strokeWidth: 1,
+      title: "My Frame",
+    };
+    expect(frame.type).toBe("frame");
+    expect(frame.title).toBe("My Frame");
+  });
+
   it("accepts all valid ShapeType values", () => {
-    const types: ShapeType[] = ["sticky", "rect", "circle", "line"];
+    const types: ShapeType[] = ["sticky", "rect", "circle", "line", "frame"];
     types.forEach((type) => {
       const obj: ObjectData = { id: "id", type, x: 0, y: 0 };
       expect(obj.type).toBe(type);

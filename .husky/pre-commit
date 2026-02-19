@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
+set -e
+
+# Run next build - blocks commit if build fails
+npm run build
 
 # Run detect-secrets (requires: pip install -r requirements-dev.txt in venv)
 # Blocks commit if new secrets detected beyond .secrets.baseline

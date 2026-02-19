@@ -20,6 +20,8 @@ interface MultiSelectTransformerProps {
   onTransformEnd?: () => void;
   onTransform?: () => void;
   onContextMenu?: (clientX: number, clientY: number) => void;
+  onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
+  onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
 }
 
 /**
@@ -34,6 +36,8 @@ export function MultiSelectTransformer({
   onTransformEnd,
   onTransform,
   onContextMenu,
+  onDragEndAt,
+  onDragMoveAt,
 }: MultiSelectTransformerProps) {
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
@@ -43,23 +47,26 @@ export function MultiSelectTransformer({
     const tr = trRef.current;
     if (!tr) return;
     const nodes = tr.nodes();
-    const refs = nodeRefsRef.current;
+    const refs = nodeRefsRef.current ?? new Map();
     for (const node of nodes) {
       const id = Array.from(refs.entries()).find(
         ([, ref]) => ref === node
       )?.[0];
       if (!id) continue;
-      updateObject(id, { x: node.x(), y: node.y() });
+      const newX = node.x();
+      const newY = node.y();
+      updateObject(id, { x: newX, y: newY });
+      onDragEndAt?.(id, newX, newY);
     }
     tr.getLayer()?.batchDraw();
     onTransformEnd?.();
-  }, [nodeRefsRef, updateObject, onTransformEnd]);
+  }, [nodeRefsRef, updateObject, onTransformEnd, onDragEndAt]);
 
   useLayoutEffect(() => {
     const tr = trRef.current;
     if (!tr || selectedIds.length === 0) return;
 
-    const refs = nodeRefsRef.current;
+    const refs = nodeRefsRef.current ?? new Map();
     const nodes = selectedIds
       .map((id) => refs.get(id))
       .filter((n): n is Konva.Node => n != null);
@@ -70,15 +77,34 @@ export function MultiSelectTransformer({
     }
   }, [selectedIds, nodeRefsRef, refsVersion]);
 
+  const notifyDragMoveAt = useCallback(() => {
+    const tr = trRef.current;
+    if (!tr) return;
+    const nodes = tr.nodes();
+    const refs = nodeRefsRef.current ?? new Map();
+    for (const node of nodes) {
+      const id = Array.from(refs.entries()).find(
+        ([, ref]) => ref === node
+      )?.[0];
+      if (!id) continue;
+      onDragMoveAt?.(id, node.x(), node.y());
+    }
+  }, [nodeRefsRef, onDragMoveAt]);
+
   useLayoutEffect(() => {
     const tr = trRef.current;
     if (!tr) return;
     const back = tr.findOne(".back");
     if (!back) return;
-    const handler = () => persistPositions();
-    back.on("dragend", handler);
-    return () => back.off("dragend", handler);
-  }, [refsVersion, persistPositions]);
+    const dragEndHandler = () => persistPositions();
+    const dragMoveHandler = () => notifyDragMoveAt();
+    back.on("dragend", dragEndHandler);
+    back.on("dragmove", dragMoveHandler);
+    return () => {
+      back.off("dragend", dragEndHandler);
+      back.off("dragmove", dragMoveHandler);
+    };
+  }, [refsVersion, persistPositions, notifyDragMoveAt]);
 
   const handleTransformEnd = () => {
     anchorBoxRef.current = null;
@@ -86,7 +112,7 @@ export function MultiSelectTransformer({
     if (!tr) return;
 
     const nodes = tr.nodes();
-    const refs = nodeRefsRef.current;
+    const refs = nodeRefsRef.current ?? new Map();
     for (const node of nodes) {
       const id = Array.from(refs.entries()).find(
         ([, ref]) => ref === node

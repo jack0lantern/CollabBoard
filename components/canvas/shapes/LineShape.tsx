@@ -46,6 +46,8 @@ export function LineShape({
   stageScale = 1,
   getLiveSnapPoints,
   dragMoveVersion = 0,
+  onDragEndAt,
+  onDragMoveAt,
 }: {
   data: ObjectData;
   otherObjects?: ObjectData[];
@@ -54,6 +56,8 @@ export function LineShape({
   isMultiSelect?: boolean;
   registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
+  onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
+  onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   stageScale?: number;
   getLiveSnapPoints?: (objectId: string) => { x: number; y: number }[] | null;
@@ -307,7 +311,12 @@ export function LineShape({
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
         onDragStart={() => setIsDragging(true)}
-        onDragMove={(e) => setPos({ x: e.target.x(), y: e.target.y() })}
+        onDragMove={(e) => {
+          const x = e.target.x();
+          const y = e.target.y();
+          setPos({ x, y });
+          onDragMoveAt?.(data.id, x, y);
+        }}
         onDragEnd={(e) => {
           const newX = e.target.x();
           const newY = e.target.y();
@@ -318,6 +327,7 @@ export function LineShape({
             y: newY,
             points: pointsRef.current,
           });
+          onDragEndAt?.(data.id, newX, newY);
           onShapeDragEnd?.();
         }}
       >

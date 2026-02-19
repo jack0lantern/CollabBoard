@@ -52,8 +52,8 @@ const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32];
 const STROKE_WIDTHS = [0, 1, 2, 3, 4, 6, 8];
 
 const SHAPES_WITH_TEXT: ShapeType[] = ["sticky"];
-const SHAPES_WITH_FILL: ShapeType[] = ["sticky", "rect", "circle"];
-const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "line"];
+const SHAPES_WITH_FILL: ShapeType[] = ["sticky", "rect", "circle", "frame"];
+const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "line", "frame"];
 
 function hasText(type: ShapeType): boolean {
   return SHAPES_WITH_TEXT.includes(type);
@@ -227,6 +227,25 @@ export function ShapeToolbar({
         </>
       )}
 
+      {object.type === "frame" && (
+        <>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Title
+            </span>
+            <input
+              type="text"
+              value={object.title ?? ""}
+              onChange={(e) => debouncedUpdate({ title: e.target.value })}
+              placeholder="Frame title"
+              className="h-8 min-w-[120px] rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+              title="Frame title"
+            />
+          </div>
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+        </>
+      )}
+
       {showFillControl && (
         <>
           <div className="flex items-center gap-1">
@@ -236,14 +255,22 @@ export function ShapeToolbar({
             <input
               type="color"
               value={
-                object.color ??
+                (object.type === "frame" ? object.frameColor : object.color) ??
                 (object.type === "sticky"
                   ? "#fef08a"
                   : object.type === "rect"
                     ? "#3b82f6"
-                    : "#10b981")
+                    : object.type === "frame"
+                      ? "#ffffff"
+                      : "#10b981")
               }
-              onChange={(e) => debouncedUpdate({ color: e.target.value })}
+              onChange={(e) =>
+                debouncedUpdate(
+                  object.type === "frame"
+                    ? { frameColor: e.target.value }
+                    : { color: e.target.value }
+                )
+              }
               className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
               title="Fill color"
             />

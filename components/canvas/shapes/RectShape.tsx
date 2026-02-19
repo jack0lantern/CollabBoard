@@ -25,6 +25,8 @@ export function RectShape({
   onShapeDragEnd,
   onContextMenu,
   onDragMoveTick,
+  onDragEndAt,
+  onDragMoveAt,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -32,6 +34,8 @@ export function RectShape({
   isMultiSelect?: boolean;
   registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
+  onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
+  onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
 }) {
@@ -129,7 +133,10 @@ export function RectShape({
         }}
         onDragStart={() => setIsDragging(true)}
         onDragMove={(e) => {
-          setPos({ x: e.target.x(), y: e.target.y() });
+          const x = e.target.x();
+          const y = e.target.y();
+          setPos({ x, y });
+          onDragMoveAt?.(data.id, x, y);
           onDragMoveTick?.();
         }}
         onDragEnd={(e) => {
@@ -138,6 +145,7 @@ export function RectShape({
           setLocalPos({ x: newX, y: newY });
           setIsDragging(false);
           updateObject(data.id, { x: newX, y: newY });
+          onDragEndAt?.(data.id, newX, newY);
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {

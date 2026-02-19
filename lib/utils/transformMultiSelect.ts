@@ -48,6 +48,17 @@ export function computeTransformedObject(
         rotation: rotation ?? undefined,
       };
     }
+    case "frame": {
+      const w = (obj.width ?? 600) * scaleX;
+      const h = (obj.height ?? 400) * scaleY;
+      return {
+        x,
+        y,
+        width: Math.max(MIN_SIZE, Math.abs(w)),
+        height: Math.max(MIN_SIZE, Math.abs(h)),
+        rotation: rotation ?? undefined,
+      };
+    }
     case "line": {
       const pts = obj.points ?? [0, 0, 100, 100];
       const newPoints = pts.map((p, i) =>

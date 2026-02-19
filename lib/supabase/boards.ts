@@ -82,6 +82,8 @@ function rowToObjectData(row: {
   arrow_end?: boolean;
   line_start_connection?: unknown;
   line_end_connection?: unknown;
+  title?: string;
+  frame_color?: string;
 }): ObjectData {
   return sanitizeObjectData({
     id: row.id,
@@ -109,6 +111,8 @@ function rowToObjectData(row: {
     arrowEnd: row.arrow_end,
     lineStartConnection: parseLineConnection(row.line_start_connection),
     lineEndConnection: parseLineConnection(row.line_end_connection),
+    title: row.title,
+    frameColor: row.frame_color,
   });
 }
 
@@ -143,6 +147,8 @@ function objectToRow(
     arrow_end: object.arrowEnd,
     line_start_connection: object.lineStartConnection ?? null,
     line_end_connection: object.lineEndConnection ?? null,
+    title: object.title ?? null,
+    frame_color: object.frameColor ?? null,
   };
 }
 

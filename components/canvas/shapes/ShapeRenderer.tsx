@@ -7,6 +7,7 @@ import { StickyNote } from "./StickyNote";
 import { RectShape } from "./RectShape";
 import { CircleShape } from "./CircleShape";
 import { LineShape } from "./LineShape";
+import { FrameShape } from "./FrameShape";
 
 export const ShapeRenderer = memo(function ShapeRenderer({
   data,
@@ -21,6 +22,9 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onDragMoveTick,
   getLiveSnapPoints,
   dragMoveVersion,
+  onDragEndAt,
+  onDragMoveAt,
+  onFrameDragWithContents,
 }: {
   data: ObjectData;
   otherObjects?: ObjectData[];
@@ -34,6 +38,15 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onDragMoveTick?: () => void;
   getLiveSnapPoints?: (objectId: string) => { x: number; y: number }[] | null;
   dragMoveVersion?: number;
+  onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
+  onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
+  onFrameDragWithContents?: (
+    frameId: string,
+    prevX: number,
+    prevY: number,
+    deltaX: number,
+    deltaY: number
+  ) => void;
 }) {
   const common = {
     data,
@@ -44,6 +57,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
     onShapeDragEnd,
     onContextMenu,
     onDragMoveTick,
+    onDragEndAt,
+    onDragMoveAt,
   };
   switch (data.type) {
     case "sticky":
@@ -52,6 +67,13 @@ export const ShapeRenderer = memo(function ShapeRenderer({
       return <RectShape {...common} />;
     case "circle":
       return <CircleShape {...common} />;
+    case "frame":
+      return (
+        <FrameShape
+          {...common}
+          onFrameDragWithContents={onFrameDragWithContents}
+        />
+      );
     case "line":
       return (
         <LineShape

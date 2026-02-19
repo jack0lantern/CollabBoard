@@ -1,4 +1,4 @@
-export type ShapeType = "sticky" | "rect" | "circle" | "line";
+export type ShapeType = "sticky" | "rect" | "circle" | "line" | "frame";
 
 /** Connection from a line endpoint to a snap point on another object */
 export interface LineConnection {
@@ -41,6 +41,10 @@ export interface ObjectData {
   lineStartConnection?: LineConnection;
   /** Line end endpoint connection to another object's snap point */
   lineEndConnection?: LineConnection;
+  /** Frame title (displayed at top of frame) */
+  title?: string;
+  /** Frame background/fill color (default: white) */
+  frameColor?: string;
 }
 
 export type ShareRole = "editor" | "viewer";

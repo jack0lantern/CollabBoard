@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Ellipse, Transformer } from "react-konva";
+import { Group, Rect, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import type { TransformBox } from "@/lib/utils/boundingBox";
 import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 
-const MIN_RADIUS = 10;
-const DEFAULT_RADIUS = 50;
+const MIN_SIZE = 80;
+const TITLE_BAR_HEIGHT = 32;
+const TITLE_PADDING = 8;
 
-export function CircleShape({
+/**
+ * Miro-style frame: rectangular container with optional title bar.
+ * Acts as a visual underlayer for organizing board content.
+ */
+export function FrameShape({
   data,
   onSelect,
   isSelected,
@@ -20,8 +25,7 @@ export function CircleShape({
   onShapeDragEnd,
   onContextMenu,
   onDragMoveTick,
-  onDragEndAt,
-  onDragMoveAt,
+  onFrameDragWithContents,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -29,27 +33,38 @@ export function CircleShape({
   isMultiSelect?: boolean;
   registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
-  onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
-  onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
+  onFrameDragWithContents?: (
+    frameId: string,
+    prevX: number,
+    prevY: number,
+    deltaX: number,
+    deltaY: number
+  ) => void;
 }) {
   const { updateObject } = useBoardMutations();
-  const shapeRef = useRef<Konva.Ellipse | null>(null);
+  const groupRef = useRef<Konva.Group | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
   const isTransformingRef = useRef(false);
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
-  const [localSize, setLocalSize] = useState<{ radiusX: number; radiusY: number } | null>(null);
-  const radiusX = localSize?.radiusX ?? data.radiusX ?? data.radius ?? DEFAULT_RADIUS;
-  const radiusY = localSize?.radiusY ?? data.radiusY ?? data.radius ?? DEFAULT_RADIUS;
+  const [localSize, setLocalSize] = useState<{ width: number; height: number } | null>(null);
+  const width = localSize?.width ?? data.width ?? 600;
+  const height = localSize?.height ?? data.height ?? 400;
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
   const displayRotation = data.rotation ?? 0;
 
+  const fillColor = data.frameColor ?? data.color ?? "#ffffff";
+  const strokeColor = data.strokeColor ?? "#e5e7eb";
+  const strokeWidth = data.strokeWidth ?? 1;
+  const title = data.title ?? "";
+
   const prevPosRef = useRef({ x: data.x, y: data.y });
+  const dragPrevPosRef = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     if (localPos != null) {
       const prev = prevPosRef.current;
@@ -63,29 +78,21 @@ export function CircleShape({
     }
   }, [data.x, data.y, isDragging, localPos]);
 
-  const prevDataRef = useRef({
-    radiusX: data.radiusX ?? data.radius ?? DEFAULT_RADIUS,
-    radiusY: data.radiusY ?? data.radius ?? DEFAULT_RADIUS,
-  });
+  const prevDataRef = useRef({ width: data.width, height: data.height });
   useEffect(() => {
     if (isTransformingRef.current) return;
     if (localSize != null) {
       const prev = prevDataRef.current;
-      const currX = data.radiusX ?? data.radius ?? DEFAULT_RADIUS;
-      const currY = data.radiusY ?? data.radius ?? DEFAULT_RADIUS;
-      if (currX !== prev.radiusX || currY !== prev.radiusY) {
+      if (data.width !== prev.width || data.height !== prev.height) {
         setLocalSize(null);
       }
     }
-    prevDataRef.current = {
-      radiusX: data.radiusX ?? data.radius ?? DEFAULT_RADIUS,
-      radiusY: data.radiusY ?? data.radius ?? DEFAULT_RADIUS,
-    };
-  }, [data.radiusX, data.radiusY, data.radius, localSize]);
+    prevDataRef.current = { width: data.width, height: data.height };
+  }, [data.width, data.height, localSize]);
 
   useLayoutEffect(() => {
-    if (isSelected && shapeRef.current != null) {
-      registerShapeRef?.(data.id, shapeRef.current);
+    if (isSelected && groupRef.current != null) {
+      registerShapeRef?.(data.id, groupRef.current);
     } else {
       registerShapeRef?.(data.id, null);
     }
@@ -93,37 +100,22 @@ export function CircleShape({
   }, [isSelected, data.id, registerShapeRef]);
 
   useLayoutEffect(() => {
-    if (isSelected && !isMultiSelect && shapeRef.current != null && trRef.current != null) {
-      trRef.current.nodes([shapeRef.current]);
+    if (isSelected && !isMultiSelect && groupRef.current != null && trRef.current != null) {
+      trRef.current.nodes([groupRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
   }, [isSelected, isMultiSelect]);
 
+  const w = Math.max(MIN_SIZE, Math.abs(width));
+  const h = Math.max(MIN_SIZE, Math.abs(height));
+
   return (
     <>
-      <Ellipse
-        ref={shapeRef}
+      <Group
+        ref={groupRef}
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        radiusX={radiusX}
-        radiusY={radiusY}
-        fill={data.color ?? "#10b981"}
-        stroke={
-          (data.strokeWidth ?? 0) > 0
-            ? (data.strokeColor ?? data.color ?? "#059669")
-            : isSelected
-              ? "#2563eb"
-              : undefined
-        }
-        strokeWidth={
-          (data.strokeWidth ?? 0) > 0
-            ? (data.strokeWidth ?? 1)
-            : isSelected
-              ? 2
-              : undefined
-        }
-        strokeScaleEnabled={false}
         draggable
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
@@ -134,51 +126,93 @@ export function CircleShape({
           e.evt.preventDefault();
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
-        onDragStart={() => setIsDragging(true)}
+        onDragStart={(e) => {
+          setIsDragging(true);
+          dragPrevPosRef.current = { x: e.target.x(), y: e.target.y() };
+        }}
         onDragMove={(e) => {
-          const x = e.target.x();
-          const y = e.target.y();
-          setPos({ x, y });
-          onDragMoveAt?.(data.id, x, y);
+          const newX = e.target.x();
+          const newY = e.target.y();
+          setPos({ x: newX, y: newY });
+          const prev = dragPrevPosRef.current;
+          if (prev != null) {
+            const deltaX = newX - prev.x;
+            const deltaY = newY - prev.y;
+            onFrameDragWithContents?.(data.id, prev.x, prev.y, deltaX, deltaY);
+            dragPrevPosRef.current = { x: newX, y: newY };
+          }
           onDragMoveTick?.();
         }}
         onDragEnd={(e) => {
+          dragPrevPosRef.current = null;
           const newX = e.target.x();
           const newY = e.target.y();
           setLocalPos({ x: newX, y: newY });
           setIsDragging(false);
           updateObject(data.id, { x: newX, y: newY });
-          onDragEndAt?.(data.id, newX, newY);
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {
           anchorBoxRef.current = null;
           isTransformingRef.current = false;
           if (isMultiSelect) return;
-          const node = shapeRef.current;
+          const node = groupRef.current;
           if (!node) return;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
-          const rawRx = node.radiusX() * scaleX;
-          const rawRy = node.radiusY() * scaleY;
-          const newRadiusX =
-            rawRx >= 0 ? Math.max(MIN_RADIUS, rawRx) : -Math.max(MIN_RADIUS, Math.abs(rawRx));
-          const newRadiusY =
-            rawRy >= 0 ? Math.max(MIN_RADIUS, rawRy) : -Math.max(MIN_RADIUS, Math.abs(rawRy));
-          setLocalSize({ radiusX: newRadiusX, radiusY: newRadiusY });
+          const rawW = w * scaleX;
+          const rawH = h * scaleY;
+          const newWidth = Math.max(MIN_SIZE, Math.abs(rawW));
+          const newHeight = Math.max(MIN_SIZE, Math.abs(rawH));
+          setLocalSize({ width: newWidth, height: newHeight });
           node.scaleX(1);
           node.scaleY(1);
           const newRotation = node.rotation();
           updateObject(data.id, {
             x: node.x(),
             y: node.y(),
-            radiusX: newRadiusX,
-            radiusY: newRadiusY,
+            width: newWidth,
+            height: newHeight,
             rotation: newRotation,
           });
           node.rotation(0);
         }}
-      />
+      >
+        <Rect
+          x={0}
+          y={0}
+          width={w}
+          height={h}
+          fill={fillColor}
+          stroke={strokeWidth > 0 ? strokeColor : isSelected ? "#3b82f6" : undefined}
+          strokeWidth={strokeWidth > 0 ? strokeWidth : isSelected ? 2 : 0}
+          strokeScaleEnabled={false}
+        />
+        {title && (
+          <Rect
+            x={0}
+            y={0}
+            width={w}
+            height={TITLE_BAR_HEIGHT}
+            fill={fillColor}
+            stroke={strokeWidth > 0 ? strokeColor : undefined}
+            strokeWidth={0}
+          />
+        )}
+        {title && (
+          <Text
+            x={TITLE_PADDING}
+            y={TITLE_PADDING}
+            width={w - TITLE_PADDING * 2}
+            height={TITLE_BAR_HEIGHT - TITLE_PADDING * 2}
+            text={title}
+            fontSize={14}
+            fontFamily="sans-serif"
+            fill="#374151"
+            listening={false}
+          />
+        )}
+      </Group>
       {isSelected && !isMultiSelect && (
         <Transformer
           ref={trRef}
@@ -194,12 +228,11 @@ export function CircleShape({
             if (anchorBoxRef.current == null) {
               anchorBoxRef.current = { ...oldBox };
             }
-            const minDim = MIN_RADIUS * 2;
             return boundBoxWithAnchorPreservation(
               oldBox,
               newBox,
-              minDim,
-              minDim,
+              MIN_SIZE,
+              MIN_SIZE,
               anchorBoxRef.current,
               trRef.current?.getActiveAnchor() ?? undefined
             );
