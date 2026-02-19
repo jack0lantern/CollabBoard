@@ -154,7 +154,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
                     <button
                       type="button"
                       onClick={() => {
-                        setInput(example);
+                        sendMessage({ text: example });
                       }}
                       className="text-left w-full px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
                     >
