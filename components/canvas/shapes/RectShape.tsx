@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Rect, Transformer } from "react-konva";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Group, Rect, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
@@ -9,6 +9,10 @@ import type { TransformBox } from "@/lib/utils/boundingBox";
 import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 
 const MIN_SIZE = 20;
+const TEXT_PADDING = 8;
+const DEFAULT_FONT_SIZE = 14;
+const DEFAULT_TEXT_COLOR = "black";
+const DEFAULT_FONT_FAMILY = "sans-serif";
 
 /**
  * Single-select transform: use data as source of truth. No localSize during
@@ -40,7 +44,7 @@ export function RectShape({
   onDragMoveTick?: () => void;
 }) {
   const { updateObject } = useBoardMutations();
-  const shapeRef = useRef<Konva.Rect | null>(null);
+  const groupRef = useRef<Konva.Group | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
   const isTransformingRef = useRef(false);
@@ -48,8 +52,16 @@ export function RectShape({
   const [isDragging, setIsDragging] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
   const [localSize, setLocalSize] = useState<{ width: number; height: number } | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const editInfoRef = useRef<{
+    stage: Konva.Stage;
+    pos: { x: number; y: number };
+  } | null>(null);
+
   const width = localSize?.width ?? data.width ?? 100;
   const height = localSize?.height ?? data.height ?? 80;
+  const absWidth = Math.max(MIN_SIZE, Math.abs(width));
+  const absHeight = Math.max(MIN_SIZE, Math.abs(height));
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
   const displayRotation = data.rotation ?? 0;
@@ -81,45 +93,141 @@ export function RectShape({
   }, [data.width, data.height, localSize]);
 
   useLayoutEffect(() => {
-    if (shapeRef.current != null) {
-      registerShapeRef?.(data.id, shapeRef.current);
+    if (groupRef.current != null) {
+      registerShapeRef?.(data.id, groupRef.current);
     }
     return () => registerShapeRef?.(data.id, null);
   }, [data.id, registerShapeRef]);
 
   useLayoutEffect(() => {
-    if (isSelected && !isMultiSelect && shapeRef.current != null && trRef.current != null) {
-      trRef.current.nodes([shapeRef.current]);
+    if (isSelected && !isMultiSelect && groupRef.current != null && trRef.current != null) {
+      trRef.current.nodes([groupRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
   }, [isSelected, isMultiSelect]);
 
+  const handleDblClick = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      e.cancelBubble = true;
+      const stage = e.target.getStage();
+      if (!stage) return;
+      editInfoRef.current = { stage, pos: { x: displayX, y: displayY } };
+      setIsEditing(true);
+    },
+    [displayX, displayY]
+  );
+
+  useEffect(() => {
+    if (!isEditing || !editInfoRef.current) return;
+
+    const { stage, pos } = editInfoRef.current;
+    const stageBox = stage.container().getBoundingClientRect();
+    const scaleX = stage.scaleX();
+    const scaleY = stage.scaleY();
+    const stageX = stage.x();
+    const stageY = stage.y();
+
+    const textX = width >= 0 ? pos.x + TEXT_PADDING : pos.x + width + TEXT_PADDING;
+    const textY = height >= 0 ? pos.y + TEXT_PADDING : pos.y + height + TEXT_PADDING;
+    const areaX = stageBox.left + stageX + textX * scaleX;
+    const areaY = stageBox.top + stageY + textY * scaleY;
+    const areaW = (absWidth - TEXT_PADDING * 2) * scaleX;
+    const areaH = (absHeight - TEXT_PADDING * 2) * scaleY;
+    const scaledFontSize = (data.fontSize ?? DEFAULT_FONT_SIZE) * scaleX;
+
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+
+    textarea.value = data.text ?? "";
+    textarea.style.position = "fixed";
+    textarea.style.left = `${String(areaX)}px`;
+    textarea.style.top = `${String(areaY)}px`;
+    textarea.style.width = `${String(areaW)}px`;
+    textarea.style.height = `${String(areaH)}px`;
+    textarea.style.fontSize = `${String(scaledFontSize)}px`;
+    textarea.style.fontFamily = data.fontFamily ?? DEFAULT_FONT_FAMILY;
+    textarea.style.fontWeight = data.fontWeight ?? "normal";
+    textarea.style.fontStyle = data.fontStyle ?? "normal";
+    textarea.style.textDecoration = data.textDecoration ?? "none";
+    textarea.style.color = data.textColor ?? DEFAULT_TEXT_COLOR;
+    textarea.style.border = "none";
+    textarea.style.padding = "0";
+    textarea.style.margin = "0";
+    textarea.style.overflow = "hidden";
+    textarea.style.background = "transparent";
+    textarea.style.outline = "none";
+    textarea.style.resize = "none";
+    textarea.style.lineHeight = "1.2";
+    textarea.style.overflowWrap = "break-word";
+    textarea.style.textAlign = "center";
+
+    textarea.focus();
+
+    const saveAndClose = () => {
+      const value = textarea.value;
+      textarea.parentNode?.removeChild(textarea);
+      window.removeEventListener("click", handleOutsideClick);
+      window.removeEventListener("touchstart", handleOutsideClick);
+      updateObject(data.id, { text: value });
+      setIsEditing(false);
+      editInfoRef.current = null;
+    };
+
+    const handleOutsideClick = (evt: MouseEvent | TouchEvent) => {
+      if (evt.target !== textarea) {
+        saveAndClose();
+      }
+    };
+
+    textarea.addEventListener("keydown", (evt) => {
+      if (evt.key === "Enter" && !evt.shiftKey) {
+        evt.preventDefault();
+        saveAndClose();
+      }
+      if (evt.key === "Escape") {
+        evt.preventDefault();
+        textarea.value = data.text ?? "";
+        saveAndClose();
+      }
+    });
+
+    setTimeout(() => {
+      window.addEventListener("click", handleOutsideClick);
+      window.addEventListener("touchstart", handleOutsideClick);
+    }, 0);
+
+    return () => {
+      if (textarea.parentNode) {
+        textarea.parentNode.removeChild(textarea);
+      }
+      window.removeEventListener("click", handleOutsideClick);
+      window.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [
+    isEditing,
+    data.id,
+    data.text,
+    data.fontFamily,
+    data.fontSize,
+    data.fontStyle,
+    data.fontWeight,
+    data.textColor,
+    data.textDecoration,
+    updateObject,
+    width,
+    height,
+    absWidth,
+    absHeight,
+  ]);
+
   return (
     <>
-      <Rect
-        ref={shapeRef}
+      <Group
+        ref={groupRef}
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        width={Math.max(MIN_SIZE, Math.abs(width))}
-        height={Math.max(MIN_SIZE, Math.abs(height))}
-        fill={data.color ?? "#3b82f6"}
-        stroke={
-          (data.strokeWidth ?? 0) > 0
-            ? (data.strokeColor ?? data.color ?? "#2563eb")
-            : isSelected
-              ? "#2563eb"
-              : undefined
-        }
-        strokeWidth={
-          (data.strokeWidth ?? 0) > 0
-            ? (data.strokeWidth ?? 1)
-            : isSelected
-              ? 2
-              : undefined
-        }
-        strokeScaleEnabled={false}
-        draggable
+        draggable={!isEditing}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;
@@ -129,6 +237,7 @@ export function RectShape({
           e.evt.preventDefault();
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
+        onDblClick={handleDblClick}
         onDragStart={() => setIsDragging(true)}
         onDragMove={(e) => {
           const x = e.target.x();
@@ -150,12 +259,12 @@ export function RectShape({
           anchorBoxRef.current = null;
           isTransformingRef.current = false;
           if (isMultiSelect) return;
-          const node = shapeRef.current;
+          const node = groupRef.current;
           if (!node) return;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
-          const rawW = node.width() * scaleX;
-          const rawH = node.height() * scaleY;
+          const rawW = absWidth * scaleX;
+          const rawH = absHeight * scaleY;
           const newWidth = Math.max(MIN_SIZE, Math.abs(rawW));
           const newHeight = Math.max(MIN_SIZE, Math.abs(rawH));
           setLocalSize({ width: newWidth, height: newHeight });
@@ -171,7 +280,61 @@ export function RectShape({
           });
           node.rotation(0);
         }}
-      />
+      >
+        <Rect
+          width={absWidth}
+          height={absHeight}
+          fill={data.color ?? "#3b82f6"}
+          stroke={
+            (data.strokeWidth ?? 0) > 0
+              ? (data.strokeColor ?? data.color ?? "#2563eb")
+              : isEditing || isSelected
+                ? "#2563eb"
+                : undefined
+          }
+          strokeWidth={
+            (data.strokeWidth ?? 0) > 0
+              ? (data.strokeWidth ?? 1)
+              : isEditing || isSelected
+                ? 2
+                : undefined
+          }
+          strokeScaleEnabled={false}
+        />
+        {!isEditing && (
+          <>
+            {data.textHighlightColor != null && data.textHighlightColor !== "" && (
+              <Rect
+                x={width < 0 ? width + TEXT_PADDING : TEXT_PADDING}
+                y={height < 0 ? height + TEXT_PADDING : TEXT_PADDING}
+                width={absWidth - TEXT_PADDING * 2}
+                height={absHeight - TEXT_PADDING * 2}
+                fill={data.textHighlightColor}
+                listening={false}
+              />
+            )}
+            <Text
+              text={data.text ?? ""}
+              x={width < 0 ? width + TEXT_PADDING : TEXT_PADDING}
+              y={height < 0 ? height + TEXT_PADDING : TEXT_PADDING}
+              width={absWidth - TEXT_PADDING * 2}
+              height={absHeight - TEXT_PADDING * 2}
+              align="center"
+              verticalAlign="middle"
+              fontSize={data.fontSize ?? DEFAULT_FONT_SIZE}
+              fontFamily={data.fontFamily ?? DEFAULT_FONT_FAMILY}
+              fontStyle={
+                [data.fontWeight === "bold" && "bold", data.fontStyle === "italic" && "italic"]
+                  .filter(Boolean)
+                  .join(" ") || "normal"
+              }
+              textDecoration={data.textDecoration ?? "none"}
+              fill={data.textColor ?? DEFAULT_TEXT_COLOR}
+              listening={false}
+            />
+          </>
+        )}
+      </Group>
       {isSelected && !isMultiSelect && (
         <Transformer
           ref={trRef}
