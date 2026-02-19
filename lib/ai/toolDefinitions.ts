@@ -140,4 +140,73 @@ export const BOARD_TOOL_DEFINITIONS = [
       properties: {},
     },
   },
+  // Calculator tools
+  {
+    name: "add",
+    description: "Add two or more numbers",
+    parameters: {
+      type: "object",
+      properties: {
+        a: { type: "number", description: "First number" },
+        b: { type: "number", description: "Second number" },
+        rest: {
+          type: "array",
+          items: { type: "number" },
+          description: "Additional numbers to add",
+        },
+      },
+      required: ["a", "b"],
+    },
+  },
+  {
+    name: "subtract",
+    description: "Subtract b from a, then subtract each additional number in order",
+    parameters: {
+      type: "object",
+      properties: {
+        a: { type: "number", description: "First number" },
+        b: { type: "number", description: "Second number" },
+        rest: {
+          type: "array",
+          items: { type: "number" },
+          description: "Additional numbers to subtract",
+        },
+      },
+      required: ["a", "b"],
+    },
+  },
+  {
+    name: "mult",
+    description: "Multiply two or more numbers",
+    parameters: {
+      type: "object",
+      properties: {
+        a: { type: "number", description: "First number" },
+        b: { type: "number", description: "Second number" },
+        rest: {
+          type: "array",
+          items: { type: "number" },
+          description: "Additional numbers to multiply",
+        },
+      },
+      required: ["a", "b"],
+    },
+  },
+  {
+    name: "div",
+    description: "Divide a by b, then divide by each additional number in order",
+    parameters: {
+      type: "object",
+      properties: {
+        a: { type: "number", description: "Dividend" },
+        b: { type: "number", description: "Divisor" },
+        rest: {
+          type: "array",
+          items: { type: "number" },
+          description: "Additional divisors",
+        },
+      },
+      required: ["a", "b"],
+    },
+  },
 ] as const;

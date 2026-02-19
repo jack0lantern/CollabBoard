@@ -1,16 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { BoardHeader } from "@/components/ui/BoardHeader";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
+import { ChatbotButton } from "@/components/ui/ChatbotButton";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { getBoard } from "@/lib/supabase/boards";
 import { BoardClientWrapper } from "./BoardClientWrapper";
 import type { Board } from "@/types";
+
+function ChatbotFloatingButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <ChatbotButton onClick={() => setOpen((o) => !o)} isOpen={open} />
+      <div
+        className={`fixed top-32 bottom-20 right-6 z-40 w-96 transition-opacity duration-200 ${
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <ChatPanel onClose={() => setOpen(false)} />
+      </div>
+    </>
+  );
+}
 
 const BoardCanvas = dynamic(
   () => import("@/components/canvas/BoardCanvas").then((m) => m.BoardCanvas),
@@ -79,6 +97,7 @@ export default function BoardPage({
             <div className="absolute top-4 right-4 z-10">
               <UserList />
             </div>
+            <ChatbotFloatingButton />
           </div>
         </div>
       </div>

@@ -14,15 +14,22 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.30",
+    "@ai-sdk/react": "^3.0.94",
+    "@langfuse/otel": "^4.6.1",
+    "@langfuse/tracing": "^4.6.1",
+    "@opentelemetry/sdk-trace-node": "^2.5.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.96.0",
+    "ai": "^6.0.92",
     "firebase": "^10.14.0",
     "firebase-functions": "^7.0.5",
     "konva": "^9.3.0",
     "next": "14.2.18",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-konva": "^18.2.10"
+    "react-konva": "^18.2.10",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

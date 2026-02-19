@@ -451,7 +451,17 @@ export function onBoardObjectsChange(
     .subscribe((status, err) => {
       const s = status as string;
       if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
-        console.error("[onBoardObjectsChange] Subscription failed:", status, err);
+        const hint =
+          s === "TIMED_OUT"
+            ? "Upgrade Node.js to v22+ or set WebSocket transport. See: https://supabase.com/docs/guides/troubleshooting/realtime-connections-timed_out-status"
+            : "Ensure board_objects is in supabase_realtime publication (Database > Publications).";
+        console.error(
+          "[onBoardObjectsChange] Subscription failed:",
+          status,
+          err,
+          "—",
+          hint
+        );
       }
     });
 

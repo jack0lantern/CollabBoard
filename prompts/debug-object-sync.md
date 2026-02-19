@@ -86,6 +86,15 @@
 
 6. **Test with a single user**: Open two tabs (same or different browsers), same board. Edit in Tab 1, watch Tab 2. Then edit in Tab 2, watch Tab 1. Determine whether the issue is self-broadcast, cross-user broadcast, or both. We have tests for checking our cross-users, but modify the existing one if necessary. 
 
+## Subscription Errors (CHANNEL_ERROR, TIMED_OUT)
+
+If you see `[onBoardObjectsChange] Subscription failed: CHANNEL_ERROR` or `TIMED_OUT`:
+
+- **CHANNEL_ERROR**: Ensure `board_objects` is in the `supabase_realtime` publication (Supabase Dashboard → Database → Publications → supabase_realtime).
+- **TIMED_OUT**: Often caused by Node.js < v22 with newer supabase-js. Upgrade Node.js to v22+ or see [Supabase Realtime TIMED_OUT troubleshooting](https://supabase.com/docs/guides/troubleshooting/realtime-connections-timed_out-status).
+
+The board still loads via `getBoardObjects()`; only real-time sync is affected.
+
 ## Quick Checks
 
 - [ ] `board_objects` has `REPLICA IDENTITY FULL` (migration 001)
