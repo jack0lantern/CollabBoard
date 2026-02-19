@@ -10,6 +10,7 @@ import { LineShape } from "./LineShape";
 
 export const ShapeRenderer = memo(function ShapeRenderer({
   data,
+  otherObjects,
   onSelect,
   isSelected,
   isMultiSelect,
@@ -17,8 +18,12 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onShapeDragEnd,
   onContextMenu,
   stageScale,
+  onDragMoveTick,
+  getLiveSnapPoints,
+  dragMoveVersion,
 }: {
   data: ObjectData;
+  otherObjects?: ObjectData[];
   onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
   isMultiSelect?: boolean;
@@ -26,6 +31,9 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onShapeDragEnd?: () => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   stageScale?: number;
+  onDragMoveTick?: () => void;
+  getLiveSnapPoints?: (objectId: string) => { x: number; y: number }[] | null;
+  dragMoveVersion?: number;
 }) {
   const common = {
     data,
@@ -35,6 +43,7 @@ export const ShapeRenderer = memo(function ShapeRenderer({
     registerShapeRef,
     onShapeDragEnd,
     onContextMenu,
+    onDragMoveTick,
   };
   switch (data.type) {
     case "sticky":
@@ -44,7 +53,15 @@ export const ShapeRenderer = memo(function ShapeRenderer({
     case "circle":
       return <CircleShape {...common} />;
     case "line":
-      return <LineShape {...common} stageScale={stageScale} />;
+      return (
+        <LineShape
+          {...common}
+          otherObjects={otherObjects ?? []}
+          stageScale={stageScale}
+          getLiveSnapPoints={getLiveSnapPoints}
+          dragMoveVersion={dragMoveVersion}
+        />
+      );
     default:
       return null;
   }

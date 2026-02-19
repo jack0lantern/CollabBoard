@@ -1,12 +1,17 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Group, Arrow, Line, Circle } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
+import {
+  getSnapPointForConnection,
+  findClosestSnapPointWithConnection,
+} from "@/lib/utils/snapPoints";
 
 const HIT_STROKE_WIDTH = 16;
+const SNAP_THRESHOLD_SCREEN = 12;
 const KNOB_RADIUS = 6;
 const KNOB_STROKE = "#2563eb";
 const KNOB_FILL = "#fff";
@@ -31,6 +36,7 @@ function rotatePoint(x: number, y: number, degrees: number) {
 
 export function LineShape({
   data,
+  otherObjects = [],
   onSelect,
   isSelected,
   isMultiSelect,
@@ -38,8 +44,11 @@ export function LineShape({
   onShapeDragEnd,
   onContextMenu,
   stageScale = 1,
+  getLiveSnapPoints,
+  dragMoveVersion = 0,
 }: {
   data: ObjectData;
+  otherObjects?: ObjectData[];
   onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
   isMultiSelect?: boolean;
@@ -47,6 +56,8 @@ export function LineShape({
   onShapeDragEnd?: () => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   stageScale?: number;
+  getLiveSnapPoints?: (objectId: string) => { x: number; y: number }[] | null;
+  dragMoveVersion?: number;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -58,12 +69,9 @@ export function LineShape({
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
   const [localPoints, setLocalPoints] = useState<number[] | null>(null);
 
-  const points = localPoints ?? data.points ?? [0, 0, 100, 100];
-  pointsRef.current = points;
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
   const displayRotation = data.rotation ?? 0;
-  const displayPoints = points;
 
   const lineColor = data.strokeColor ?? data.color ?? "#6b7280";
   const lineStrokeWidth = Math.max(
@@ -75,6 +83,72 @@ export function LineShape({
   const hasArrows = hasArrowStart || hasArrowEnd;
   const safeScale = Math.max(0.01, stageScale);
   const inverseScale = 1 / safeScale;
+  const snapThreshold = SNAP_THRESHOLD_SCREEN / safeScale;
+
+  const objectsById = useMemo(() => {
+    const map = new Map<string, ObjectData>();
+    for (const obj of otherObjects) {
+      map.set(obj.id, obj);
+    }
+    return map;
+  }, [otherObjects]);
+
+  const worldToLocal = (worldX: number, worldY: number) => {
+    const dx = worldX - displayX;
+    const dy = worldY - displayY;
+    return rotatePoint(dx, dy, -displayRotation);
+  };
+
+  const displayPoints = useMemo(() => {
+    const base = localPoints ?? data.points ?? [0, 0, 100, 100];
+    const pts = [...base];
+    const startConn = data.lineStartConnection;
+    const endConn = data.lineEndConnection;
+    if (startConn) {
+      const livePoints = getLiveSnapPoints?.(startConn.objectId);
+      const liveSnap = livePoints?.[startConn.pointIndex];
+      const snap =
+        liveSnap ??
+        (() => {
+          const obj = objectsById.get(startConn.objectId);
+          return obj ? getSnapPointForConnection(obj, startConn.pointIndex) : null;
+        })();
+      if (snap) {
+        const local = worldToLocal(snap.x, snap.y);
+        pts[0] = local.x;
+        pts[1] = local.y;
+      }
+    }
+    if (endConn) {
+      const livePoints = getLiveSnapPoints?.(endConn.objectId);
+      const liveSnap = livePoints?.[endConn.pointIndex];
+      const snap =
+        liveSnap ??
+        (() => {
+          const obj = objectsById.get(endConn.objectId);
+          return obj ? getSnapPointForConnection(obj, endConn.pointIndex) : null;
+        })();
+      if (snap) {
+        const local = worldToLocal(snap.x, snap.y);
+        pts[2] = local.x;
+        pts[3] = local.y;
+      }
+    }
+    return pts;
+  }, [
+    localPoints,
+    data.points,
+    data.lineStartConnection,
+    data.lineEndConnection,
+    objectsById,
+    displayX,
+    displayY,
+    displayRotation,
+    getLiveSnapPoints,
+    dragMoveVersion,
+  ]);
+
+  pointsRef.current = displayPoints;
 
   useLayoutEffect(() => {
     if (isSelected && groupRef.current != null) {
@@ -134,24 +208,54 @@ export function LineShape({
 
   const makeKnobDragEnd = (knobIndex: 0 | 1) => (e: Konva.KonvaEventObject<DragEvent>) => {
     const target = e.target;
+    let worldX = target.x();
+    let worldY = target.y();
+    const result = findClosestSnapPointWithConnection(
+      worldX,
+      worldY,
+      otherObjects,
+      data.id,
+      snapThreshold
+    );
+    if (result.snapped) {
+      worldX = result.x;
+      worldY = result.y;
+      target.position({ x: worldX, y: worldY });
+    }
+    const local = worldToLocal(worldX, worldY);
     const newPoints = [...pointsRef.current];
     const baseIdx = knobIndex * 2;
-    const worldDx = target.x() - displayX;
-    const worldDy = target.y() - displayY;
-    const local = rotatePoint(worldDx, worldDy, -displayRotation);
     newPoints[baseIdx] = local.x;
     newPoints[baseIdx + 1] = local.y;
     setLocalPoints(newPoints);
-    updateObject(data.id, { points: newPoints });
+    const updates: Partial<ObjectData> = { points: newPoints };
+    if (knobIndex === 0) {
+      updates.lineStartConnection = result.connection ?? undefined;
+    } else {
+      updates.lineEndConnection = result.connection ?? undefined;
+    }
+    updateObject(data.id, updates);
     onShapeDragEnd?.();
     setCursor(e as unknown as Konva.KonvaEventObject<MouseEvent>, "grab");
   };
 
   const handleKnobDragMove = (knobIndex: 0 | 1) => (e: Konva.KonvaEventObject<DragEvent>) => {
     const target = e.target;
-    const worldDx = target.x() - displayX;
-    const worldDy = target.y() - displayY;
-    const local = rotatePoint(worldDx, worldDy, -displayRotation);
+    let worldX = target.x();
+    let worldY = target.y();
+    const result = findClosestSnapPointWithConnection(
+      worldX,
+      worldY,
+      otherObjects,
+      data.id,
+      snapThreshold
+    );
+    if (result.snapped) {
+      worldX = result.x;
+      worldY = result.y;
+      target.position({ x: worldX, y: worldY });
+    }
+    const local = worldToLocal(worldX, worldY);
     const pts = pointsRef.current;
     const newPoints =
       knobIndex === 0
@@ -176,8 +280,8 @@ export function LineShape({
     onMouseLeave: handleLineMouseLeave,
   };
 
-  const r0 = rotatePoint(points[0], points[1], displayRotation);
-  const r1 = rotatePoint(points[2], points[3], displayRotation);
+  const r0 = rotatePoint(displayPoints[0], displayPoints[1], displayRotation);
+  const r1 = rotatePoint(displayPoints[2], displayPoints[3], displayRotation);
   const knob0X = displayX + r0.x;
   const knob0Y = displayY + r0.y;
   const knob1X = displayX + r1.x;
@@ -209,7 +313,11 @@ export function LineShape({
           const newY = e.target.y();
           setLocalPos({ x: newX, y: newY });
           setIsDragging(false);
-          updateObject(data.id, { x: newX, y: newY });
+          updateObject(data.id, {
+            x: newX,
+            y: newY,
+            points: pointsRef.current,
+          });
           onShapeDragEnd?.();
         }}
       >

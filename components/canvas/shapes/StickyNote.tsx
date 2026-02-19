@@ -24,6 +24,7 @@ export function StickyNote({
   registerShapeRef,
   onShapeDragEnd,
   onContextMenu,
+  onDragMoveTick,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -32,6 +33,7 @@ export function StickyNote({
   registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
+  onDragMoveTick?: () => void;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -228,7 +230,10 @@ export function StickyNote({
         }}
         onDblClick={handleDblClick}
         onDragStart={() => setIsDragging(true)}
-        onDragMove={(e) => setPos({ x: e.target.x(), y: e.target.y() })}
+        onDragMove={(e) => {
+          setPos({ x: e.target.x(), y: e.target.y() });
+          onDragMoveTick?.();
+        }}
         onDragEnd={(e) => {
           const newX = e.target.x();
           const newY = e.target.y();
@@ -314,30 +319,22 @@ export function StickyNote({
         ignoreStroke
         onTransformStart={() => {
           isTransformingRef.current = true;
-          const node = groupRef.current;
-          if (node) {
-            const layer = node.getLayer();
-            const rect = node.getClientRect({
-              relativeTo: layer ?? undefined,
-            });
-            anchorBoxRef.current = {
-              x: rect.x,
-              y: rect.y,
-              width: rect.width,
-              height: rect.height,
-              rotation: node.rotation(),
-            };
-          }
+          anchorBoxRef.current = null;
         }}
-        boundBoxFunc={(oldBox, newBox) =>
-          boundBoxWithAnchorPreservation(
+        onTransform={onDragMoveTick}
+        boundBoxFunc={(oldBox, newBox) => {
+          if (anchorBoxRef.current == null) {
+            anchorBoxRef.current = { ...oldBox };
+          }
+          return boundBoxWithAnchorPreservation(
             oldBox,
             newBox,
             MIN_SIZE,
             MIN_SIZE,
-            anchorBoxRef.current
-          )
-        }
+            anchorBoxRef.current,
+            trRef.current?.getActiveAnchor() ?? undefined
+          );
+        }}
       />
     )}
     </>

@@ -18,6 +18,7 @@ interface MultiSelectTransformerProps {
   refsVersion: number;
   objects: Record<string, ObjectData>;
   onTransformEnd?: () => void;
+  onTransform?: () => void;
   onContextMenu?: (clientX: number, clientY: number) => void;
 }
 
@@ -31,6 +32,7 @@ export function MultiSelectTransformer({
   refsVersion,
   objects,
   onTransformEnd,
+  onTransform,
   onContextMenu,
 }: MultiSelectTransformerProps) {
   const trRef = useRef<Konva.Transformer | null>(null);
@@ -125,28 +127,23 @@ export function MultiSelectTransformer({
           e.evt.preventDefault();
           onContextMenu?.(e.evt.clientX, e.evt.clientY);
         }}
+        onTransform={onTransform}
         onTransformStart={() => {
-          const tr = trRef.current;
-          if (tr) {
-            const rect = tr.getClientRect({ relativeTo: tr.getLayer() });
-            anchorBoxRef.current = {
-              x: rect.x,
-              y: rect.y,
-              width: rect.width,
-              height: rect.height,
-              rotation: tr.rotation(),
-            };
-          }
+          anchorBoxRef.current = null;
         }}
-        boundBoxFunc={(oldBox, newBox) =>
-          boundBoxWithAnchorPreservation(
+        boundBoxFunc={(oldBox, newBox) => {
+          if (anchorBoxRef.current == null) {
+            anchorBoxRef.current = { ...oldBox };
+          }
+          return boundBoxWithAnchorPreservation(
             oldBox,
             newBox,
             MIN_SIZE,
             MIN_SIZE,
-            anchorBoxRef.current
-          )
-        }
+            anchorBoxRef.current,
+            trRef.current?.getActiveAnchor() ?? undefined
+          );
+        }}
         onTransformEnd={handleTransformEnd}
       />
     </Group>

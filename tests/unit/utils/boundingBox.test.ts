@@ -52,19 +52,6 @@ describe("boundBoxWithAnchorPreservation", () => {
     expect(result.height).toBe(60);
   });
 
-  it("clamps negative width (flip) and anchors correctly", () => {
-    const newBox = { x: 100, y: 100, width: -10, height: 60, rotation: 0 };
-    const result = boundBoxWithAnchorPreservation(
-      anchor,
-      newBox,
-      minW,
-      minH,
-      anchor
-    );
-    expect(result.width).toBe(-20);
-    expect(Math.abs(result.width)).toBe(20);
-  });
-
   it("clamps height when too small", () => {
     const newBox = { x: 100, y: 100, width: 80, height: 5, rotation: 0 };
     const result = boundBoxWithAnchorPreservation(
@@ -89,6 +76,38 @@ describe("boundBoxWithAnchorPreservation", () => {
       null
     );
     expect(result.width).toBe(20);
+  });
+
+  it("uses activeAnchor for reliable corner detection (top-left drag anchors bottom-right)", () => {
+    const newBox = { x: 100, y: 100, width: 5, height: 5, rotation: 0 };
+    const result = boundBoxWithAnchorPreservation(
+      anchor,
+      newBox,
+      minW,
+      minH,
+      anchor,
+      "top-left"
+    );
+    expect(result.width).toBe(minW);
+    expect(result.height).toBe(minH);
+    expect(result.x).toBe(anchor.x + anchor.width - minW);
+    expect(result.y).toBe(anchor.y + anchor.height - minH);
+  });
+
+  it("uses activeAnchor for bottom-right drag (anchors top-left)", () => {
+    const newBox = { x: 100, y: 100, width: 5, height: 5, rotation: 0 };
+    const result = boundBoxWithAnchorPreservation(
+      anchor,
+      newBox,
+      minW,
+      minH,
+      anchor,
+      "bottom-right"
+    );
+    expect(result.width).toBe(minW);
+    expect(result.height).toBe(minH);
+    expect(result.x).toBe(anchor.x);
+    expect(result.y).toBe(anchor.y);
   });
 });
 

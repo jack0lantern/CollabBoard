@@ -19,6 +19,7 @@ export function CircleShape({
   registerShapeRef,
   onShapeDragEnd,
   onContextMenu,
+  onDragMoveTick,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -27,6 +28,7 @@ export function CircleShape({
   registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
+  onDragMoveTick?: () => void;
 }) {
   const { updateObject } = useBoardMutations();
   const shapeRef = useRef<Konva.Ellipse | null>(null);
@@ -129,7 +131,10 @@ export function CircleShape({
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
         onDragStart={() => setIsDragging(true)}
-        onDragMove={(e) => setPos({ x: e.target.x(), y: e.target.y() })}
+        onDragMove={(e) => {
+          setPos({ x: e.target.x(), y: e.target.y() });
+          onDragMoveTick?.();
+        }}
         onDragEnd={(e) => {
           const newX = e.target.x();
           const newY = e.target.y();
@@ -174,28 +179,21 @@ export function CircleShape({
           ignoreStroke
           onTransformStart={() => {
             isTransformingRef.current = true;
-            const node = shapeRef.current;
-            if (node) {
-              const rect = node.getClientRect({
-                relativeTo: node.getLayer() ?? undefined,
-              });
-              anchorBoxRef.current = {
-                x: rect.x,
-                y: rect.y,
-                width: rect.width,
-                height: rect.height,
-                rotation: node.rotation(),
-              };
-            }
+            anchorBoxRef.current = null;
           }}
+          onTransform={onDragMoveTick}
           boundBoxFunc={(oldBox, newBox) => {
+            if (anchorBoxRef.current == null) {
+              anchorBoxRef.current = { ...oldBox };
+            }
             const minDim = MIN_RADIUS * 2;
             return boundBoxWithAnchorPreservation(
               oldBox,
               newBox,
               minDim,
               minDim,
-              anchorBoxRef.current
+              anchorBoxRef.current,
+              trRef.current?.getActiveAnchor() ?? undefined
             );
           }}
         />

@@ -110,77 +110,78 @@ export type TransformBox = {
 /** Epsilon for anchor detection - avoids flip-flopping when deltas are nearly equal */
 const ANCHOR_EPSILON = 1e-6;
 
+/** Konva Transformer anchor names */
+const ANCHORS_LEFT = ["top-left", "middle-left", "bottom-left"];
+const ANCHORS_TOP = ["top-left", "top-center", "top-right"];
+
+/**
+ * Derive leftMoved/topMoved from Konva's getActiveAnchor().
+ * When dragging left-side handles, anchor right. When dragging top handles, anchor bottom.
+ */
+function anchorFromActiveHandle(activeAnchor: string | null | undefined): {
+  leftMoved: boolean;
+  topMoved: boolean;
+} | null {
+  if (!activeAnchor) return null;
+  return {
+    leftMoved: ANCHORS_LEFT.includes(activeAnchor),
+    topMoved: ANCHORS_TOP.includes(activeAnchor),
+  };
+}
+
 /**
  * boundBoxFunc helper: clamp to minimum size while keeping the opposite edge/corner
  * anchored. When the user drags one handle, the opposite handle stays fixed.
- * Uses anchorBox (transform-start box) for stable reference to avoid drift/flicker.
+ * Uses getActiveAnchor() when available for reliable corner/edge detection; falls back
+ * to delta-based inference otherwise.
  */
 export function boundBoxWithAnchorPreservation(
   oldBox: TransformBox,
   newBox: TransformBox,
   minWidth: number,
   minHeight: number,
-  anchorBox?: TransformBox | null
+  anchorBox?: TransformBox | null,
+  activeAnchor?: string | null
 ): TransformBox {
   const ref = anchorBox ?? oldBox;
   let { x, y, width, height, rotation } = newBox;
 
-  // Infer which edge is being dragged by comparing movement from ref (transform start).
-  // Use strict greater-than with epsilon so we don't flip-flop when deltas are equal.
-  const leftDelta = Math.abs(newBox.x - ref.x);
-  const rightDelta = Math.abs(
-    newBox.x + newBox.width - (ref.x + ref.width)
-  );
-  const leftMoved = leftDelta > rightDelta + ANCHOR_EPSILON;
-  const topDelta = Math.abs(newBox.y - ref.y);
-  const bottomDelta = Math.abs(
-    newBox.y + newBox.height - (ref.y + ref.height)
-  );
-  const topMoved = topDelta > bottomDelta + ANCHOR_EPSILON;
+  const fromAnchor = anchorFromActiveHandle(activeAnchor);
+  let leftMoved: boolean;
+  let topMoved: boolean;
 
-  // Clamp width: keep opposite edge fixed
-  const absWidth = Math.abs(width);
-  if (absWidth < minWidth) {
-    const clamped = minWidth;
-    if (width < 0) {
-      if (leftMoved) {
-        x = ref.x + ref.width;
-        width = -clamped;
-      } else {
-        x = ref.x + clamped;
-        width = -clamped;
-      }
-    } else {
-      if (leftMoved) {
-        x = ref.x + ref.width - clamped;
-        width = clamped;
-      } else {
-        x = ref.x;
-        width = clamped;
-      }
-    }
+  if (fromAnchor) {
+    leftMoved = fromAnchor.leftMoved;
+    topMoved = fromAnchor.topMoved;
+  } else {
+    const leftDelta = Math.abs(newBox.x - ref.x);
+    const rightDelta = Math.abs(
+      newBox.x + newBox.width - (ref.x + ref.width)
+    );
+    leftMoved = leftDelta > rightDelta + ANCHOR_EPSILON;
+    const topDelta = Math.abs(newBox.y - ref.y);
+    const bottomDelta = Math.abs(
+      newBox.y + newBox.height - (ref.y + ref.height)
+    );
+    topMoved = topDelta > bottomDelta + ANCHOR_EPSILON;
   }
 
-  // Clamp height: keep opposite edge fixed
-  const absHeight = Math.abs(height);
-  if (absHeight < minHeight) {
-    const clamped = minHeight;
-    if (height < 0) {
-      if (topMoved) {
-        y = ref.y + ref.height;
-        height = -clamped;
-      } else {
-        y = ref.y + clamped;
-        height = -clamped;
-      }
-    } else {
-      if (topMoved) {
-        y = ref.y + ref.height - clamped;
-        height = clamped;
-      } else {
-        y = ref.y;
-        height = clamped;
-      }
+  // Compute anchor corner once — the opposite corner that stays fixed.
+  // Use it for both dimensions so corner resizes are atomic (reason 3).
+  const anchorCornerX = leftMoved ? ref.x + ref.width : ref.x;
+  const anchorCornerY = topMoved ? ref.y + ref.height : ref.y;
+
+  const needsWidthClamp = width < minWidth;
+  const needsHeightClamp = height < minHeight;
+
+  if (needsWidthClamp || needsHeightClamp) {
+    if (needsWidthClamp) {
+      width = minWidth;
+      x = leftMoved ? anchorCornerX - minWidth : anchorCornerX;
+    }
+    if (needsHeightClamp) {
+      height = minHeight;
+      y = topMoved ? anchorCornerY - minHeight : anchorCornerY;
     }
   }
 

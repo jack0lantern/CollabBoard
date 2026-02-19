@@ -1,5 +1,11 @@
 export type ShapeType = "sticky" | "rect" | "circle" | "line";
 
+/** Connection from a line endpoint to a snap point on another object */
+export interface LineConnection {
+  objectId: string;
+  pointIndex: number;
+}
+
 export interface ObjectData {
   id: string;
   type: ShapeType;
@@ -31,6 +37,10 @@ export interface ObjectData {
   strokeColor?: string;
   /** Border/stroke width in pixels */
   strokeWidth?: number;
+  /** Line start endpoint connection to another object's snap point */
+  lineStartConnection?: LineConnection;
+  /** Line end endpoint connection to another object's snap point */
+  lineEndConnection?: LineConnection;
 }
 
 export type ShareRole = "editor" | "viewer";

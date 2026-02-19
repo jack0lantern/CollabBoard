@@ -27,6 +27,7 @@ import {
   getObjectBoundingBox,
   rectsIntersect,
 } from "@/lib/utils/boundingBox";
+import { getNodeSnapPoints } from "@/lib/utils/snapPoints";
 import { ShapeToolbar } from "./ShapeToolbar";
 
 export function BoardStage({ boardId }: { boardId: string }) {
@@ -61,7 +62,12 @@ export function BoardStage({ boardId }: { boardId: string }) {
 
   const shapeRefsRef = useRef<Map<string, Konva.Node>>(new Map());
   const [refsVersion, setRefsVersion] = useState(0);
+  const [dragMoveVersion, setDragMoveVersion] = useState(0);
   const copiedObjectsRef = useRef<ObjectData[]>([]);
+
+  const onDragMoveTick = useCallback(() => {
+    setDragMoveVersion((v) => v + 1);
+  }, []);
 
   const registerShapeRef = useCallback((id: string, node: Konva.Node | null) => {
     const map = shapeRefsRef.current;
@@ -77,6 +83,16 @@ export function BoardStage({ boardId }: { boardId: string }) {
     useBoardObjectsContext();
   const { others, updateCursor } = usePresence();
   const { addObject, updateObject, deleteObject } = useBoardMutations();
+
+  const getLiveSnapPoints = useCallback(
+    (objectId: string): { x: number; y: number }[] | null => {
+      const node = shapeRefsRef.current.get(objectId);
+      const obj = objects[objectId] as ObjectData | undefined;
+      if (!node || !obj) return null;
+      return getNodeSnapPoints(node, obj.type);
+    },
+    [objects]
+  );
 
   const objectListRef = useRef<ObjectData[]>([]);
   const rawList = Object.values(objects).filter(
@@ -442,12 +458,17 @@ export function BoardStage({ boardId }: { boardId: string }) {
                   <ShapeRenderer
                     key={obj.id}
                     data={obj}
+                    otherObjects={objectList.filter((o) => o.id !== obj.id)}
                     onSelect={handleSelect}
                     isSelected={isSelected(obj.id)}
                     isMultiSelect={selectedIds.length > 1}
                     registerShapeRef={registerShapeRef}
                     onShapeDragEnd={handleShapeDragEnd}
                     onContextMenu={handleShapeContextMenu}
+                    stageScale={scale}
+                    onDragMoveTick={onDragMoveTick}
+                    getLiveSnapPoints={getLiveSnapPoints}
+                    dragMoveVersion={dragMoveVersion}
                   />
                 ))}
                 <MultiSelectTransformer
@@ -456,6 +477,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
                   refsVersion={refsVersion}
                   objects={objects}
                   onTransformEnd={() => setLastDragEnd(Date.now())}
+                  onTransform={onDragMoveTick}
                   onContextMenu={handleTransformerContextMenu}
                 />
               </Layer>

@@ -1,5 +1,5 @@
 import { createSupabaseClient } from "@/lib/supabase/client";
-import type { Board, ObjectData, ShareRole } from "@/types";
+import type { Board, ObjectData, ShareRole, LineConnection } from "@/types";
 
 function rowToBoard(row: {
   id: string;
@@ -47,6 +47,15 @@ function sanitizeObjectData(obj: ObjectData): ObjectData {
   return { ...obj, width, height, radius, radiusX, radiusY };
 }
 
+function parseLineConnection(val: unknown): LineConnection | undefined {
+  if (val == null || typeof val !== "object") return undefined;
+  const o = val as Record<string, unknown>;
+  const objectId = o.objectId ?? o.object_id;
+  const pointIndex = o.pointIndex ?? o.point_index;
+  if (typeof objectId !== "string" || typeof pointIndex !== "number") return undefined;
+  return { objectId, pointIndex };
+}
+
 function rowToObjectData(row: {
   id: string;
   type: string;
@@ -71,6 +80,8 @@ function rowToObjectData(row: {
   stroke_width?: number;
   arrow_start?: boolean;
   arrow_end?: boolean;
+  line_start_connection?: unknown;
+  line_end_connection?: unknown;
 }): ObjectData {
   return sanitizeObjectData({
     id: row.id,
@@ -96,6 +107,8 @@ function rowToObjectData(row: {
     strokeWidth: row.stroke_width,
     arrowStart: row.arrow_start,
     arrowEnd: row.arrow_end,
+    lineStartConnection: parseLineConnection(row.line_start_connection),
+    lineEndConnection: parseLineConnection(row.line_end_connection),
   });
 }
 
@@ -128,6 +141,8 @@ function objectToRow(
     stroke_width: object.strokeWidth,
     arrow_start: object.arrowStart,
     arrow_end: object.arrowEnd,
+    line_start_connection: object.lineStartConnection ?? null,
+    line_end_connection: object.lineEndConnection ?? null,
   };
 }
 
@@ -297,6 +312,10 @@ export async function updateBoardObject(
   if (updates.strokeWidth !== undefined) updateData.stroke_width = updates.strokeWidth;
   if (updates.arrowStart !== undefined) updateData.arrow_start = updates.arrowStart;
   if (updates.arrowEnd !== undefined) updateData.arrow_end = updates.arrowEnd;
+  if ("lineStartConnection" in updates)
+    updateData.line_start_connection = updates.lineStartConnection ?? null;
+  if ("lineEndConnection" in updates)
+    updateData.line_end_connection = updates.lineEndConnection ?? null;
 
   if (Object.keys(updateData).length === 0) return;
 
