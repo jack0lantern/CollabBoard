@@ -29,14 +29,17 @@ export function BoardClientWrapper({
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user && !cancelled) {
-          const meta = session.user.user_metadata ?? {};
+          const meta = (session.user.user_metadata ?? {}) as Record<
+            string,
+            unknown
+          >;
           const name =
-            meta.full_name ??
-            meta.name ??
+            (meta.full_name as string | undefined) ??
+            (meta.name as string | undefined) ??
             session.user.email ??
             "Anonymous";
           setDisplayName(name);
-          setAvatarUrl(meta.avatar_url ?? null);
+          setAvatarUrl((meta.avatar_url as string | null | undefined) ?? null);
         }
       }
 
@@ -47,7 +50,7 @@ export function BoardClientWrapper({
       }
     }
 
-    init();
+    void init();
 
     return () => {
       cancelled = true;

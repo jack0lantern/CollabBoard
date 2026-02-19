@@ -62,15 +62,25 @@ function mergeSnapshot(
   return next;
 }
 
-type PatchFn = (id: string, updates: Partial<ObjectData>) => void;
+type PatchFn = (
+  id: string,
+  updates: Partial<ObjectData>,
+  options?: { skipUndo?: boolean }
+) => void;
+type PatchMultipleFn = (
+  updates: Array<{ id: string; updates: Partial<ObjectData> }>,
+  options?: { skipUndo?: boolean }
+) => void;
 type AddFn = (id: string, data: ObjectData) => void;
 type RemoveFn = (id: string) => void;
 
 export interface BoardObjectsValue {
   objects: Record<string, ObjectData>;
   patchObject: PatchFn;
+  patchMultipleObjects: PatchMultipleFn;
   addObject: AddFn;
   removeObject: RemoveFn;
+  pushUndoSnapshot: () => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -78,6 +88,7 @@ export interface BoardObjectsValue {
 }
 
 export const PatchObjectContext = createContext<PatchFn | null>(null);
+export const PatchMultipleContext = createContext<PatchMultipleFn | null>(null);
 export const AddObjectContext = createContext<AddFn | null>(null);
 export const RemoveObjectContext = createContext<RemoveFn | null>(null);
 
@@ -145,14 +156,34 @@ export function useBoardObjects() {
     }
   }, [boardId]);
 
-  const patchObject = useCallback<PatchFn>((id, updates) => {
-    pushUndo();
+  const patchObject = useCallback<PatchFn>((id, updates, options) => {
+    if (options?.skipUndo !== true) {
+      pushUndo();
+    }
     setObjects((prev) => {
       const existing = prev[id];
       if (!existing) return prev;
       return { ...prev, [id]: { ...existing, ...updates } };
     });
   }, [pushUndo]);
+
+  const patchMultipleObjects = useCallback<PatchMultipleFn>(
+    (updates, options) => {
+      if (updates.length === 0) return;
+      if (options?.skipUndo !== true) {
+        pushUndo();
+      }
+      setObjects((prev) => {
+        const next = { ...prev };
+        for (const { id, updates: u } of updates) {
+          const existing = next[id];
+          if (existing) next[id] = { ...existing, ...u };
+        }
+        return next;
+      });
+    },
+    [pushUndo]
+  );
 
   const addObject = useCallback<AddFn>((id, data) => {
     pushUndo();
@@ -197,8 +228,10 @@ export function useBoardObjects() {
   return {
     objects,
     patchObject,
+    patchMultipleObjects,
     addObject,
     removeObject,
+    pushUndoSnapshot: pushUndo,
     undo,
     redo,
     canUndo,

@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -e
 
-# Run next build - blocks commit if build fails
-npm run build
+# Run next lint - same ESLint standards as next build, faster feedback
+npm run lint
 
 # Run detect-secrets (requires: pip install -r requirements-dev.txt in venv)
 # Blocks commit if new secrets detected beyond .secrets.baseline

@@ -9,6 +9,7 @@ import {
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import {
   PatchObjectContext,
+  PatchMultipleContext,
   AddObjectContext,
   RemoveObjectContext,
 } from "@/hooks/useBoardObjects";
@@ -17,6 +18,7 @@ import type { ObjectData } from "@/types";
 export function useBoardMutations() {
   const { boardId } = useBoardContext();
   const patchObject = useContext(PatchObjectContext);
+  const patchMultipleObjects = useContext(PatchMultipleContext);
   const addObjectLocal = useContext(AddObjectContext);
   const removeObjectLocal = useContext(RemoveObjectContext);
 
@@ -29,11 +31,29 @@ export function useBoardMutations() {
   );
 
   const updateObject = useCallback(
-    (id: string, updates: Partial<ObjectData>) => {
-      patchObject?.(id, updates);
+    (
+      id: string,
+      updates: Partial<ObjectData>,
+      options?: { skipUndo?: boolean }
+    ) => {
+      patchObject?.(id, updates, options);
       updateBoardObject(boardId, id, updates);
     },
     [boardId, patchObject]
+  );
+
+  const updateMultipleObjects = useCallback(
+    (
+      updates: Array<{ id: string; updates: Partial<ObjectData> }>,
+      options?: { skipUndo?: boolean }
+    ) => {
+      if (updates.length === 0) return;
+      patchMultipleObjects?.(updates, options);
+      for (const { id, updates: u } of updates) {
+        updateBoardObject(boardId, id, u);
+      }
+    },
+    [boardId, patchMultipleObjects]
   );
 
   const deleteObject = useCallback(
@@ -44,5 +64,5 @@ export function useBoardMutations() {
     [boardId, removeObjectLocal]
   );
 
-  return { addObject, updateObject, deleteObject };
+  return { addObject, updateObject, updateMultipleObjects, deleteObject };
 }

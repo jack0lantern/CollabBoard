@@ -152,7 +152,8 @@ export function boundBoxWithAnchorPreservation(
   activeAnchor?: string | null
 ): TransformBox {
   const ref = anchorBox ?? oldBox;
-  let { x, y, width, height, rotation } = newBox;
+  const { rotation } = newBox;
+  let { x, y, width, height } = newBox;
 
   const fromAnchor = anchorFromActiveHandle(activeAnchor);
   let leftMoved: boolean;
@@ -252,4 +253,62 @@ export function getTopmostFrameZIndex(
     }
   }
   return maxZ;
+}
+
+/**
+ * Whether a line is "part of" a frame for drag purposes.
+ * A line moves with the frame only if:
+ * - Both ends are attached to objects on the frame, OR
+ * - One end is attached to an object on the frame and the other end is free (no connection).
+ * A line is NOT part of the frame if one end is on a frame object but the other is attached to something outside the frame.
+ */
+export function isLinePartOfFrame(
+  line: ObjectData,
+  frameId: string,
+  objectsOnFrameIds: Set<string>
+): boolean {
+  if (line.type !== "line") return false;
+  const startId = line.lineStartConnection?.objectId;
+  const endId = line.lineEndConnection?.objectId;
+  const startOnFrame = startId != null && objectsOnFrameIds.has(startId);
+  const endOnFrame = endId != null && objectsOnFrameIds.has(endId);
+  const endFree = endId == null;
+  const startFree = startId == null;
+  return (
+    (startOnFrame && (endOnFrame || endFree)) ||
+    (endOnFrame && (startOnFrame || startFree))
+  );
+}
+
+/**
+ * Effective zIndex for a line when sorting for render.
+ * If a line is connected to an object that sits on a frame, the line should render above that frame.
+ */
+export function getLineEffectiveZIndex(
+  line: ObjectData,
+  allObjects: ObjectData[]
+): number {
+  if (line.type !== "line") return line.zIndex ?? 0;
+  const baseZ = line.zIndex ?? 0;
+  let minAboveFrame = baseZ;
+  const connectedIds = [
+    line.lineStartConnection?.objectId,
+    line.lineEndConnection?.objectId,
+  ].filter((id): id is string => id != null);
+  for (const frame of allObjects) {
+    if (frame.type !== "frame") continue;
+    const frameBox = getObjectBoundingBox(frame);
+    const frameZ = frame.zIndex ?? 0;
+    for (const objId of connectedIds) {
+      const obj = allObjects.find((o) => o.id === objId);
+      if (!obj) continue;
+      if ((obj.zIndex ?? 0) <= frameZ) continue;
+      const objBox = getObjectBoundingBox(obj);
+      if (rectsIntersect(frameBox, objBox)) {
+        minAboveFrame = Math.max(minAboveFrame, frameZ + 1);
+        break;
+      }
+    }
+  }
+  return minAboveFrame;
 }

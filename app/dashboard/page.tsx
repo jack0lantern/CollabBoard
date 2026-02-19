@@ -26,7 +26,7 @@ export default function DashboardPage() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) {
         router.replace("/login");
         return;
@@ -103,7 +103,9 @@ export default function DashboardPage() {
               {user?.email}
             </span>
             <button
-              onClick={handleSignOut}
+              onClick={() => {
+                void handleSignOut();
+              }}
               className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
             >
               Sign out
@@ -119,7 +121,9 @@ export default function DashboardPage() {
               You don&apos;t have any boards yet.
             </p>
             <button
-              onClick={handleCreateBoard}
+              onClick={() => {
+                void handleCreateBoard();
+              }}
               disabled={creating}
               className="px-6 py-3 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:opacity-90 disabled:opacity-50"
             >
@@ -135,7 +139,9 @@ export default function DashboardPage() {
           <>
             <div className="flex justify-end mb-6">
               <button
-                onClick={handleCreateBoard}
+                onClick={() => {
+                  void handleCreateBoard();
+                }}
                 disabled={creating}
                 className="px-4 py-2 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:opacity-90 disabled:opacity-50"
               >

@@ -25,6 +25,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onDragEndAt,
   onDragMoveAt,
   onFrameDragWithContents,
+  onFrameDragStart,
+  onFrameDragEnd,
 }: {
   data: ObjectData;
   otherObjects?: ObjectData[];
@@ -47,6 +49,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
     deltaX: number,
     deltaY: number
   ) => void;
+  onFrameDragStart?: (frameId: string, startX: number, startY: number) => void;
+  onFrameDragEnd?: (frameId: string, newX: number, newY: number) => void;
 }) {
   const common = {
     data,
@@ -72,6 +76,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
         <FrameShape
           {...common}
           onFrameDragWithContents={onFrameDragWithContents}
+          onFrameDragStart={onFrameDragStart}
+          onFrameDragEnd={onFrameDragEnd}
         />
       );
     case "line":

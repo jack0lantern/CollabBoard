@@ -5,6 +5,8 @@ import {
   computeGroupBoundingBox,
   isFullyContained,
   rectsIntersect,
+  isLinePartOfFrame,
+  getLineEffectiveZIndex,
 } from "@/lib/utils/boundingBox";
 
 describe("boundBoxWithAnchorPreservation", () => {
@@ -196,5 +198,104 @@ describe("rectsIntersect", () => {
         { x: 20, y: 20, width: 10, height: 10 }
       )
     ).toBe(false);
+  });
+});
+
+describe("isLinePartOfFrame", () => {
+  const frameId = "f1";
+  const objOnFrame = "s1";
+  const objOffFrame = "s2";
+
+  it("returns true when both ends attached to objects on frame", () => {
+    const line = {
+      id: "l1",
+      type: "line" as const,
+      x: 0,
+      y: 0,
+      lineStartConnection: { objectId: objOnFrame, pointIndex: 0 },
+      lineEndConnection: { objectId: objOnFrame, pointIndex: 1 },
+    };
+    const onFrame = new Set([objOnFrame]);
+    expect(isLinePartOfFrame(line, frameId, onFrame)).toBe(true);
+  });
+
+  it("returns true when one end on frame, other end free", () => {
+    const line = {
+      id: "l1",
+      type: "line" as const,
+      x: 0,
+      y: 0,
+      lineStartConnection: { objectId: objOnFrame, pointIndex: 0 },
+    };
+    const onFrame = new Set([objOnFrame]);
+    expect(isLinePartOfFrame(line, frameId, onFrame)).toBe(true);
+  });
+
+  it("returns false when one end on frame, other attached to object off frame", () => {
+    const line = {
+      id: "l1",
+      type: "line" as const,
+      x: 0,
+      y: 0,
+      lineStartConnection: { objectId: objOnFrame, pointIndex: 0 },
+      lineEndConnection: { objectId: objOffFrame, pointIndex: 0 },
+    };
+    const onFrame = new Set([objOnFrame]);
+    expect(isLinePartOfFrame(line, frameId, onFrame)).toBe(false);
+  });
+
+  it("returns false for non-line object", () => {
+    const rect = {
+      id: "r1",
+      type: "rect" as const,
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+    };
+    expect(isLinePartOfFrame(rect, frameId, new Set())).toBe(false);
+  });
+});
+
+describe("getLineEffectiveZIndex", () => {
+  it("returns base zIndex when line has no connections", () => {
+    const line = {
+      id: "l1",
+      type: "line" as const,
+      x: 0,
+      y: 0,
+      zIndex: 5,
+    };
+    expect(getLineEffectiveZIndex(line, [line])).toBe(5);
+  });
+
+  it("returns frameZ+1 when line connects to object on frame", () => {
+    const frame = {
+      id: "f1",
+      type: "frame" as const,
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 200,
+      zIndex: 2,
+    };
+    const sticky = {
+      id: "s1",
+      type: "sticky" as const,
+      x: 50,
+      y: 50,
+      width: 100,
+      height: 80,
+      zIndex: 5,
+    };
+    const line = {
+      id: "l1",
+      type: "line" as const,
+      x: 0,
+      y: 0,
+      zIndex: 0,
+      lineStartConnection: { objectId: "s1", pointIndex: 0 },
+    };
+    expect(getLineEffectiveZIndex(line, [frame, sticky, line])).toBe(3);
   });
 });

@@ -33,12 +33,12 @@ export default function BoardPage({
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) {
         router.replace("/login");
         return;
       }
-      getBoard(id).then(setBoard);
+      void getBoard(id).then(setBoard);
     });
   }, [id, router]);
 

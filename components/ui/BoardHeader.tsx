@@ -46,7 +46,7 @@ export function BoardHeader({
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        handleSaveTitle();
+        void handleSaveTitle();
       }
       if (e.key === "Escape") {
         setTitleInput(board?.title ?? "");
@@ -57,7 +57,7 @@ export function BoardHeader({
   );
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement;
       const isInput =
         target.tagName === "INPUT" ||
@@ -93,7 +93,9 @@ export function BoardHeader({
               type="text"
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
-              onBlur={handleSaveTitle}
+              onBlur={() => {
+                void handleSaveTitle();
+              }}
               onKeyDown={handleTitleKeyDown}
               autoFocus
               className="text-lg font-semibold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500 min-w-[120px]"

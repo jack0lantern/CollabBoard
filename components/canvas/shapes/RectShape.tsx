@@ -81,13 +81,11 @@ export function RectShape({
   }, [data.width, data.height, localSize]);
 
   useLayoutEffect(() => {
-    if (isSelected && shapeRef.current != null) {
+    if (shapeRef.current != null) {
       registerShapeRef?.(data.id, shapeRef.current);
-    } else {
-      registerShapeRef?.(data.id, null);
     }
     return () => registerShapeRef?.(data.id, null);
-  }, [isSelected, data.id, registerShapeRef]);
+  }, [data.id, registerShapeRef]);
 
   useLayoutEffect(() => {
     if (isSelected && !isMultiSelect && shapeRef.current != null && trRef.current != null) {

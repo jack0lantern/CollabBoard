@@ -20,7 +20,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       return;
     }
     let cancelled = false;
-    getProfile(user.id).then((profile) => {
+    void getProfile(user.id).then((profile) => {
       if (!cancelled && profile) {
         setDisplayName(profile.display_name ?? user.displayName ?? "");
       } else if (!cancelled) {
@@ -117,7 +117,9 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex justify-between mt-6 gap-2">
           <button
-            onClick={handleLogOut}
+            onClick={() => {
+              void handleLogOut();
+            }}
             className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:underline"
           >
             Log out
@@ -130,7 +132,9 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => {
+                void handleSave();
+              }}
               disabled={saving}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
             >

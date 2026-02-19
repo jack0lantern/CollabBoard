@@ -13,8 +13,9 @@ const USE_EMULATOR = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
 const emulatorConnected = { auth: false, database: false };
 
 export function getFirebaseApp(): FirebaseApp | null {
-  if (getApps().length > 0) {
-    return getApps()[0] as FirebaseApp;
+  const apps = getApps();
+  if (apps.length > 0) {
+    return apps[0] ?? null;
   }
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     return null;

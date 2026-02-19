@@ -26,6 +26,8 @@ export function FrameShape({
   onContextMenu,
   onDragMoveTick,
   onFrameDragWithContents,
+  onFrameDragStart,
+  onFrameDragEnd,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -42,6 +44,8 @@ export function FrameShape({
     deltaX: number,
     deltaY: number
   ) => void;
+  onFrameDragStart?: (frameId: string, startX: number, startY: number) => void;
+  onFrameDragEnd?: (frameId: string, newX: number, newY: number) => void;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -91,13 +95,11 @@ export function FrameShape({
   }, [data.width, data.height, localSize]);
 
   useLayoutEffect(() => {
-    if (isSelected && groupRef.current != null) {
+    if (groupRef.current != null) {
       registerShapeRef?.(data.id, groupRef.current);
-    } else {
-      registerShapeRef?.(data.id, null);
     }
     return () => registerShapeRef?.(data.id, null);
-  }, [isSelected, data.id, registerShapeRef]);
+  }, [data.id, registerShapeRef]);
 
   useLayoutEffect(() => {
     if (isSelected && !isMultiSelect && groupRef.current != null && trRef.current != null) {
@@ -127,8 +129,11 @@ export function FrameShape({
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
         onDragStart={(e) => {
+          const x = e.target.x();
+          const y = e.target.y();
           setIsDragging(true);
-          dragPrevPosRef.current = { x: e.target.x(), y: e.target.y() };
+          dragPrevPosRef.current = { x, y };
+          onFrameDragStart?.(data.id, x, y);
         }}
         onDragMove={(e) => {
           const newX = e.target.x();
@@ -141,15 +146,18 @@ export function FrameShape({
             onFrameDragWithContents?.(data.id, prev.x, prev.y, deltaX, deltaY);
             dragPrevPosRef.current = { x: newX, y: newY };
           }
-          onDragMoveTick?.();
         }}
         onDragEnd={(e) => {
-          dragPrevPosRef.current = null;
           const newX = e.target.x();
           const newY = e.target.y();
+          dragPrevPosRef.current = null;
+          if (onFrameDragEnd) {
+            onFrameDragEnd(data.id, newX, newY);
+          } else {
+            updateObject(data.id, { x: newX, y: newY });
+          }
           setLocalPos({ x: newX, y: newY });
           setIsDragging(false);
-          updateObject(data.id, { x: newX, y: newY });
           onShapeDragEnd?.();
         }}
         onTransformEnd={() => {

@@ -155,13 +155,11 @@ export function LineShape({
   pointsRef.current = displayPoints;
 
   useLayoutEffect(() => {
-    if (isSelected && groupRef.current != null) {
+    if (groupRef.current != null) {
       registerShapeRef?.(data.id, groupRef.current);
-    } else {
-      registerShapeRef?.(data.id, null);
     }
     return () => registerShapeRef?.(data.id, null);
-  }, [isSelected, data.id, registerShapeRef]);
+  }, [data.id, registerShapeRef]);
 
   const prevPosRef = useRef({ x: data.x, y: data.y });
   const prevPointsRef = useRef(data.points ?? [0, 0, 100, 100]);
@@ -284,16 +282,14 @@ export function LineShape({
     onMouseLeave: handleLineMouseLeave,
   };
 
-  const r0 = rotatePoint(displayPoints[0], displayPoints[1], displayRotation);
-  const r1 = rotatePoint(displayPoints[2], displayPoints[3], displayRotation);
-  const knob0X = displayX + r0.x;
-  const knob0Y = displayY + r0.y;
-  const knob1X = displayX + r1.x;
-  const knob1Y = displayY + r1.y;
+  const knob0LocalX = displayPoints[0];
+  const knob0LocalY = displayPoints[1];
+  const knob1LocalX = displayPoints[2];
+  const knob1LocalY = displayPoints[3];
 
   return (
     <Fragment>
-      {/* Line Group - draggable for whole-line move, contains only the line */}
+      {/* Line Group - draggable for whole-line move; knobs inside so they move with frame drag */}
       <Group
         key={`${data.id}-line`}
         ref={groupRef}
@@ -365,53 +361,52 @@ export function LineShape({
             dash={isSelected ? [8, 4] : undefined}
           />
         )}
-      </Group>
 
-      {/* Knobs as siblings - dragging them does not affect the Group */}
-      {showKnobs && (
-        <>
-          <Circle
-            key={`${data.id}-knob0`}
-            x={knob0X}
-            y={knob0Y}
-            radius={KNOB_RADIUS}
-            fill={KNOB_FILL}
-            stroke={KNOB_STROKE}
-            strokeWidth={2}
-            scaleX={inverseScale}
-            scaleY={inverseScale}
-            draggable
-            onMouseDown={(e) => {
-              e.cancelBubble = true;
-              setCursor(e, "grabbing");
-            }}
-            onMouseEnter={handleKnobMouseEnter}
-            onMouseLeave={handleKnobMouseLeave}
-            onDragMove={handleKnobDragMove(0)}
-            onDragEnd={makeKnobDragEnd(0)}
-          />
-          <Circle
-            key={`${data.id}-knob1`}
-            x={knob1X}
-            y={knob1Y}
-            radius={KNOB_RADIUS}
-            fill={KNOB_FILL}
-            stroke={KNOB_STROKE}
-            strokeWidth={2}
-            scaleX={inverseScale}
-            scaleY={inverseScale}
-            draggable
-            onMouseDown={(e) => {
-              e.cancelBubble = true;
-              setCursor(e, "grabbing");
-            }}
-            onMouseEnter={handleKnobMouseEnter}
-            onMouseLeave={handleKnobMouseLeave}
-            onDragMove={handleKnobDragMove(1)}
-            onDragEnd={makeKnobDragEnd(1)}
-          />
-        </>
-      )}
+        {showKnobs && (
+          <>
+            <Circle
+              key={`${data.id}-knob0`}
+              x={knob0LocalX}
+              y={knob0LocalY}
+              radius={KNOB_RADIUS}
+              fill={KNOB_FILL}
+              stroke={KNOB_STROKE}
+              strokeWidth={2}
+              scaleX={inverseScale}
+              scaleY={inverseScale}
+              draggable
+              onMouseDown={(e) => {
+                e.cancelBubble = true;
+                setCursor(e, "grabbing");
+              }}
+              onMouseEnter={handleKnobMouseEnter}
+              onMouseLeave={handleKnobMouseLeave}
+              onDragMove={handleKnobDragMove(0)}
+              onDragEnd={makeKnobDragEnd(0)}
+            />
+            <Circle
+              key={`${data.id}-knob1`}
+              x={knob1LocalX}
+              y={knob1LocalY}
+              radius={KNOB_RADIUS}
+              fill={KNOB_FILL}
+              stroke={KNOB_STROKE}
+              strokeWidth={2}
+              scaleX={inverseScale}
+              scaleY={inverseScale}
+              draggable
+              onMouseDown={(e) => {
+                e.cancelBubble = true;
+                setCursor(e, "grabbing");
+              }}
+              onMouseEnter={handleKnobMouseEnter}
+              onMouseLeave={handleKnobMouseLeave}
+              onDragMove={handleKnobDragMove(1)}
+              onDragEnd={makeKnobDragEnd(1)}
+            />
+          </>
+        )}
+      </Group>
     </Fragment>
   );
 }

@@ -79,10 +79,11 @@ export function ShareModal({
 
   const handleRemoveEmail = useCallback(
     async (email: string) => {
-      const next = { ...sharedWith };
-      delete next[email];
-      setSharedWith(next);
-      await persistSharing({ is_public: isPublic, shared_with: next });
+      const rest = Object.fromEntries(
+        Object.entries(sharedWith).filter(([k]) => k !== email)
+      );
+      setSharedWith(rest);
+      await persistSharing({ is_public: isPublic, shared_with: rest });
     },
     [sharedWith, isPublic, persistSharing]
   );
@@ -126,7 +127,9 @@ export function ShareModal({
               className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-900"
             />
             <button
-              onClick={handleCopyLink}
+              onClick={() => {
+                void handleCopyLink();
+              }}
               className="px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Copy link
@@ -138,7 +141,9 @@ export function ShareModal({
               type="checkbox"
               id="is-public"
               checked={isPublic}
-              onChange={(e) => handlePublicToggle(e.target.checked)}
+              onChange={(e) => {
+                void handlePublicToggle((e.target as HTMLInputElement).checked);
+              }}
               disabled={saving}
               className="rounded border-gray-300"
             />
@@ -156,12 +161,16 @@ export function ShareModal({
                 type="email"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddEmail()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAddEmail();
+                }}
                 placeholder="email@example.com"
                 className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
               />
               <button
-                onClick={handleAddEmail}
+                onClick={() => {
+                  void handleAddEmail();
+                }}
                 className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 Add
@@ -183,7 +192,9 @@ export function ShareModal({
                       <span className="text-gray-500 ml-1">({role})</span>
                     </span>
                     <button
-                      onClick={() => handleRemoveEmail(email)}
+                      onClick={() => {
+                        void handleRemoveEmail(email);
+                      }}
                       disabled={saving}
                       className="text-red-600 hover:underline disabled:opacity-50"
                     >

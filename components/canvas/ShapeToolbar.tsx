@@ -121,16 +121,6 @@ export function ShapeToolbar({
       if (e.key === "Escape") onClose();
     };
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        toolbarRef.current != null &&
-        !toolbarRef.current.contains(e.target as Node)
-      ) {
-        // Don't close on outside click - selection is managed by canvas
-        // User deselects by clicking canvas
-      }
-    };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);

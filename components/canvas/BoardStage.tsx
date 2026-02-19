@@ -29,11 +29,13 @@ import {
   computeGroupBoundingBox,
   getTopmostFrameZIndex,
   getObjectsOnTopOfFrame,
+  isLinePartOfFrame,
+  getLineEffectiveZIndex,
 } from "@/lib/utils/boundingBox";
 import { getNodeSnapPoints } from "@/lib/utils/snapPoints";
 import { ShapeToolbar } from "./ShapeToolbar";
 
-export function BoardStage({ boardId }: { boardId: string }) {
+export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   const stageRef = useRef<Konva.Stage>(null);
   const panningRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -82,10 +84,14 @@ export function BoardStage({ boardId }: { boardId: string }) {
     }
   }, []);
 
-  const { objects, patchObject, addObject: addObjectLocal, removeObject } =
-    useBoardObjectsContext();
+  const { objects, pushUndoSnapshot } = useBoardObjectsContext();
   const { others, updateCursor } = usePresence();
-  const { addObject, updateObject, deleteObject } = useBoardMutations();
+  const {
+    addObject,
+    updateObject,
+    updateMultipleObjects,
+    deleteObject,
+  } = useBoardMutations();
 
   const getLiveSnapPoints = useCallback(
     (objectId: string): { x: number; y: number }[] | null => {
@@ -109,9 +115,11 @@ export function BoardStage({ boardId }: { boardId: string }) {
   );
   const objectList = rawList as unknown as ObjectData[];
   objectListRef.current = objectList;
-  const sortedObjects = [...objectList].sort(
-    (a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0)
-  );
+  const sortedObjects = [...objectList].sort((a, b) => {
+    const za = a.type === "line" ? getLineEffectiveZIndex(a, objectList) : (a.zIndex ?? 0);
+    const zb = b.type === "line" ? getLineEffectiveZIndex(b, objectList) : (b.zIndex ?? 0);
+    return za - zb;
+  });
 
   const applyZOrderUpdates = useCallback(
     (updates: Map<string, number>) => {
@@ -208,28 +216,51 @@ export function BoardStage({ boardId }: { boardId: string }) {
       const obj = objectListRef.current.find((o) => o.id === objectId);
       if (!obj || obj.type === "frame") return;
       const objWithNewPos = { ...obj, x: newX, y: newY };
-      const maxFrameZ = getTopmostFrameZIndex(
-        objWithNewPos,
-        objectListRef.current
-      );
-      if (maxFrameZ != null && (obj.zIndex ?? 0) <= maxFrameZ) {
-        updateObject(objectId, { zIndex: maxFrameZ + 1 });
+      const objects = objectListRef.current;
+      if (obj.type === "line") {
+        const effectiveZ = getLineEffectiveZIndex(objWithNewPos, objects);
+        if ((obj.zIndex ?? 0) < effectiveZ) {
+          updateObject(objectId, { zIndex: effectiveZ });
+        }
+      } else {
+        const maxFrameZ = getTopmostFrameZIndex(objWithNewPos, objects);
+        if (maxFrameZ != null && (obj.zIndex ?? 0) <= maxFrameZ) {
+          updateObject(objectId, { zIndex: maxFrameZ + 1 });
+        }
       }
     },
     [updateObject]
   );
 
+  const frameDragContentsRef = useRef<Set<string>>(new Set());
+
   const handleFrameDragWithContents = useCallback(
     (
-      frameId: string,
-      prevX: number,
-      prevY: number,
+      _frameId: string,
+      _prevX: number,
+      _prevY: number,
       deltaX: number,
       deltaY: number
     ) => {
+      const refs = shapeRefsRef.current;
+      for (const id of frameDragContentsRef.current) {
+        const node = refs.get(id);
+        if (node) {
+          node.x(node.x() + deltaX);
+          node.y(node.y() + deltaY);
+        }
+      }
+      stageRef.current?.batchDraw();
+    },
+    []
+  );
+
+  const handleFrameDragStart = useCallback(
+    (frameId: string, startX: number, startY: number) => {
+      pushUndoSnapshot();
       const frame = objectListRef.current.find((o) => o.id === frameId);
       if (!frame || frame.type !== "frame") return;
-      const frameBox = getObjectBoundingBox({ ...frame, x: prevX, y: prevY });
+      const frameBox = getObjectBoundingBox({ ...frame, x: startX, y: startY });
       const frameZ = frame.zIndex ?? 0;
       const objectsOnTop = getObjectsOnTopOfFrame(
         frameId,
@@ -237,14 +268,41 @@ export function BoardStage({ boardId }: { boardId: string }) {
         frameZ,
         objectListRef.current
       );
-      for (const obj of objectsOnTop) {
-        updateObject(obj.id, {
-          x: obj.x + deltaX,
-          y: obj.y + deltaY,
-        });
+      const objectsOnFrameIds = new Set(
+        objectsOnTop.filter((o) => o.type !== "line").map((o) => o.id)
+      );
+      const idsToMove = objectsOnTop.filter(
+        (o) =>
+          o.type !== "line" || isLinePartOfFrame(o, frameId, objectsOnFrameIds)
+      );
+      frameDragContentsRef.current = new Set(idsToMove.map((o) => o.id));
+    },
+    [pushUndoSnapshot]
+  );
+
+  const handleFrameDragEnd = useCallback(
+    (frameId: string, newX: number, newY: number) => {
+      const batch: Array<{ id: string; updates: Partial<ObjectData> }> = [
+        { id: frameId, updates: { x: newX, y: newY } },
+      ];
+      const refs = shapeRefsRef.current;
+      for (const id of frameDragContentsRef.current) {
+        const node = refs.get(id);
+        if (node) {
+          batch.push({
+            id,
+            updates: { x: node.x(), y: node.y() },
+          });
+        }
+      }
+      frameDragContentsRef.current.clear();
+      if (batch.length > 1) {
+        updateMultipleObjects(batch, { skipUndo: true });
+      } else {
+        updateObject(frameId, { x: newX, y: newY }, { skipUndo: true });
       }
     },
-    [updateObject]
+    [updateObject, updateMultipleObjects]
   );
 
   const handleDragMoveAt = useCallback(
@@ -617,6 +675,8 @@ export function BoardStage({ boardId }: { boardId: string }) {
                     onDragEndAt={handleDragEndAt}
                     onDragMoveAt={handleDragMoveAt}
                     onFrameDragWithContents={handleFrameDragWithContents}
+                    onFrameDragStart={handleFrameDragStart}
+                    onFrameDragEnd={handleFrameDragEnd}
                   />
                 ))}
                 <MultiSelectTransformer

@@ -100,7 +100,12 @@ export function SignupForm() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Sign up</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          void handleSubmit(e);
+        }}
+        className="space-y-4"
+      >
         <div className="flex gap-3">
           <div className="flex-1">
             <label htmlFor="firstName" className="block text-sm font-medium mb-1">
@@ -182,7 +187,9 @@ export function SignupForm() {
 
       <button
         type="button"
-        onClick={handleGoogleSignUp}
+        onClick={() => {
+          void handleGoogleSignUp();
+        }}
         disabled={loading}
         className="w-full py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
       >
