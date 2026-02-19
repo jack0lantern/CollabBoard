@@ -10,7 +10,7 @@ import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
 import { measureText, getCaretIndexFromPosition } from "@/lib/utils/measureText";
 import {
   TEXT_BOX_PADDING,
-  computeScaledFontSize,
+  computeClampedCornerTransform,
   computeTextBoxDimensions,
   shouldDeleteEmptyTextOnBlur,
 } from "@/lib/utils/textShapeLayout";
@@ -129,7 +129,7 @@ export function TextShape({
   const flipY = height < 0;
 
   useEffect(() => {
-    if (isEditing) return;
+    if (isEditing || isSelected) return;
     const text = data.text ?? "";
     const fontSize = data.fontSize ?? DEFAULT_FONT_SIZE;
     const fontFamily = data.fontFamily ?? DEFAULT_FONT_FAMILY;
@@ -169,6 +169,7 @@ export function TextShape({
     absWidth,
     updateObject,
     isEditing,
+    isSelected,
   ]);
 
   const didDragRef = useRef(false);
@@ -525,22 +526,44 @@ export function TextShape({
           const newRotation = node.rotation();
           const rawW = width * scaleX;
           const rawH = height * scaleY;
-          const newWidth = Math.max(MIN_SIZE, Math.abs(rawW));
-          const newHeight = Math.max(MIN_SIZE, Math.abs(rawH));
+          const absRawW = Math.abs(rawW);
+          const absRawH = Math.abs(rawH);
           const baseFontSize = data.fontSize ?? DEFAULT_FONT_SIZE;
-          const newFontSize = computeScaledFontSize({
+          const clamped = computeClampedCornerTransform({
             baseFontSize,
-            widthScale: newWidth / Math.max(absWidth, 1),
-            heightScale: newHeight / Math.max(absHeight, 1),
+            rawWidth: absRawW,
+            rawHeight: absRawH,
+            prevWidth: absWidth,
+            prevHeight: absHeight,
             activeAnchor,
+            minSize: MIN_SIZE,
           });
+          const { width: newWidth, height: newHeight, fontSize: newFontSize } =
+            clamped;
+
+          let newX = node.x();
+          let newY = node.y();
+          if (
+            activeAnchor != null &&
+            (newWidth !== absRawW || newHeight !== absRawH)
+          ) {
+            const anchoredRight =
+              activeAnchor === "top-left" || activeAnchor === "bottom-left";
+            const anchoredBottom =
+              activeAnchor === "top-left" || activeAnchor === "top-right";
+            if (anchoredRight) newX = node.x() + absRawW - newWidth;
+            if (anchoredBottom) newY = node.y() + absRawH - newHeight;
+          }
+
           setLocalSize({ width: newWidth, height: newHeight });
           setLocalRotation(newRotation);
           node.scaleX(1);
           node.scaleY(1);
+          node.x(newX);
+          node.y(newY);
           updateObject(data.id, {
-            x: node.x(),
-            y: node.y(),
+            x: newX,
+            y: newY,
             width: newWidth,
             height: newHeight,
             fontSize: newFontSize,

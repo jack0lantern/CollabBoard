@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   TEXT_BOX_PADDING,
+  computeClampedCornerTransform,
   computeTextBoxDimensions,
   computeScaledFontSize,
   shouldDeleteEmptyTextOnBlur,
@@ -45,6 +46,36 @@ describe("computeScaledFontSize", () => {
       activeAnchor: "middle-right",
     });
     expect(fontSize).toBe(20);
+  });
+});
+
+describe("computeClampedCornerTransform", () => {
+  it("shrinks box when stretch would exceed max font size", () => {
+    const result = computeClampedCornerTransform({
+      baseFontSize: 16,
+      rawWidth: 2000,
+      rawHeight: 1000,
+      prevWidth: 100,
+      prevHeight: 50,
+      activeAnchor: "bottom-right",
+    });
+    expect(result.fontSize).toBe(240);
+    expect(result.width).toBeLessThan(2000);
+    expect(result.height).toBeLessThan(1000);
+  });
+
+  it("keeps full size when within font bounds", () => {
+    const result = computeClampedCornerTransform({
+      baseFontSize: 16,
+      rawWidth: 200,
+      rawHeight: 100,
+      prevWidth: 100,
+      prevHeight: 50,
+      activeAnchor: "bottom-right",
+    });
+    expect(result.fontSize).toBe(32);
+    expect(result.width).toBe(200);
+    expect(result.height).toBe(100);
   });
 });
 
