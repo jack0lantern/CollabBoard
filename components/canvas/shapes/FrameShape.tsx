@@ -175,13 +175,12 @@ export function FrameShape({
           setLocalSize({ width: newWidth, height: newHeight });
           node.scaleX(1);
           node.scaleY(1);
-          const newRotation = node.rotation();
           updateObject(data.id, {
             x: node.x(),
             y: node.y(),
             width: newWidth,
             height: newHeight,
-            rotation: newRotation,
+            rotation: 0,
           });
           node.rotation(0);
         }}
@@ -224,6 +223,7 @@ export function FrameShape({
       {isSelected && !isMultiSelect && (
         <Transformer
           ref={trRef}
+          rotateEnabled={false}
           flipEnabled
           keepRatio={false}
           ignoreStroke

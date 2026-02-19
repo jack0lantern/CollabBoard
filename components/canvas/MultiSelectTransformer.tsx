@@ -141,10 +141,14 @@ export function MultiSelectTransformer({
 
   if (selectedIds.length < 2) return null;
 
+  const hasFrame = selectedIds.some((id) => objects[id]?.type === "frame");
+  const rotateEnabled = !hasFrame;
+
   return (
     <Group>
       <Transformer
         ref={trRef}
+        rotateEnabled={rotateEnabled}
         flipEnabled
         keepRatio={false}
         ignoreStroke

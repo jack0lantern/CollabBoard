@@ -56,7 +56,7 @@ export function computeTransformedObject(
         y,
         width: Math.max(MIN_SIZE, Math.abs(w)),
         height: Math.max(MIN_SIZE, Math.abs(h)),
-        rotation: rotation ?? undefined,
+        rotation: 0,
       };
     }
     case "line": {

@@ -111,6 +111,25 @@ describe("multi-select transform", () => {
       expect(computeTransformedObject(line, { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation }).rotation).toBe(45);
     });
 
+    it("frame never receives rotation", () => {
+      const frame: ObjectData = {
+        id: "f1",
+        type: "frame",
+        x: 100,
+        y: 100,
+        width: 600,
+        height: 400,
+      };
+      const updated = computeTransformedObject(frame, {
+        x: 100,
+        y: 100,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 45,
+      });
+      expect(updated.rotation).toBe(0);
+    });
+
     it("identity transform does not cause dimension flicker", () => {
       const rect: ObjectData = {
         id: "r1",
