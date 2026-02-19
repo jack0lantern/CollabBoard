@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import type { ObjectData, ShapeType } from "@/types";
 
 function useDebouncedUpdate(
@@ -39,6 +39,7 @@ function useDebouncedUpdate(
 
   return debouncedUpdate;
 }
+
 
 const FONT_FAMILIES = [
   "Inter",
@@ -91,6 +92,7 @@ export function ShapeToolbar({
 }: ShapeToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const debouncedUpdate = useDebouncedUpdate(onUpdate, 150);
+  const [fontSizeInput, setFontSizeInput] = useState<string | null>(null);
 
   const TOOLBAR_GAP = 56;
   const TOOLBAR_PADDING = 4;
@@ -133,6 +135,10 @@ export function ShapeToolbar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    setFontSizeInput(null);
+  }, [object.id]);
+
   const showFontControls = hasText(object.type);
   const showFillControl = hasFill(object.type);
   const showStrokeControl = hasStroke(object.type);
@@ -167,11 +173,31 @@ export function ShapeToolbar({
             type="number"
             min={FONT_SIZE_MIN}
             max={FONT_SIZE_MAX}
-            value={object.fontSize ?? 14}
+            value={fontSizeInput ?? object.fontSize ?? 14}
+            onFocus={() => setFontSizeInput(String(object.fontSize ?? 14))}
             onChange={(e) => {
-              const v = Number(e.target.value);
+              const raw = e.target.value;
+              setFontSizeInput(raw);
+              const v = Number(raw);
               if (!Number.isNaN(v) && v >= FONT_SIZE_MIN && v <= FONT_SIZE_MAX) {
                 onUpdate({ fontSize: v });
+              }
+            }}
+            onBlur={() => {
+              const v = Number(fontSizeInput ?? object.fontSize ?? 14);
+              const clamped = Math.min(
+                FONT_SIZE_MAX,
+                Math.max(
+                  FONT_SIZE_MIN,
+                  Number.isNaN(v) ? (object.fontSize ?? 14) : v
+                )
+              );
+              onUpdate({ fontSize: clamped });
+              setFontSizeInput(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                (e.target as HTMLInputElement).blur();
               }
             }}
             className="h-8 w-14 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
