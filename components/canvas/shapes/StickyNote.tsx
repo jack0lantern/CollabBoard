@@ -144,6 +144,7 @@ export function StickyNote({
     const areaY = stageBox.top + stageY + textY * scaleY;
     const areaW = (Math.abs(width) - TEXT_PADDING * 2) * scaleX;
     const areaH = (Math.abs(height) - TEXT_PADDING * 2) * scaleY;
+    const scaledFontSize = (data.fontSize ?? DEFAULT_FONT_SIZE) * scaleX;
 
     const textarea = document.createElement("textarea");
     document.body.appendChild(textarea);
@@ -154,7 +155,7 @@ export function StickyNote({
     textarea.style.top = `${String(areaY)}px`;
     textarea.style.width = `${String(areaW)}px`;
     textarea.style.height = `${String(areaH)}px`;
-    textarea.style.fontSize = `${String(data.fontSize ?? DEFAULT_FONT_SIZE)}px`;
+    textarea.style.fontSize = `${String(scaledFontSize)}px`;
     textarea.style.fontFamily = data.fontFamily ?? DEFAULT_FONT_FAMILY;
     textarea.style.fontWeight = data.fontWeight ?? "normal";
     textarea.style.fontStyle = data.fontStyle ?? "normal";
