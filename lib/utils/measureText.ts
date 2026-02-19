@@ -26,7 +26,7 @@ export function measureText(
   const ctx = canvas.getContext("2d");
   if (!ctx) return { width: 0, height: 0 };
 
-  const fontStr = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+  const fontStr = `${fontStyle} ${fontWeight} ${String(fontSize)}px ${fontFamily}`;
   ctx.font = fontStr;
 
   const lines: string[] = [];
@@ -95,7 +95,7 @@ export function getCaretIndexFromPosition(
   const ctx = canvas.getContext("2d");
   if (!ctx) return 0;
 
-  const fontStr = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+  const fontStr = `${fontStyle} ${fontWeight} ${String(fontSize)}px ${fontFamily}`;
   ctx.font = fontStr;
 
   const lineHeightPx = fontSize * lineHeight;

@@ -11,7 +11,7 @@ const COLORS = ["#fef08a", "#3b82f6", "#10b981", "#ef4444", "#8b5cf6"];
 function getNextZIndex(objects: Record<string, ObjectData>): number {
   const values = Object.values(objects).filter(
     (o): o is ObjectData =>
-      o != null && typeof o === "object" && "id" in o && "type" in o
+      typeof o === "object" && "id" in o && "type" in o
   );
   const max = Math.max(0, ...values.map((o) => o.zIndex ?? 0));
   return max + 1;

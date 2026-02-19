@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Group, Arrow, Line, Circle } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
@@ -98,11 +98,14 @@ export function LineShape({
     return map;
   }, [otherObjects]);
 
-  const worldToLocal = (worldX: number, worldY: number) => {
-    const dx = worldX - displayX;
-    const dy = worldY - displayY;
-    return rotatePoint(dx, dy, -displayRotation);
-  };
+  const worldToLocal = useCallback(
+    (worldX: number, worldY: number) => {
+      const dx = worldX - displayX;
+      const dy = worldY - displayY;
+      return rotatePoint(dx, dy, -displayRotation);
+    },
+    [displayX, displayY, displayRotation]
+  );
 
   const displayPoints = useMemo(() => {
     const base = localPoints ?? data.points ?? [0, 0, 100, 100];
@@ -146,18 +149,17 @@ export function LineShape({
       }
     }
     return pts;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dragMoveVersion forces refresh when connected shapes move
   }, [
     localPoints,
     data.points,
     data.lineStartConnection,
     data.lineEndConnection,
     objectsById,
-    displayX,
-    displayY,
-    displayRotation,
     getLiveSnapPoints,
-    dragMoveVersion,
     isDragging,
+    worldToLocal,
+    dragMoveVersion,
   ]);
 
   pointsRef.current = displayPoints;

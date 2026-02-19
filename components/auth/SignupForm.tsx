@@ -61,7 +61,7 @@ export function SignupForm() {
 
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError((err as Error)?.message ?? "Failed to create account");
+      setError(err instanceof Error ? err.message : "Failed to create account");
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export function SignupForm() {
         setError(authError.message);
       }
     } catch (err: unknown) {
-      setError((err as Error)?.message ?? "Failed to sign up with Google");
+      setError(err instanceof Error ? err.message : "Failed to sign up with Google");
     } finally {
       setLoading(false);
     }
@@ -115,7 +115,9 @@ export function SignupForm() {
               id="firstName"
               type="text"
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              onChange={(e) => {
+                setFirstName(e.target.value);
+              }}
               required
               className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
@@ -128,7 +130,9 @@ export function SignupForm() {
               id="lastName"
               type="text"
               value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              onChange={(e) => {
+                setLastName(e.target.value);
+              }}
               required
               className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
             />
@@ -142,7 +146,9 @@ export function SignupForm() {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
             required
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
           />
@@ -155,7 +161,9 @@ export function SignupForm() {
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+            }}
             required
             minLength={6}
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"

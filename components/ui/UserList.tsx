@@ -25,7 +25,8 @@ function getDotColor(userId: string): string {
 function UserDot({ userId, displayName }: { userId: string; displayName: string }) {
   const [hovered, setHovered] = useState(false);
   const colorClass = getDotColor(userId);
-  const initial = displayName[0]?.toUpperCase() ?? "?";
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- displayName[0] can be undefined for empty string
+  const initial = (displayName[0] ?? "?").toUpperCase();
 
   return (
     <div
@@ -59,7 +60,7 @@ export function UserList() {
         <UserDot
           key={user.userId}
           userId={user.userId}
-          displayName={user.displayName ?? "Anonymous"}
+          displayName={user.displayName}
         />
       ))}
     </div>

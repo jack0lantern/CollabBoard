@@ -233,7 +233,9 @@ export function TextShape({
       }
     };
     window.addEventListener("keydown", handleKeyDown, { capture: true });
-    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
   }, [isSelected, isEditing, isMultiSelect, displayX, displayY]);
 
   useEffect(() => {
@@ -269,11 +271,11 @@ export function TextShape({
     const initialText = replaceWith != null ? replaceWith : (data.text ?? "");
     textarea.value = initialText;
     textarea.style.position = "fixed";
-    textarea.style.left = `${areaX}px`;
-    textarea.style.top = `${areaY}px`;
-    textarea.style.width = `${areaW}px`;
-    textarea.style.height = `${areaH}px`;
-    textarea.style.fontSize = `${scaledFontSize}px`;
+    textarea.style.left = `${String(areaX)}px`;
+    textarea.style.top = `${String(areaY)}px`;
+    textarea.style.width = `${String(areaW)}px`;
+    textarea.style.height = `${String(areaH)}px`;
+    textarea.style.fontSize = `${String(scaledFontSize)}px`;
     textarea.style.fontFamily = data.fontFamily ?? DEFAULT_FONT_FAMILY;
     textarea.style.fontWeight = data.fontWeight ?? "normal";
     textarea.style.fontStyle = data.fontStyle ?? "normal";
@@ -287,7 +289,7 @@ export function TextShape({
     textarea.style.outline = "none";
     textarea.style.resize = "none";
     textarea.style.lineHeight = "1.2";
-    textarea.style.wordWrap = "break-word";
+    textarea.style.overflowWrap = "break-word";
     if (data.textHighlightColor != null && data.textHighlightColor !== "") {
       textarea.style.backgroundColor = data.textHighlightColor;
     }
@@ -395,8 +397,8 @@ export function TextShape({
         minWidth: MIN_SIZE,
         minHeight: MIN_SIZE,
       });
-      textarea.style.width = `${Math.max(1, (nextSize.width - TEXT_BOX_PADDING * 2) * scaleX)}px`;
-      textarea.style.height = `${Math.max(1, (nextSize.height - TEXT_BOX_PADDING * 2) * scaleY)}px`;
+      textarea.style.width = `${String(Math.max(1, (nextSize.width - TEXT_BOX_PADDING * 2) * scaleX))}px`;
+      textarea.style.height = `${String(Math.max(1, (nextSize.height - TEXT_BOX_PADDING * 2) * scaleY))}px`;
     };
     textarea.addEventListener("input", resizeTextarea);
     textarea.addEventListener("keyup", resizeTextarea);
@@ -417,7 +419,24 @@ export function TextShape({
       window.removeEventListener("mousedown", handleOutsideClick);
       window.removeEventListener("touchstart", handleOutsideClick);
     };
-  }, [isEditing, data.id, data.text, updateObject, width, height]);
+  }, [
+    isEditing,
+    data.id,
+    data.text,
+    data.fontFamily,
+    data.fontSize,
+    data.fontStyle,
+    data.fontWeight,
+    data.textColor,
+    data.textDecoration,
+    data.textHighlightColor,
+    absWidth,
+    absHeight,
+    updateObject,
+    deleteObject,
+    width,
+    height,
+  ]);
 
   return (
     <>

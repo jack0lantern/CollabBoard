@@ -105,15 +105,14 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
 
   const objectListRef = useRef<ObjectData[]>([]);
   const rawList = Object.values(objects).filter(
-    (obj) =>
-      obj != null &&
+    (obj): obj is ObjectData =>
       typeof obj === "object" &&
       "id" in obj &&
       "type" in obj &&
       "x" in obj &&
       "y" in obj
   );
-  const objectList = rawList as unknown as ObjectData[];
+  const objectList = rawList;
   objectListRef.current = objectList;
   const sortedObjects = [...objectList].sort((a, b) => {
     const za = a.type === "line" ? getLineEffectiveZIndex(a, objectList) : (a.zIndex ?? 0);
@@ -161,7 +160,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
         }
       }
     },
-    [position.x, position.y, clearSelection]
+    [position.x, position.y]
   );
 
   const handleContainerMouseDownCapture = useCallback(
@@ -408,7 +407,8 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName ?? "")) {
+      const tagName = (e.target as HTMLElement).tagName;
+      if (["INPUT", "TEXTAREA"].includes(tagName)) {
         return;
       }
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
@@ -449,7 +449,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
-    selectedIds.length,
+    selectedIds,
     handleDeleteSelected,
     addObject,
     setSelection,
@@ -684,7 +684,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   nodeRefsRef={shapeRefsRef}
                   refsVersion={refsVersion}
                   objects={objects}
-                  onTransformEnd={() => setLastDragEnd(Date.now())}
+                  onTransformEnd={() => {
+                    setLastDragEnd(Date.now());
+                  }}
                   onTransform={onDragMoveTick}
                   onContextMenu={handleTransformerContextMenu}
                   onDragEndAt={handleDragEndAt}
@@ -720,9 +722,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                       height: box.height * scale,
                     };
                   })()}
-                  onUpdate={(updates) =>
-                    updateObject(selectedSingleObject.id, updates)
-                  }
+                  onUpdate={(updates) => {
+                    updateObject(selectedSingleObject.id, updates);
+                  }}
                 />
               )}
             {contextMenu != null && (
@@ -761,7 +763,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                           onClick: () => {
                             const targetIds = contextMenu.targetIds;
                             const updates = computeBringToFront(objectList, targetIds);
-                            queueMicrotask(() => applyZOrderUpdates(updates));
+                            queueMicrotask(() => {
+                              applyZOrderUpdates(updates);
+                            });
                           },
                         },
                         {
@@ -769,7 +773,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                           onClick: () => {
                             const targetIds = contextMenu.targetIds;
                             const updates = computeSendToBack(objectList, targetIds);
-                            queueMicrotask(() => applyZOrderUpdates(updates));
+                            queueMicrotask(() => {
+                              applyZOrderUpdates(updates);
+                            });
                           },
                         },
                         {
@@ -777,7 +783,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                           onClick: () => {
                             const targetIds = contextMenu.targetIds;
                             const updates = computeBringForward(objectList, targetIds);
-                            queueMicrotask(() => applyZOrderUpdates(updates));
+                            queueMicrotask(() => {
+                              applyZOrderUpdates(updates);
+                            });
                           },
                         },
                         {
@@ -785,12 +793,16 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                           onClick: () => {
                             const targetIds = contextMenu.targetIds;
                             const updates = computeSendBackward(objectList, targetIds);
-                            queueMicrotask(() => applyZOrderUpdates(updates));
+                            queueMicrotask(() => {
+                              applyZOrderUpdates(updates);
+                            });
                           },
                         },
                         {
                           label: "Delete",
-                          onClick: () => handleDeleteSelected(contextMenu.targetIds),
+                          onClick: () => {
+                            handleDeleteSelected(contextMenu.targetIds);
+                          },
                         },
                       ]
                 }

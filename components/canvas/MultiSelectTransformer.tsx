@@ -47,12 +47,13 @@ export function MultiSelectTransformer({
     const tr = trRef.current;
     if (!tr) return;
     const nodes = tr.nodes();
-    const refs = nodeRefsRef.current ?? new Map();
+    const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
     for (const node of nodes) {
-      const id = Array.from(refs.entries()).find(
+      const entry = Array.from(refs.entries()).find(
         ([, ref]) => ref === node
-      )?.[0];
-      if (!id) continue;
+      );
+      const id = entry?.[0];
+      if (id == null) continue;
       const newX = node.x();
       const newY = node.y();
       updateObject(id, { x: newX, y: newY });
@@ -66,7 +67,7 @@ export function MultiSelectTransformer({
     const tr = trRef.current;
     if (!tr || selectedIds.length === 0) return;
 
-    const refs = nodeRefsRef.current ?? new Map();
+    const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
     const nodes = selectedIds
       .map((id) => refs.get(id))
       .filter((n): n is Konva.Node => n != null);
@@ -81,12 +82,13 @@ export function MultiSelectTransformer({
     const tr = trRef.current;
     if (!tr) return;
     const nodes = tr.nodes();
-    const refs = nodeRefsRef.current ?? new Map();
+    const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
     for (const node of nodes) {
-      const id = Array.from(refs.entries()).find(
+      const entry = Array.from(refs.entries()).find(
         ([, ref]) => ref === node
-      )?.[0];
-      if (!id) continue;
+      );
+      const id = entry?.[0];
+      if (id == null) continue;
       onDragMoveAt?.(id, node.x(), node.y());
     }
   }, [nodeRefsRef, onDragMoveAt]);
@@ -96,8 +98,12 @@ export function MultiSelectTransformer({
     if (!tr) return;
     const back = tr.findOne(".back");
     if (!back) return;
-    const dragEndHandler = () => persistPositions();
-    const dragMoveHandler = () => notifyDragMoveAt();
+    const dragEndHandler = () => {
+      persistPositions();
+    };
+    const dragMoveHandler = () => {
+      notifyDragMoveAt();
+    };
     back.on("dragend", dragEndHandler);
     back.on("dragmove", dragMoveHandler);
     return () => {
@@ -112,16 +118,15 @@ export function MultiSelectTransformer({
     if (!tr) return;
 
     const nodes = tr.nodes();
-    const refs = nodeRefsRef.current ?? new Map();
+    const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
     for (const node of nodes) {
-      const id = Array.from(refs.entries()).find(
+      const entry = Array.from(refs.entries()).find(
         ([, ref]) => ref === node
-      )?.[0];
-      if (!id) continue;
+      );
+      const id = entry?.[0];
+      if (id == null) continue;
 
       const obj = objects[id];
-      if (!obj) continue;
-
       const updates = computeTransformedObject(obj, {
         x: node.x(),
         y: node.y(),
@@ -141,7 +146,7 @@ export function MultiSelectTransformer({
 
   if (selectedIds.length < 2) return null;
 
-  const hasFrame = selectedIds.some((id) => objects[id]?.type === "frame");
+  const hasFrame = selectedIds.some((id) => objects[id].type === "frame");
   const rotateEnabled = !hasFrame;
 
   return (
@@ -171,7 +176,7 @@ export function MultiSelectTransformer({
             MIN_SIZE,
             MIN_SIZE,
             anchorBoxRef.current,
-            trRef.current?.getActiveAnchor() ?? undefined
+            trRef.current?.getActiveAnchor()
           );
         }}
         onTransformEnd={handleTransformEnd}

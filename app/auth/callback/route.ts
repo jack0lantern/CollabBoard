@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       if (!error) {
         return redirectResponse;
       }
-      console.error("[auth/callback] exchangeCodeForSession failed:", error?.message);
+      console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
     }
   }
 

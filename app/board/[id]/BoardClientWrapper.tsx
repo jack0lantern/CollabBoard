@@ -29,10 +29,7 @@ export function BoardClientWrapper({
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user && !cancelled) {
-          const meta = (session.user.user_metadata ?? {}) as Record<
-            string,
-            unknown
-          >;
+          const meta = session.user.user_metadata as Record<string, unknown>;
           const name =
             (meta.full_name as string | undefined) ??
             (meta.name as string | undefined) ??

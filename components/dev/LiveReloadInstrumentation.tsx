@@ -27,12 +27,13 @@ export function LiveReloadInstrumentation() {
     } else {
       console.log(
         `[LiveReload] 📄 Full page load at ${new Date().toISOString()}` +
-          (timeSinceLastReload ? ` (${timeSinceLastReload}ms since last)` : "")
+          (timeSinceLastReload != null ? ` (${String(timeSinceLastReload)}ms since last)` : "")
       );
     }
 
     // Webpack HMR API (used by Next.js) - module may not exist in all bundlers
-    const mod = typeof module !== "undefined" ? (module as NodeModule & { hot?: any }) : null;
+    type HotModule = { addStatusHandler: (cb: (status: string) => void) => void; addDisposeHandler: (cb: () => void) => void };
+    const mod = typeof module !== "undefined" ? (module as NodeJS.Module & { hot?: HotModule }) : null;
     const hot = mod?.hot;
     if (hot) {
       hot.addStatusHandler((status: string) => {

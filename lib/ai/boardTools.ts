@@ -23,7 +23,7 @@ export type CreateShapeType = "rect" | "circle";
 export function getNextZIndex(objects: Record<string, ObjectData>): number {
   const values = Object.values(objects).filter(
     (o): o is ObjectData =>
-      o != null && typeof o === "object" && "id" in o && "type" in o
+      typeof o === "object" && "id" in o && "type" in o
   );
   const max = Math.max(0, ...values.map((o) => o.zIndex ?? 0));
   return max + 1;
@@ -49,7 +49,7 @@ export function buildStickyNoteObject(
     width: 200,
     height: 150,
     color,
-    text: text ?? "New note",
+    text,
   };
 }
 
@@ -111,7 +111,7 @@ export function buildFrameObject(
     zIndex,
     width,
     height,
-    title: title ?? "",
+    title,
     frameColor: "#ffffff",
     strokeColor: "#e5e7eb",
     strokeWidth: 1,
@@ -131,10 +131,12 @@ export function buildConnectorObject(
 ): ObjectData | null {
   const fromObj = objects[fromId];
   const toObj = objects[toId];
-  if (!fromObj || !toObj) return null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- objects[id] can be undefined
+  if (fromObj == null || toObj == null) return null;
 
   const result = findConnectorEndpoints(fromObj, toObj);
-  if (!result) return null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- findConnectorEndpoints can return null
+  if (result == null) return null;
 
   const arrowStart = style === "both";
   const arrowEnd = style === "arrow" || style === "both";

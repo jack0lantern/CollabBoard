@@ -1,7 +1,8 @@
 import { createSupabaseClient } from "@/lib/supabase/client";
 import type { Board, ObjectData, ShareRole, LineConnection } from "@/types";
 
-function rowToBoard(row: {
+/** Database row shape for boards table */
+interface BoardRow {
   id: string;
   title: string;
   created_at: string;
@@ -9,15 +10,17 @@ function rowToBoard(row: {
   last_snapshot: Record<string, ObjectData> | null;
   is_public: boolean;
   shared_with: Record<string, ShareRole>;
-}): Board {
+}
+
+function rowToBoard(row: BoardRow): Board {
   return {
     id: row.id,
-    title: row.title ?? "",
-    created_at: row.created_at ?? "",
+    title: row.title,
+    created_at: row.created_at,
     owner_id: row.owner_id,
     last_snapshot: row.last_snapshot,
-    is_public: row.is_public ?? false,
-    shared_with: row.shared_with ?? {},
+    is_public: row.is_public,
+    shared_with: row.shared_with,
   };
 }
 
@@ -56,7 +59,8 @@ function parseLineConnection(val: unknown): LineConnection | undefined {
   return { objectId, pointIndex };
 }
 
-function rowToObjectData(row: {
+/** Database row shape for board_objects table */
+interface ObjectRow {
   id: string;
   type: string;
   x: number;
@@ -84,7 +88,9 @@ function rowToObjectData(row: {
   line_end_connection?: unknown;
   title?: string;
   frame_color?: string;
-}): ObjectData {
+}
+
+function rowToObjectData(row: ObjectRow): ObjectData {
   return sanitizeObjectData({
     id: row.id,
     type: row.type as ObjectData["type"],
@@ -156,14 +162,14 @@ export async function getBoard(id: string): Promise<Board | null> {
   const supabase = createSupabaseClient();
   if (!supabase) return null;
 
-  const { data, error } = await supabase
+  const result = await supabase
     .from("boards")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error ?? !data) return null;
-  return rowToBoard(data);
+  if (result.error ?? !result.data) return null;
+  return rowToBoard(result.data as BoardRow);
 }
 
 export async function getBoardsByOwner(ownerId: string): Promise<Board[]> {
@@ -177,7 +183,7 @@ export async function getBoardsByOwner(ownerId: string): Promise<Board[]> {
     .order("created_at", { ascending: false });
 
   if (error) return [];
-  return (data ?? []).map(rowToBoard);
+  return (data as BoardRow[]).map(rowToBoard);
 }
 
 export async function createBoard(
@@ -187,7 +193,7 @@ export async function createBoard(
   const supabase = createSupabaseClient();
   if (!supabase) return null;
 
-  const { data, error } = await supabase
+  const result = await supabase
     .from("boards")
     .insert({
       title: title.trim() || "Untitled Board",
@@ -197,12 +203,12 @@ export async function createBoard(
     .select()
     .single();
 
-  if (error) {
-    console.error("[createBoard] Supabase error:", error.message, error.code, error.details);
+  if (result.error) {
+    console.error("[createBoard] Supabase error:", result.error.message, result.error.code, result.error.details);
     return null;
   }
-  if (!data) return null;
-  return rowToBoard(data);
+  if (!result.data) return null;
+  return rowToBoard(result.data as BoardRow);
 }
 
 export async function updateBoardTitle(
@@ -260,16 +266,16 @@ export function subscribeToBoardsByOwner(
         filter: `owner_id=eq.${ownerId}`,
       },
       () => {
-        getBoardsByOwner(ownerId).then(callback);
+        void getBoardsByOwner(ownerId).then(callback);
       }
     )
     .subscribe();
 
   // Initial fetch
-  getBoardsByOwner(ownerId).then(callback);
+  void getBoardsByOwner(ownerId).then(callback);
 
   return () => {
-    supabase.removeChannel(channel);
+    void supabase.removeChannel(channel);
   };
 }
 
@@ -364,7 +370,7 @@ export async function getBoardObjects(
   if (error) return {};
 
   const out: Record<string, ObjectData> = {};
-  for (const row of data ?? []) {
+  for (const row of data as ObjectRow[]) {
     out[row.id] = rowToObjectData(row);
   }
   return out;
@@ -428,32 +434,35 @@ export function onBoardObjectsChange(
         filter: `board_id=eq.${boardId}`,
       },
       (payload) => {
-        if (payload.eventType === "INSERT" && payload.new) {
-          const row = payload.new as Record<string, unknown>;
-          callbacks.onAdded(row.id as string, rowToObjectData(row as Parameters<typeof rowToObjectData>[0]));
-        } else if (payload.eventType === "UPDATE" && payload.new) {
-          const row = payload.new as Record<string, unknown>;
-          callbacks.onChanged(row.id as string, rowToObjectData(row as Parameters<typeof rowToObjectData>[0]));
-        } else if (payload.eventType === "DELETE" && payload.old) {
-          const row = payload.old as Record<string, unknown>;
-          callbacks.onRemoved(row.id as string);
+        const eventType = payload.eventType as string;
+        if (eventType === "INSERT") {
+          const row = payload.new as ObjectRow;
+          callbacks.onAdded(row.id, rowToObjectData(row));
+        } else if (eventType === "UPDATE") {
+          const row = payload.new as ObjectRow;
+          callbacks.onChanged(row.id, rowToObjectData(row));
+        } else {
+          // eventType === "DELETE"
+          const row = payload.old as ObjectRow;
+          callbacks.onRemoved(row.id);
         }
       }
     )
     .subscribe((status, err) => {
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      const s = status as string;
+      if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
         console.error("[onBoardObjectsChange] Subscription failed:", status, err);
       }
     });
 
   // Initial fetch
-  getBoardObjects(boardId).then((objs) => {
+  void getBoardObjects(boardId).then((objs) => {
     for (const [id, data] of Object.entries(objs)) {
       callbacks.onAdded(id, data);
     }
   });
 
   return () => {
-    supabase.removeChannel(channel);
+    void supabase.removeChannel(channel);
   };
 }

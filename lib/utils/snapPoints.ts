@@ -154,15 +154,15 @@ export function getNodeSnapPoints(
   node: Konva.Node,
   type: ShapeType
 ): { x: number; y: number }[] {
-  const rot = node.rotation?.() ?? 0;
-  const scaleX = node.scaleX?.() ?? 1;
-  const scaleY = node.scaleY?.() ?? 1;
+  const rot = node.rotation();
+  const scaleX = node.scaleX();
+  const scaleY = node.scaleY();
 
   if (type === "rect") {
     const ox = node.x();
     const oy = node.y();
-    const w = (node as Konva.Rect).width?.() ?? DEFAULT_RECT.width;
-    const h = (node as Konva.Rect).height?.() ?? DEFAULT_RECT.height;
+    const w = (node as Konva.Rect).width();
+    const h = (node as Konva.Rect).height();
     const effW = w * scaleX;
     const effH = h * scaleY;
     const corners = [
@@ -186,8 +186,8 @@ export function getNodeSnapPoints(
   if (type === "circle") {
     const ox = node.x();
     const oy = node.y();
-    const rx = (node as Konva.Ellipse).radiusX?.() ?? DEFAULT_CIRCLE;
-    const ry = (node as Konva.Ellipse).radiusY?.() ?? DEFAULT_CIRCLE;
+    const rx = (node as Konva.Ellipse).radiusX();
+    const ry = (node as Konva.Ellipse).radiusY();
     const effRx = rx * scaleX;
     const effRy = ry * scaleY;
     const points = [
@@ -207,9 +207,9 @@ export function getNodeSnapPoints(
     const group = node as Konva.Group;
     const ox = group.x();
     const oy = group.y();
-    const rect = group.findOne?.("Rect") as Konva.Rect | undefined;
-    const w = rect?.width?.() ?? DEFAULT_STICKY.width;
-    const h = rect?.height?.() ?? DEFAULT_STICKY.height;
+    const rect = group.findOne("Rect");
+    const w = rect?.width() ?? DEFAULT_STICKY.width;
+    const h = rect?.height() ?? DEFAULT_STICKY.height;
     const effW = w * scaleX;
     const effH = h * scaleY;
     const corners = [
@@ -234,9 +234,9 @@ export function getNodeSnapPoints(
     const group = node as Konva.Group;
     const ox = group.x();
     const oy = group.y();
-    const rect = group.findOne?.("Rect") as Konva.Rect | undefined;
-    const w = (rect?.width?.() ?? DEFAULT_FRAME.width) * scaleX;
-    const h = (rect?.height?.() ?? DEFAULT_FRAME.height) * scaleY;
+    const rect = group.findOne("Rect");
+    const w = (rect?.width() ?? DEFAULT_FRAME.width) * scaleX;
+    const h = (rect?.height() ?? DEFAULT_FRAME.height) * scaleY;
     const corners = [
       { x: 0, y: 0 },
       { x: w, y: 0 },
@@ -259,9 +259,9 @@ export function getNodeSnapPoints(
     const group = node as Konva.Group;
     const ox = group.x();
     const oy = group.y();
-    const text = group.findOne?.("Text") as Konva.Text | undefined;
-    const w = (text?.width?.() ?? DEFAULT_TEXT.width) * scaleX;
-    const h = (text?.height?.() ?? DEFAULT_TEXT.height) * scaleY;
+    const text = group.findOne("Text");
+    const w = (text?.width() ?? DEFAULT_TEXT.width) * scaleX;
+    const h = (text?.height() ?? DEFAULT_TEXT.height) * scaleY;
     const corners = [
       { x: 0, y: 0 },
       { x: w, y: 0 },
@@ -280,25 +280,22 @@ export function getNodeSnapPoints(
     });
   }
 
-  if (type === "line") {
-    const group = node as Konva.Group;
-    const ox = group.x();
-    const oy = group.y();
-    // findOne returns Node; Line/Arrow have points() - assertion needed for type narrowing
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- findOne returns Node, not Line
-    const line = (group.findOne?.("Line") ?? group.findOne?.("Arrow")) as
-      | Konva.Line
-      | undefined;
-    const pts = line?.points?.() ?? [0, 0, 100, 100];
-    const p0 = rotatePoint(pts[0], pts[1], rot);
-    const p1 = rotatePoint(pts[2], pts[3], rot);
-    return [
-      { x: ox + p0.x, y: oy + p0.y },
-      { x: ox + p1.x, y: oy + p1.y },
-    ];
-  }
-
-  return [{ x: node.x(), y: node.y() }];
+  // type is "line" (all other ShapeTypes handled above)
+  const group = node as Konva.Group;
+  const ox = group.x();
+  const oy = group.y();
+  // findOne returns Node; Line/Arrow have points() - assertion needed for type narrowing
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- findOne returns Node, not Line
+  const line = (group.findOne("Line") ?? group.findOne("Arrow")) as
+    | Konva.Line
+    | undefined;
+  const pts = line?.points() ?? [0, 0, 100, 100];
+  const p0 = rotatePoint(pts[0], pts[1], rot);
+  const p1 = rotatePoint(pts[2], pts[3], rot);
+  return [
+    { x: ox + p0.x, y: oy + p0.y },
+    { x: ox + p1.x, y: oy + p1.y },
+  ];
 }
 
 /**
@@ -310,7 +307,8 @@ export function getSnapPointForConnection(
 ): { x: number; y: number } | null {
   const points = getObjectSnapPoints(obj);
   const p = points[pointIndex];
-  return p != null ? p : null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- points[pointIndex] can be undefined
+  return p ?? null;
 }
 
 /**

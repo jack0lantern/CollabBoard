@@ -16,7 +16,7 @@ export function createSupabaseClient(): SupabaseClient | null {
       // Reconnect when connection drops (e.g. after idle)
       heartbeatCallback: (status) => {
         if (status === "disconnected" || status === "timeout") {
-          client?.realtime?.connect?.();
+          client.realtime.connect();
         }
       },
     },

@@ -150,11 +150,11 @@ export function StickyNote({
 
     textarea.value = data.text ?? "";
     textarea.style.position = "fixed";
-    textarea.style.left = `${areaX}px`;
-    textarea.style.top = `${areaY}px`;
-    textarea.style.width = `${areaW}px`;
-    textarea.style.height = `${areaH}px`;
-    textarea.style.fontSize = `${data.fontSize ?? DEFAULT_FONT_SIZE}px`;
+    textarea.style.left = `${String(areaX)}px`;
+    textarea.style.top = `${String(areaY)}px`;
+    textarea.style.width = `${String(areaW)}px`;
+    textarea.style.height = `${String(areaH)}px`;
+    textarea.style.fontSize = `${String(data.fontSize ?? DEFAULT_FONT_SIZE)}px`;
     textarea.style.fontFamily = data.fontFamily ?? DEFAULT_FONT_FAMILY;
     textarea.style.fontWeight = data.fontWeight ?? "normal";
     textarea.style.fontStyle = data.fontStyle ?? "normal";
@@ -168,7 +168,7 @@ export function StickyNote({
     textarea.style.outline = "none";
     textarea.style.resize = "none";
     textarea.style.lineHeight = "1.2";
-    textarea.style.wordWrap = "break-word";
+    textarea.style.overflowWrap = "break-word";
 
     textarea.focus();
 
@@ -212,7 +212,20 @@ export function StickyNote({
       window.removeEventListener("click", handleOutsideClick);
       window.removeEventListener("touchstart", handleOutsideClick);
     };
-  }, [isEditing, data.id, data.text, updateObject, width, height]);
+  }, [
+    isEditing,
+    data.id,
+    data.text,
+    data.fontFamily,
+    data.fontSize,
+    data.fontStyle,
+    data.fontWeight,
+    data.textColor,
+    data.textDecoration,
+    updateObject,
+    width,
+    height,
+  ]);
 
   return (
     <>

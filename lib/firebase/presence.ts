@@ -31,7 +31,7 @@ export function updatePresenceCursor(
 ): void {
   const db = getRealtimeDb();
   if (!db) return;
-  update(ref(db, presencePath(boardId, userId)), {
+  void update(ref(db, presencePath(boardId, userId)), {
     cursor,
     lastSeen: Date.now(),
   });
@@ -66,5 +66,5 @@ export function setupOnDisconnectCleanup(
 ): void {
   const db = getRealtimeDb();
   if (!db) return;
-  onDisconnect(ref(db, presencePath(boardId, userId))).remove();
+  void onDisconnect(ref(db, presencePath(boardId, userId))).remove();
 }

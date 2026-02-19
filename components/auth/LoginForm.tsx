@@ -41,7 +41,7 @@ export function LoginForm() {
 
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError((err as Error)?.message ?? "Failed to sign in");
+      setError(err instanceof Error ? err.message : "Failed to sign in");
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export function LoginForm() {
         setError(authError.message);
       }
     } catch (err: unknown) {
-      setError((err as Error)?.message ?? "Failed to sign in with Google");
+      setError(err instanceof Error ? err.message : "Failed to sign in with Google");
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,9 @@ export function LoginForm() {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
             required
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
           />
@@ -107,7 +109,9 @@ export function LoginForm() {
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+            }}
             required
             className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
           />

@@ -30,7 +30,12 @@ function useDebouncedUpdate(
     [delay, flush]
   );
 
-  useEffect(() => () => flush(), [flush]);
+  useEffect(
+    () => () => {
+      flush();
+    },
+    [flush]
+  );
 
   return debouncedUpdate;
 }
@@ -119,7 +124,9 @@ export function ShapeToolbar({
     if (!onClose) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -173,11 +180,11 @@ export function ShapeToolbar({
           <div className="flex gap-0.5">
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 onUpdate({
                   fontWeight: object.fontWeight === "bold" ? "normal" : "bold",
-                })
-              }
+                });
+              }}
               className={`h-8 w-8 rounded px-1 text-sm font-bold ${
                 object.fontWeight === "bold"
                   ? "bg-gray-200 dark:bg-gray-600"
@@ -189,11 +196,11 @@ export function ShapeToolbar({
             </button>
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 onUpdate({
                   fontStyle: object.fontStyle === "italic" ? "normal" : "italic",
-                })
-              }
+                });
+              }}
               className={`h-8 w-8 rounded px-1 text-sm italic ${
                 object.fontStyle === "italic"
                   ? "bg-gray-200 dark:bg-gray-600"
@@ -205,12 +212,12 @@ export function ShapeToolbar({
             </button>
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 onUpdate({
                   textDecoration:
                     object.textDecoration === "underline" ? "none" : "underline",
-                })
-              }
+                });
+              }}
               className={`h-8 w-8 rounded px-1 text-sm underline ${
                 object.textDecoration === "underline"
                   ? "bg-gray-200 dark:bg-gray-600"
@@ -240,9 +247,9 @@ export function ShapeToolbar({
             <input
               type="color"
               value={object.textHighlightColor ?? "#fef08a"}
-              onChange={(e) =>
-                debouncedUpdate({ textHighlightColor: e.target.value })
-              }
+              onChange={(e) => {
+                debouncedUpdate({ textHighlightColor: e.target.value });
+              }}
               className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
               title="Highlight color"
             />
@@ -250,9 +257,9 @@ export function ShapeToolbar({
               object.textHighlightColor !== "" && (
                 <button
                   type="button"
-                  onClick={() =>
-                    onUpdate({ textHighlightColor: undefined })
-                  }
+                  onClick={() => {
+                    onUpdate({ textHighlightColor: undefined });
+                  }}
                   className="h-8 px-2 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
                   title="Remove highlight"
                 >
@@ -301,13 +308,13 @@ export function ShapeToolbar({
                       ? "#ffffff"
                       : "#10b981")
               }
-              onChange={(e) =>
+              onChange={(e) => {
                 debouncedUpdate(
                   object.type === "frame"
                     ? { frameColor: e.target.value }
                     : { color: e.target.value }
-                )
-              }
+                );
+              }}
               className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
               title="Fill color"
             />
@@ -327,7 +334,9 @@ export function ShapeToolbar({
             <input
               type="color"
               value={object.strokeColor ?? object.color ?? "#6b7280"}
-              onChange={(e) => debouncedUpdate({ strokeColor: e.target.value })}
+              onChange={(e) => {
+                debouncedUpdate({ strokeColor: e.target.value });
+              }}
               className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
               title="Border color"
             />
@@ -340,7 +349,7 @@ export function ShapeToolbar({
           >
             {STROKE_WIDTHS.map((w) => (
               <option key={w} value={w}>
-                {w === 0 ? "None" : `${w}px`}
+                {w === 0 ? "None" : `${String(w)}px`}
               </option>
             ))}
           </select>

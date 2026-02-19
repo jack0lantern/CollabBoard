@@ -22,8 +22,9 @@ function buildPresenceMap(channel: RealtimeChannel): Record<string, PresenceData
   const presenceMap: Record<string, PresenceData> = {};
   for (const [key, presences] of Object.entries(state)) {
     const p = presences[0];
-    if (p && typeof p === "object" && "lastSeen" in p) {
-      presenceMap[key] = p as PresenceData;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- presences[0] can be undefined
+    if (p != null && typeof p === "object" && "lastSeen" in p) {
+      presenceMap[key] = p;
     }
   }
   return presenceMap;
@@ -46,7 +47,7 @@ export function updatePresenceCursor(
   cursor: { x: number; y: number } | null
 ): void {
   if (!channelRef || channelRef.boardId !== boardId || channelRef.userId !== userId) return;
-  channelRef.channel.track({
+  void channelRef.channel.track({
     cursor,
     displayName: channelRef.displayName,
     avatarUrl: channelRef.avatarUrl,
@@ -59,8 +60,8 @@ export function removePresence(
   userId: string
 ): Promise<void> {
   if (channelRef && channelRef.boardId === boardId && channelRef.userId === userId) {
-    channelRef.channel.untrack();
-    channelRef.channel.unsubscribe();
+    void channelRef.channel.untrack();
+    void channelRef.channel.unsubscribe();
     channelRef = null;
   }
   return Promise.resolve();
@@ -90,7 +91,7 @@ export function onPresenceChange(
     .on("presence", { event: "join" }, notify)
     .on("presence", { event: "leave" }, notify)
     .subscribe((status) => {
-      if (status === "SUBSCRIBED") {
+      if ((status as string) === "SUBSCRIBED") {
         channelRef = {
           channel,
           boardId,
@@ -98,7 +99,7 @@ export function onPresenceChange(
           displayName: initialPresence.displayName,
           avatarUrl: initialPresence.avatarUrl,
         };
-        channel.track(initialPresence);
+        void channel.track(initialPresence);
       }
     });
 
@@ -106,7 +107,7 @@ export function onPresenceChange(
     if (channelRef?.channel === channel) {
       channelRef = null;
     }
-    supabase.removeChannel(channel);
+    void supabase.removeChannel(channel);
   };
 }
 

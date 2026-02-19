@@ -5,6 +5,8 @@ export function debounce<T extends (...args: unknown[]) => void>(
   let timeoutId: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
+    timeoutId = setTimeout(() => {
+      fn(...args);
+    }, delay);
   };
 }

@@ -31,7 +31,9 @@ export function GridBackground() {
   useEffect(() => {
     const dataUrl = createDotPatternDataUrl();
     const img = new Image();
-    img.onload = () => setPatternImage(img);
+    img.onload = () => {
+      setPatternImage(img);
+    };
     img.src = dataUrl;
   }, []);
 

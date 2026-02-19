@@ -44,7 +44,9 @@ export default function DashboardPage() {
       setUser(session.user);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function DashboardPage() {
         setError("Failed to create board");
       }
     } catch (err) {
-      setError((err as Error)?.message ?? "Network error");
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setCreating(false);
     }

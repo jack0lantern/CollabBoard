@@ -65,7 +65,7 @@ export function BoardHeader({
         target.isContentEditable;
       if (isInput) return;
 
-      if ((e.metaKey ?? e.ctrlKey) && e.key === "z") {
+      if ((e.metaKey || e.ctrlKey) && e.key === "z") {
         e.preventDefault();
         if (e.shiftKey) {
           redo();
