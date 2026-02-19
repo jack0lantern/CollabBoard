@@ -297,6 +297,29 @@ export function ShapeToolbar({
               </option>
             ))}
           </select>
+          {object.type === "line" && (
+            <>
+              <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+              <button
+                type="button"
+                onClick={() => {
+                  const hasArrow = object.arrowStart ?? object.arrowEnd;
+                  onUpdate({
+                    arrowStart: undefined,
+                    arrowEnd: hasArrow ? undefined : true,
+                  });
+                }}
+                className={`h-8 px-2 rounded text-sm ${
+                  (object.arrowStart ?? object.arrowEnd) ?? false
+                    ? "bg-gray-200 dark:bg-gray-600"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+                title="Toggle arrow"
+              >
+                →
+              </button>
+            </>
+          )}
         </>
       )}
     </div>

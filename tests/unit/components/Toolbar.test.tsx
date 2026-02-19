@@ -45,6 +45,25 @@ describe("Toolbar", () => {
     expect(screen.getByRole("button", { name: "Add rectangle" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add circle" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add line" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add arrow" })).toBeInTheDocument();
+  });
+
+  it("adds arrow with arrowEnd when Add arrow is clicked", () => {
+    render(<Toolbar />);
+
+    const shapesButton = screen.getByRole("button", { name: "Add shapes" });
+    fireEvent.click(shapesButton);
+
+    const arrowButton = screen.getByRole("button", { name: "Add arrow" });
+    fireEvent.click(arrowButton);
+
+    expect(mockAddObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "line",
+        arrowEnd: true,
+        points: [0, 0, 100, 80],
+      })
+    );
   });
 
   it("collapses shape options when clicking the shapes icon again", () => {

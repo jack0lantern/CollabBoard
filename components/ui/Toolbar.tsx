@@ -101,6 +101,23 @@ function LineIcon() {
   );
 }
 
+function ArrowIcon() {
+  return (
+    <svg
+      className={iconClass}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 19L17 7" />
+      <polygon points="19,5 16,6 18,8" fill="currentColor" />
+    </svg>
+  );
+}
+
 function FrameIcon() {
   return (
     <svg
@@ -215,6 +232,20 @@ export function Toolbar() {
     setShapesExpanded(false);
   }, [addObject, objects]);
 
+  const addArrow = useCallback(() => {
+    addObject({
+      id: crypto.randomUUID(),
+      type: "line",
+      x: 150,
+      y: 150,
+      zIndex: getNextZIndex(objects),
+      points: [0, 0, 100, 80],
+      color: COLORS[3],
+      arrowEnd: true,
+    });
+    setShapesExpanded(false);
+  }, [addObject, objects]);
+
   const addFrame = useCallback(() => {
     addObject({
       id: crypto.randomUUID(),
@@ -292,6 +323,13 @@ export function Toolbar() {
                 className="p-2 rounded-md bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 text-red-900 dark:text-red-100 transition-colors"
               >
                 <LineIcon />
+              </button>
+              <button
+                onClick={addArrow}
+                aria-label="Add arrow"
+                className="p-2 rounded-md bg-orange-200 dark:bg-orange-800 hover:bg-orange-300 dark:hover:bg-orange-700 text-orange-900 dark:text-orange-100 transition-colors"
+              >
+                <ArrowIcon />
               </button>
             </div>,
             document.body
