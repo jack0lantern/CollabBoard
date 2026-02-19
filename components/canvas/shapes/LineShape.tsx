@@ -155,11 +155,13 @@ export function LineShape({
   pointsRef.current = displayPoints;
 
   useLayoutEffect(() => {
-    if (groupRef.current != null) {
+    if (isSelected && groupRef.current != null) {
       registerShapeRef?.(data.id, groupRef.current);
+    } else {
+      registerShapeRef?.(data.id, null);
     }
     return () => registerShapeRef?.(data.id, null);
-  }, [data.id, registerShapeRef]);
+  }, [isSelected, data.id, registerShapeRef]);
 
   const prevPosRef = useRef({ x: data.x, y: data.y });
   const prevPointsRef = useRef(data.points ?? [0, 0, 100, 100]);
@@ -282,14 +284,16 @@ export function LineShape({
     onMouseLeave: handleLineMouseLeave,
   };
 
-  const knob0LocalX = displayPoints[0];
-  const knob0LocalY = displayPoints[1];
-  const knob1LocalX = displayPoints[2];
-  const knob1LocalY = displayPoints[3];
+  const r0 = rotatePoint(displayPoints[0], displayPoints[1], displayRotation);
+  const r1 = rotatePoint(displayPoints[2], displayPoints[3], displayRotation);
+  const knob0X = displayX + r0.x;
+  const knob0Y = displayY + r0.y;
+  const knob1X = displayX + r1.x;
+  const knob1Y = displayY + r1.y;
 
   return (
     <Fragment>
-      {/* Line Group - draggable for whole-line move; knobs inside so they move with frame drag */}
+      {/* Line Group - draggable for whole-line move, contains only the line */}
       <Group
         key={`${data.id}-line`}
         ref={groupRef}
@@ -361,13 +365,15 @@ export function LineShape({
             dash={isSelected ? [8, 4] : undefined}
           />
         )}
+      </Group>
 
-        {showKnobs && (
-          <>
-            <Circle
-              key={`${data.id}-knob0`}
-              x={knob0LocalX}
-              y={knob0LocalY}
+      {/* Knobs as siblings - dragging them does not affect the Group */}
+      {showKnobs && (
+        <>
+          <Circle
+            key={`${data.id}-knob0`}
+            x={knob0X}
+            y={knob0Y}
               radius={KNOB_RADIUS}
               fill={KNOB_FILL}
               stroke={KNOB_STROKE}
@@ -386,8 +392,8 @@ export function LineShape({
             />
             <Circle
               key={`${data.id}-knob1`}
-              x={knob1LocalX}
-              y={knob1LocalY}
+              x={knob1X}
+              y={knob1Y}
               radius={KNOB_RADIUS}
               fill={KNOB_FILL}
               stroke={KNOB_STROKE}
@@ -406,7 +412,6 @@ export function LineShape({
             />
           </>
         )}
-      </Group>
     </Fragment>
   );
 }
