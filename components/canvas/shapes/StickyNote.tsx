@@ -63,12 +63,12 @@ export function StickyNote({
     if (localPos != null) {
       const prev = prevPosRef.current;
       if (data.x !== prev.x || data.y !== prev.y) {
-        setLocalPos(null);
+        queueMicrotask(() => setLocalPos(null));
       }
     }
     prevPosRef.current = { x: data.x, y: data.y };
     if (!isDragging && localPos == null) {
-      setPos({ x: data.x, y: data.y });
+      queueMicrotask(() => setPos({ x: data.x, y: data.y }));
     }
   }, [data.x, data.y, isDragging, localPos]);
 
@@ -78,7 +78,7 @@ export function StickyNote({
     if (localSize != null) {
       const prev = prevDataRef.current;
       if (data.width !== prev.width || data.height !== prev.height) {
-        setLocalSize(null);
+        queueMicrotask(() => setLocalSize(null));
       }
     }
     prevDataRef.current = { width: data.width, height: data.height };
@@ -90,7 +90,7 @@ export function StickyNote({
     if (localRotation != null) {
       const prev = prevRotationRef.current;
       if (data.rotation !== prev) {
-        setLocalRotation(null);
+        queueMicrotask(() => setLocalRotation(null));
       }
     }
     prevRotationRef.current = data.rotation ?? 0;

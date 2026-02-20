@@ -30,7 +30,7 @@ export function BoardHeader({
   const isOwner = board != null && user != null && board.owner_id === user.id;
 
   useEffect(() => {
-    setTitleInput(board?.title ?? "");
+    queueMicrotask(() => setTitleInput(board?.title ?? ""));
   }, [board?.title]);
 
   const handleSaveTitle = useCallback(async () => {

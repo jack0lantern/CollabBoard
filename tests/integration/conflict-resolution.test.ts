@@ -11,8 +11,7 @@ describe("Conflict Resolution - Last-Write-Wins", () => {
   it("last update wins when same property edited concurrently", () => {
     const obj = { id: "1", type: "sticky", x: 0, y: 0, text: "A" };
 
-    // Simulate User A and User B both updating text
-    const updateA = { ...obj, text: "User A edit" };
+    // Simulate User A and User B both updating text (User A edit would be overwritten)
     const updateB = { ...obj, text: "User B edit" };
 
     // LWW: whichever arrives last wins

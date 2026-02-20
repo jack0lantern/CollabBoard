@@ -11,6 +11,7 @@ vi.mock("@/hooks/useBoardMutations", () => ({
 const fakeKonvaNode = { _konva: true };
 
 vi.mock("react-konva", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- vi.mock factory runs before imports
   const React = require("react");
   const Group = React.forwardRef(
     (props: Record<string, unknown> & { children?: unknown }, ref: React.Ref<unknown>) => {
@@ -31,6 +32,7 @@ vi.mock("react-konva", () => {
       return React.createElement("div", { "data-testid": "group" }, props.children);
     }
   );
+  Group.displayName = "Group";
   return {
     Group,
     Line: () => React.createElement("div", { "data-testid": "line" }),

@@ -10,6 +10,7 @@ vi.mock("@/hooks/useBoardMutations", () => ({
 
 // Capture props passed to Konva primitives - must be in vi.mock factory (hoisted)
 vi.mock("react-konva", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- vi.mock factory runs before imports
   const React = require("react");
   const captured = {
     Rect: null as Record<string, unknown> | null,
@@ -27,10 +28,16 @@ vi.mock("react-konva", () => {
       captured.Ellipse = props;
       return React.createElement("div", { "data-testid": "ellipse" });
     },
-    Group: (props: Record<string, unknown> & { children?: unknown }) => {
-      captured.Group = props;
-      return React.createElement("div", { "data-testid": "group" }, props.children);
-    },
+    Group: (() => {
+      const Group = React.forwardRef<unknown, Record<string, unknown> & { children?: unknown }>(
+        (props, _ref) => {
+          captured.Group = props;
+          return React.createElement("div", { "data-testid": "group" }, props.children);
+        }
+      );
+      Group.displayName = "Group";
+      return Group;
+    })(),
     Line: () => React.createElement("div", { "data-testid": "line" }),
     Arrow: () => React.createElement("div", { "data-testid": "arrow" }),
     Circle: () => React.createElement("div", { "data-testid": "circle" }),
@@ -82,7 +89,7 @@ describe("shape rotation retention (group selection)", () => {
     c.Group = null;
   });
 
-  it("RectShape passes rotation to Rect when data has rotation (e.g. after group rotate)", () => {
+  it("RectShape passes rotation to Group when data has rotation (e.g. after group rotate)", () => {
     render(
       <RectShape
         data={{ ...baseRectData, rotation: 45 }}
@@ -91,10 +98,10 @@ describe("shape rotation retention (group selection)", () => {
         isMultiSelect={false}
       />
     );
-    expect(getCaptured().Rect?.rotation).toBe(45);
+    expect(getCaptured().Group?.rotation).toBe(45);
   });
 
-  it("CircleShape passes rotation to Ellipse when data has rotation (e.g. after group rotate)", () => {
+  it("CircleShape passes rotation to Group when data has rotation (e.g. after group rotate)", () => {
     render(
       <CircleShape
         data={{ ...baseCircleData, rotation: -30 }}
@@ -103,7 +110,7 @@ describe("shape rotation retention (group selection)", () => {
         isMultiSelect={false}
       />
     );
-    expect(getCaptured().Ellipse?.rotation).toBe(-30);
+    expect(getCaptured().Group?.rotation).toBe(-30);
   });
 
   it("LineShape passes rotation to Group when data has rotation (e.g. after group rotate)", () => {
@@ -127,6 +134,6 @@ describe("shape rotation retention (group selection)", () => {
         isMultiSelect={false}
       />
     );
-    expect(getCaptured().Rect?.rotation).toBe(0);
+    expect(getCaptured().Group?.rotation).toBe(0);
   });
 });

@@ -136,7 +136,7 @@ export function ShapeToolbar({
   }, [onClose]);
 
   useEffect(() => {
-    setFontSizeInput(null);
+    queueMicrotask(() => setFontSizeInput(null));
   }, [object.id]);
 
   const showFontControls = hasText(object.type);

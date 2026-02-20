@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { BoardHeader } from "@/components/ui/BoardHeader";
 import { ViewportProvider } from "@/components/providers/ViewportProvider";
@@ -36,19 +36,17 @@ const BoardCanvas = dynamic(
   { ssr: false }
 );
 
-export default function BoardPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const { id } = params;
+export default function BoardPage() {
+  const params = useParams();
+  const id = typeof params.id === "string" ? params.id : params.id?.[0];
   const router = useRouter();
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
 
   useEffect(() => {
+    if (!id) return;
     const supabase = createSupabaseClient();
     if (!supabase) {
-      setBoard(null);
+      queueMicrotask(() => setBoard(null));
       return;
     }
 
@@ -61,7 +59,7 @@ export default function BoardPage({
     });
   }, [id, router]);
 
-  if (board === undefined) {
+  if (!id || board === undefined) {
     return (
       <div className="h-screen flex items-center justify-center">
         <p className="text-gray-500 animate-pulse">Loading board...</p>

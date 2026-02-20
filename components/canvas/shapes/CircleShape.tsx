@@ -66,12 +66,12 @@ export function CircleShape({
     if (localPos != null) {
       const prev = prevPosRef.current;
       if (data.x !== prev.x || data.y !== prev.y) {
-        setLocalPos(null);
+        queueMicrotask(() => setLocalPos(null));
       }
     }
     prevPosRef.current = { x: data.x, y: data.y };
     if (!isDragging && localPos == null) {
-      setPos({ x: data.x, y: data.y });
+      queueMicrotask(() => setPos({ x: data.x, y: data.y }));
     }
   }, [data.x, data.y, isDragging, localPos]);
 
@@ -86,7 +86,7 @@ export function CircleShape({
       const currX = data.radiusX ?? data.radius ?? DEFAULT_RADIUS;
       const currY = data.radiusY ?? data.radius ?? DEFAULT_RADIUS;
       if (currX !== prev.radiusX || currY !== prev.radiusY) {
-        setLocalSize(null);
+        queueMicrotask(() => setLocalSize(null));
       }
     }
     prevDataRef.current = {

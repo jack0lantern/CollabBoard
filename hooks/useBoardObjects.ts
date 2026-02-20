@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useState,
   useCallback,
   useRef,
@@ -113,7 +114,9 @@ export function useBoardObjects() {
   const undoStackRef = useRef<Record<string, ObjectData>[]>([]);
   const redoStackRef = useRef<Record<string, ObjectData>[]>([]);
   const objectsRef = useRef(objects);
-  objectsRef.current = objects;
+  useLayoutEffect(() => {
+    objectsRef.current = objects;
+  });
 
   const pushUndo = useCallback(() => {
     const snapshot = objectsRef.current;

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 /**
  * Board Operations Tests
@@ -6,9 +6,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * These tests validate the mutation logic used by RTDB board operations.
  */
 
+type BoardObject = { id: string; type: string; x: number; y: number; [key: string]: unknown };
+
 describe("Board Operations - Delete", () => {
   it("removes object from storage by id", () => {
-    const objects = new Map<string, any>([
+    const objects = new Map<string, BoardObject>([
       ["obj-1", { id: "obj-1", type: "sticky", x: 0, y: 0 }],
       ["obj-2", { id: "obj-2", type: "rect", x: 100, y: 100 }],
     ]);
@@ -46,7 +48,7 @@ describe("Board Operations - Duplicate", () => {
 
 describe("Board Operations - Copy/Paste", () => {
   it("preserves object structure when copying", () => {
-    const clipboard: any[] = [];
+    const clipboard: BoardObject[] = [];
     const obj = {
       id: "obj-1",
       type: "circle",

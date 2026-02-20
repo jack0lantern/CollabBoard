@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -e
 
-# Run next lint - same ESLint standards as next build, faster feedback
+# Run ESLint (next lint removed in Next.js 16)
 npm run lint
 
 # Run detect-secrets (requires: pip install -r requirements-dev.txt in venv)

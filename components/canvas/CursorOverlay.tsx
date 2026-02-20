@@ -24,13 +24,12 @@ function getCursorColor(userId: string): string {
 }
 
 export function CursorOverlay({
-  stageRef,
+  stage,
   others,
 }: {
-  stageRef: React.RefObject<Konva.Stage | null>;
+  stage: Konva.Stage | null;
   others: OtherUser[];
 }) {
-  const stage = stageRef.current;
   if (!stage) return null;
 
   return (

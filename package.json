@@ -8,7 +8,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test"
@@ -25,10 +25,10 @@
     "firebase": "^12.9.0",
     "firebase-functions": "^7.0.5",
     "konva": "^9.3.0",
-    "next": "^14.2.35",
+    "next": "^16.1.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-konva": "^18.2.10",
+    "react-konva": "19.0.10",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -40,8 +40,8 @@
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^4.2.0",
     "dotenv": "^17.3.1",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.18",
+    "eslint": "^9.16.0",
+    "eslint-config-next": "16.1.6",
     "husky": "^9.0.0",
     "jsdom": "^24.0.0",
     "postcss": "^8",

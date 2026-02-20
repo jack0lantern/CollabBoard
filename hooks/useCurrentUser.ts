@@ -39,7 +39,7 @@ export function useCurrentUser(): AuthUser | null {
   useEffect(() => {
     const supabase = createSupabaseClient();
     if (!supabase) {
-      setUser(null);
+      queueMicrotask(() => setUser(null));
       return;
     }
 

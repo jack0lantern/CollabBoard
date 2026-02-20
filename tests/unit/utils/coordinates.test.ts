@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { screenToBoard, boardToScreen } from "@/lib/utils/coordinates";
 
+interface MockStage {
+  getAbsoluteTransform: () => {
+    copy: () => { invert: () => { point: (p: { x: number; y: number }) => { x: number; y: number } } };
+  };
+}
+
 function createMockStage(
   inversePoint: (p: { x: number; y: number }) => { x: number; y: number }
-) {
+): MockStage {
   const inverted = { point: inversePoint };
   const transform = {
     copy: () => ({
@@ -12,7 +18,7 @@ function createMockStage(
   };
   return {
     getAbsoluteTransform: () => transform,
-  } as any;
+  };
 }
 
 describe("screenToBoard", () => {
@@ -35,10 +41,13 @@ describe("screenToBoard", () => {
 describe("boardToScreen", () => {
   it("converts board to screen coordinates", () => {
     const stage = createMockStage((p) => ({ x: p.x, y: p.y }));
-    (stage as any).getAbsoluteTransform = () => ({
+    const stageWithPoint = stage as MockStage & {
+      getAbsoluteTransform: () => { point: (p: { x: number; y: number }) => { x: number; y: number } };
+    };
+    stageWithPoint.getAbsoluteTransform = () => ({
       point: (p: { x: number; y: number }) => ({ x: p.x, y: p.y }),
     });
-    const result = boardToScreen(stage, 100, 200);
+    const result = boardToScreen(stageWithPoint, 100, 200);
     expect(result).toEqual({ x: 100, y: 200 });
   });
 });

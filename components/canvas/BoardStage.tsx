@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
@@ -37,7 +37,8 @@ import { getNodeSnapPoints } from "@/lib/utils/snapPoints";
 import { ShapeToolbar } from "./ShapeToolbar";
 
 export function BoardStage({ boardId: _boardId }: { boardId: string }) {
-  const stageRef = useRef<Konva.Stage>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
+  const [stage, setStage] = useState<Konva.Stage | null>(null);
   const panningRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [lastDragEnd, setLastDragEnd] = useState(0);
@@ -65,7 +66,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     currentY: number;
   } | null>(null);
   const selectionBoxRef = useRef(selectionBox);
-  selectionBoxRef.current = selectionBox;
+  useLayoutEffect(() => {
+    selectionBoxRef.current = selectionBox;
+  });
 
   const shapeRefsRef = useRef<Map<string, Konva.Node>>(new Map());
   const [refsVersion, setRefsVersion] = useState(0);
@@ -119,7 +122,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
       "y" in obj
   );
   const objectList = rawList;
-  objectListRef.current = objectList;
+  useLayoutEffect(() => {
+    objectListRef.current = objectList;
+  });
   const sortedObjects = [...objectList].sort((a, b) => {
     const za = a.type === "line" ? getLineEffectiveZIndex(a, objectList) : (a.zIndex ?? 0);
     const zb = b.type === "line" ? getLineEffectiveZIndex(b, objectList) : (b.zIndex ?? 0);
@@ -647,7 +652,10 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
             data-first-object-y={sortedObjects[0]?.y ?? ""}
           >
             <Stage
-              ref={stageRef}
+              ref={(node) => {
+                stageRef.current = node;
+                setStage(node);
+              }}
               width={dimensions.width}
               height={dimensions.height}
               scaleX={scale}
@@ -710,7 +718,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                 )}
               </Layer>
               <Layer listening={false}>
-                <CursorOverlay stageRef={stageRef} others={others} />
+                <CursorOverlay stage={stage} others={others} />
               </Layer>
             </Stage>
             {selectedSingleObject != null &&

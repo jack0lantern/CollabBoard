@@ -73,12 +73,12 @@ export function FrameShape({
     if (localPos != null) {
       const prev = prevPosRef.current;
       if (data.x !== prev.x || data.y !== prev.y) {
-        setLocalPos(null);
+        queueMicrotask(() => setLocalPos(null));
       }
     }
     prevPosRef.current = { x: data.x, y: data.y };
     if (!isDragging && localPos == null) {
-      setPos({ x: data.x, y: data.y });
+      queueMicrotask(() => setPos({ x: data.x, y: data.y }));
     }
   }, [data.x, data.y, isDragging, localPos]);
 
@@ -88,7 +88,7 @@ export function FrameShape({
     if (localSize != null) {
       const prev = prevDataRef.current;
       if (data.width !== prev.width || data.height !== prev.height) {
-        setLocalSize(null);
+        queueMicrotask(() => setLocalSize(null));
       }
     }
     prevDataRef.current = { width: data.width, height: data.height };

@@ -9,7 +9,6 @@ import {
   setupOnDisconnectCleanup,
 } from "@/lib/firebase/presence";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
-import type { PresenceData } from "@/types/presence";
 
 const STALE_THRESHOLD_MS = 30000;
 const CURSOR_DEBOUNCE_MS = 50;

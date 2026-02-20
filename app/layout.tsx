@@ -15,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased font-sans">
+      <body className="antialiased font-sans" suppressHydrationWarning>
         {/* SVG filter for hand-drawn / crayon wobble effect */}
         <svg
           className="absolute w-0 h-0 overflow-hidden pointer-events-none"

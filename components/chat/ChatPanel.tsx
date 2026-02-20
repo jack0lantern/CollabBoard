@@ -7,6 +7,21 @@ import { useViewport } from "@/components/providers/ViewportProvider";
 import { getDefaultObjectPosition } from "@/lib/ai/boardTools";
 import { useRef, useEffect, useState } from "react";
 
+const USER_FRIENDLY_ERROR = "Something went wrong. Please try again.";
+
+function getDisplayErrorMessage(error: { message?: string }): string {
+  const msg = error?.message ?? USER_FRIENDLY_ERROR;
+  // Stack traces contain "at " or "at Object." - don't show those to users
+  if (/\n\s+at\s/.test(msg) || msg.includes("at Object.")) {
+    return USER_FRIENDLY_ERROR;
+  }
+  // Very long messages are likely full error dumps
+  if (msg.length > 200) {
+    return USER_FRIENDLY_ERROR;
+  }
+  return msg;
+}
+
 const SUGGESTIONS = [
   "Create a SWOT analysis",
   "Add sticky notes for brainstorming",
@@ -187,7 +202,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
               color: "var(--crayon-red)",
             }}
           >
-            <span>{error.message}</span>
+            <span>{getDisplayErrorMessage(error)}</span>
             <button
               type="button"
               onClick={() => clearError()}
