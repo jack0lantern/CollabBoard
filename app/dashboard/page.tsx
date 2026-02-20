@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase/client";
@@ -8,7 +8,6 @@ import {
   createBoard,
   subscribeToBoardsByOwner,
 } from "@/lib/supabase/boards";
-import { UserBadge } from "@/components/ui/UserBadge";
 import type { Board } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
@@ -21,6 +20,16 @@ function getDisplayName(user: User): string {
     meta.name ??
     ([firstName, lastName].filter(Boolean).join(" ") || user.email) ??
     "Account"
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M6.168 18.849A4 4 0 0 1 10 16h4a4 4 0 0 1 3.834 2.855" />
+    </svg>
   );
 }
 
@@ -39,7 +48,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!showUserDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userDropdownRef.current != null && !userDropdownRef.current.contains(e.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showUserDropdown]);
 
   useEffect(() => {
     const supabase = createSupabaseClient();
@@ -152,21 +174,57 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-4">
             {user != null && (
-              <>
-                <UserBadge
-                  user={{
-                    displayName: getDisplayName(user),
-                    email: user.email ?? null,
-                  }}
-                />
+              <div ref={userDropdownRef} className="relative">
                 <button
-                  onClick={() => { void handleSignOut(); }}
-                  className="text-sm font-bold underline px-2"
-                  style={{ color: "var(--crayon-red)" }}
+                  onClick={() => setShowUserDropdown((v) => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all"
+                  aria-label="Account"
+                  aria-expanded={showUserDropdown}
+                  style={{
+                    border: "2px solid var(--crayon-orange)",
+                    boxShadow: "2px 2px 0 var(--crayon-orange)",
+                    color: "var(--crayon-orange)",
+                  }}
                 >
-                  Sign out
+                  <ProfileIcon />
+                  <span className="text-sm font-bold truncate max-w-[140px]">
+                    {getDisplayName(user)}
+                  </span>
                 </button>
-              </>
+                {showUserDropdown && (
+                  <div
+                    className="absolute right-0 top-full mt-1 z-50 min-w-[220px] rounded-xl p-3"
+                    style={{
+                      background: "white",
+                      border: "3px solid #1a1a2e",
+                      boxShadow: "4px 4px 0 #1a1a2e",
+                    }}
+                  >
+                    <div className="font-bold text-sm mb-2" style={{ color: "var(--crayon-purple)" }}>
+                      {getDisplayName(user)}
+                    </div>
+                    {user.email != null && (
+                      <div
+                        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg mb-3"
+                        style={{
+                          background: "#f0f5ff",
+                          border: "2px solid var(--crayon-blue)",
+                          color: "var(--crayon-blue)",
+                        }}
+                      >
+                        {user.email}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => { void handleSignOut(); }}
+                      className="text-sm font-bold underline"
+                      style={{ color: "var(--crayon-red)" }}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

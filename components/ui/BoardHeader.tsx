@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
 import { ShareModal } from "./ShareModal";
 import { SettingsModal } from "./SettingsModal";
 import { ProfileModal } from "./ProfileModal";
-import { UserBadge } from "./UserBadge";
 import { updateBoardTitle } from "@/lib/supabase/boards";
 import type { Board } from "@/types";
 
@@ -25,8 +24,21 @@ export function BoardHeader({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(board?.title ?? "");
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showUserDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userDropdownRef.current != null && !userDropdownRef.current.contains(e.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showUserDropdown]);
 
   const isOwner = board != null && user != null && board.owner_id === user.id;
 
@@ -163,7 +175,58 @@ export function BoardHeader({
           )}
 
           {user != null ? (
-            <UserBadge user={user} />
+            <div ref={userDropdownRef} className="relative">
+              <button
+                onClick={() => setShowUserDropdown((v) => !v)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-all"
+                aria-label="Account"
+                aria-expanded={showUserDropdown}
+                style={{ border: "2px solid var(--crayon-orange)", boxShadow: "2px 2px 0 var(--crayon-orange)", color: "var(--crayon-orange)" }}
+              >
+                <ProfileIcon />
+                <span className="text-sm font-bold truncate max-w-[120px]">
+                  {user.displayName ?? user.email ?? "Account"}
+                </span>
+              </button>
+              {showUserDropdown && (
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl p-3"
+                  style={{
+                    background: "white",
+                    border: "3px solid #1a1a2e",
+                    boxShadow: "4px 4px 0 #1a1a2e",
+                  }}
+                >
+                  <div className="font-bold text-sm mb-2" style={{ color: "var(--crayon-purple)" }}>
+                    {user.displayName ?? user.email ?? "Account"}
+                  </div>
+                  {user.email != null && (
+                    <div
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg mb-2"
+                      style={{ background: "#f0f5ff", border: "2px solid var(--crayon-blue)", color: "var(--crayon-blue)" }}
+                    >
+                      {user.email}
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-1 border-t" style={{ borderColor: "#e5e7eb" }}>
+                    <button
+                      onClick={() => { setShowUserDropdown(false); setShowProfileModal(true); }}
+                      className="text-xs font-bold underline"
+                      style={{ color: "var(--crayon-orange)" }}
+                    >
+                      Profile
+                    </button>
+                    <button
+                      onClick={() => { setShowUserDropdown(false); setShowSettingsModal(true); }}
+                      className="text-xs font-bold underline"
+                      style={{ color: "var(--crayon-purple)" }}
+                    >
+                      Settings
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <button
               onClick={() => setShowProfileModal(true)}
