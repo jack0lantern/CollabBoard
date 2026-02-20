@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { GoogleIcon } from "@/components/ui/icons/GoogleIcon";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
@@ -92,6 +93,9 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
         provider: "google",
         options: {
           redirectTo: callbackUrl.toString(),
+          queryParams: {
+            prompt: "select_account",
+          },
         },
       });
 
@@ -213,7 +217,8 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
         disabled={loading}
         className="crayon-btn crayon-btn-ghost w-full text-base flex justify-center gap-2"
       >
-        🌐 Sign up with Google
+        <GoogleIcon />
+        Sign up with Google
       </button>
 
       <p className="text-sm font-semibold text-center">
