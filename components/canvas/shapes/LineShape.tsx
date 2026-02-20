@@ -1,6 +1,15 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Group, Arrow, Line, Circle } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
@@ -42,10 +51,12 @@ export function LineShape({
   isMultiSelect,
   registerShapeRef,
   onShapeDragEnd,
+  onDragStart,
   onContextMenu,
   stageScale = 1,
   getLiveSnapPoints,
-  dragMoveVersion = 0,
+  draggedIdsRef,
+  subscribeToDragMove,
   onDragEndAt,
   onDragMoveAt,
 }: {
@@ -56,12 +67,14 @@ export function LineShape({
   isMultiSelect?: boolean;
   registerShapeRef?: (id: string, node: Konva.Node | null) => void;
   onShapeDragEnd?: () => void;
+  onDragStart?: (objectId: string) => void;
   onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
   onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   stageScale?: number;
   getLiveSnapPoints?: (objectId: string) => { x: number; y: number }[] | null;
-  dragMoveVersion?: number;
+  draggedIdsRef?: RefObject<string[]>;
+  subscribeToDragMove?: (fn: () => void) => () => void;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -73,6 +86,24 @@ export function LineShape({
   const [isHovered, setIsHovered] = useState(false);
   const [localPos, setLocalPos] = useState<{ x: number; y: number } | null>(null);
   const [localPoints, setLocalPoints] = useState<number[] | null>(null);
+  const [dragUpdateTick, setDragUpdateTick] = useState(0);
+
+  const hasConnections =
+    data.lineStartConnection != null || data.lineEndConnection != null;
+
+  useEffect(() => {
+    if (!hasConnections || !subscribeToDragMove || !draggedIdsRef) return;
+    return subscribeToDragMove(() => {
+      const ids = draggedIdsRef.current ?? [];
+      if (ids.length === 0) return;
+      const connected =
+        (data.lineStartConnection?.objectId != null &&
+          ids.includes(data.lineStartConnection.objectId)) ||
+        (data.lineEndConnection?.objectId != null &&
+          ids.includes(data.lineEndConnection.objectId));
+      if (connected) setDragUpdateTick((t) => t + 1);
+    });
+  }, [hasConnections, subscribeToDragMove, draggedIdsRef, data.lineStartConnection?.objectId, data.lineEndConnection?.objectId]);
 
   const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
@@ -149,7 +180,7 @@ export function LineShape({
       }
     }
     return pts;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- dragMoveVersion forces refresh when connected shapes move
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dragUpdateTick forces refresh when connected shapes move
   }, [
     localPoints,
     data.points,
@@ -159,7 +190,7 @@ export function LineShape({
     getLiveSnapPoints,
     isDragging,
     worldToLocal,
-    dragMoveVersion,
+    dragUpdateTick,
   ]);
 
   pointsRef.current = displayPoints;
@@ -323,6 +354,7 @@ export function LineShape({
         onDragStart={() => {
           dragStartPointsRef.current = [...pointsRef.current];
           setIsDragging(true);
+          onDragStart?.(data.id);
         }}
         onDragMove={(e) => {
           const x = e.target.x();

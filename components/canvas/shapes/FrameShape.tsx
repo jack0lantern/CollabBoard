@@ -25,6 +25,7 @@ export function FrameShape({
   onShapeDragEnd,
   onContextMenu,
   onDragMoveTick,
+  onDragStart,
   onFrameDragWithContents,
   onFrameDragStart,
   onFrameDragEnd,
@@ -44,6 +45,7 @@ export function FrameShape({
     deltaX: number,
     deltaY: number
   ) => void;
+  onDragStart?: (objectId: string) => void;
   onFrameDragStart?: (frameId: string, startX: number, startY: number) => void;
   onFrameDragEnd?: (frameId: string, newX: number, newY: number) => void;
 }) {
@@ -133,6 +135,7 @@ export function FrameShape({
           const y = e.target.y();
           setIsDragging(true);
           dragPrevPosRef.current = { x, y };
+          onDragStart?.(data.id);
           onFrameDragStart?.(data.id, x, y);
         }}
         onDragMove={(e) => {

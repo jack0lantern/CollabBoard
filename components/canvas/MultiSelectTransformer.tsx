@@ -19,6 +19,7 @@ interface MultiSelectTransformerProps {
   objects: Record<string, ObjectData>;
   onTransformEnd?: () => void;
   onTransform?: () => void;
+  onDragStart?: (ids: string[]) => void;
   onContextMenu?: (clientX: number, clientY: number) => void;
   onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
   onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
@@ -35,6 +36,7 @@ export function MultiSelectTransformer({
   objects,
   onTransformEnd,
   onTransform,
+  onDragStart,
   onContextMenu,
   onDragEndAt,
   onDragMoveAt,
@@ -98,19 +100,24 @@ export function MultiSelectTransformer({
     if (!tr) return;
     const back = tr.findOne(".back");
     if (!back) return;
+    const dragStartHandler = () => {
+      onDragStart?.(selectedIds);
+    };
     const dragEndHandler = () => {
       persistPositions();
     };
     const dragMoveHandler = () => {
       notifyDragMoveAt();
     };
+    back.on("dragstart", dragStartHandler);
     back.on("dragend", dragEndHandler);
     back.on("dragmove", dragMoveHandler);
     return () => {
+      back.off("dragstart", dragStartHandler);
       back.off("dragend", dragEndHandler);
       back.off("dragmove", dragMoveHandler);
     };
-  }, [refsVersion, persistPositions, notifyDragMoveAt]);
+  }, [refsVersion, selectedIds, onDragStart, persistPositions, notifyDragMoveAt]);
 
   const handleTransformEnd = () => {
     anchorBoxRef.current = null;

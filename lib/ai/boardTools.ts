@@ -157,11 +157,9 @@ export function buildConnectorObject(
 ): ObjectData | null {
   const fromObj = objects[fromId];
   const toObj = objects[toId];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- objects[id] can be undefined
   if (fromObj == null || toObj == null) return null;
 
   const result = findConnectorEndpoints(fromObj, toObj);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- findConnectorEndpoints can return null
   if (result == null) return null;
 
   const arrowStart = style === "both";

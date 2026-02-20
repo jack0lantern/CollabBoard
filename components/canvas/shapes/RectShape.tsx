@@ -29,6 +29,7 @@ export function RectShape({
   onShapeDragEnd,
   onContextMenu,
   onDragMoveTick,
+  onDragStart,
   onDragEndAt,
   onDragMoveAt,
 }: {
@@ -42,6 +43,7 @@ export function RectShape({
   onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
+  onDragStart?: (objectId: string) => void;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -238,7 +240,10 @@ export function RectShape({
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
         onDblClick={handleDblClick}
-        onDragStart={() => setIsDragging(true)}
+        onDragStart={() => {
+          setIsDragging(true);
+          onDragStart?.(data.id);
+        }}
         onDragMove={(e) => {
           const x = e.target.x();
           const y = e.target.y();

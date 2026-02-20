@@ -198,7 +198,6 @@ When the user asks you to add or change something, use the appropriate tool. For
 };
 
 export const POST = async (req: Request) =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- startActiveObservation from @langfuse/tracing may not resolve types in this build
   await startActiveObservation(
     "handle-chat-message",
     (span: LangfuseSpan) => handler(req, span),

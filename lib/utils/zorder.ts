@@ -57,7 +57,6 @@ export function computeBringForward(
   const topSelected = selected[selected.length - 1];
   const topIdx = sorted.indexOf(topSelected);
   const nextObj = sorted[topIdx + 1];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- sorted[topIdx+1] can be undefined
   if (nextObj != null) {
     updates.set(topSelected.id, nextObj.zIndex ?? 0);
     updates.set(nextObj.id, topSelected.zIndex ?? 0);
@@ -86,7 +85,6 @@ export function computeSendBackward(
   const bottomSelected = selected[0];
   const bottomIdx = sorted.indexOf(bottomSelected);
   const prevObj = sorted[bottomIdx - 1];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- sorted[bottomIdx-1] can be undefined
   if (prevObj != null) {
     updates.set(bottomSelected.id, prevObj.zIndex ?? 0);
     updates.set(prevObj.id, bottomSelected.zIndex ?? 0);

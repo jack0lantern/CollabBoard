@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, type RefObject } from "react";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
 import { StickyNote } from "./StickyNote";
@@ -21,8 +21,10 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onContextMenu,
   stageScale,
   onDragMoveTick,
+  onDragStart,
   getLiveSnapPoints,
-  dragMoveVersion,
+  draggedIdsRef,
+  subscribeToDragMove,
   onDragEndAt,
   onDragMoveAt,
   onFrameDragWithContents,
@@ -39,8 +41,10 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   stageScale?: number;
   onDragMoveTick?: () => void;
+  onDragStart?: (objectId: string) => void;
   getLiveSnapPoints?: (objectId: string) => { x: number; y: number }[] | null;
-  dragMoveVersion?: number;
+  draggedIdsRef?: RefObject<string[]>;
+  subscribeToDragMove?: (fn: () => void) => () => void;
   onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
   onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onFrameDragWithContents?: (
@@ -62,6 +66,7 @@ export const ShapeRenderer = memo(function ShapeRenderer({
     onShapeDragEnd,
     onContextMenu,
     onDragMoveTick,
+    onDragStart,
     onDragEndAt,
     onDragMoveAt,
   };
@@ -88,7 +93,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
           otherObjects={otherObjects ?? []}
           stageScale={stageScale}
           getLiveSnapPoints={getLiveSnapPoints}
-          dragMoveVersion={dragMoveVersion}
+          draggedIdsRef={draggedIdsRef}
+          subscribeToDragMove={subscribeToDragMove}
         />
       );
     case "text":

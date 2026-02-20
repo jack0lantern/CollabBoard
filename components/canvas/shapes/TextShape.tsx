@@ -32,6 +32,7 @@ export function TextShape({
   onShapeDragEnd,
   onContextMenu,
   onDragMoveTick,
+  onDragStart,
   onDragEndAt,
   onDragMoveAt,
 }: {
@@ -45,6 +46,7 @@ export function TextShape({
   onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
+  onDragStart?: (objectId: string) => void;
 }) {
   const { updateObject, deleteObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -494,6 +496,7 @@ export function TextShape({
         onDblClick={handleDblClick}
         onDragStart={() => {
           setIsDragging(true);
+          onDragStart?.(data.id);
           didDragRef.current = false;
         }}
         onDragMove={(e) => {

@@ -288,8 +288,6 @@ export function getNodeSnapPoints(
   const group = node as Konva.Group;
   const ox = group.x();
   const oy = group.y();
-  // findOne returns Node; Line/Arrow have points() - assertion needed for type narrowing
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- findOne returns Node, not Line
   const line = (group.findOne("Line") ?? group.findOne("Arrow")) as
     | Konva.Line
     | undefined;
@@ -311,7 +309,6 @@ export function getSnapPointForConnection(
 ): { x: number; y: number } | null {
   const points = getObjectSnapPoints(obj);
   const p = points[pointIndex];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- points[pointIndex] can be undefined
   return p ?? null;
 }
 

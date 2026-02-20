@@ -22,7 +22,6 @@ function buildPresenceMap(channel: RealtimeChannel): Record<string, PresenceData
   const presenceMap: Record<string, PresenceData> = {};
   for (const [key, presences] of Object.entries(state)) {
     const p = presences[0];
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- presences[0] can be undefined
     if (p != null && typeof p === "object" && "lastSeen" in p) {
       presenceMap[key] = p;
     }

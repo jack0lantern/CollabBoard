@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
@@ -72,11 +72,37 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
 
   const shapeRefsRef = useRef<Map<string, Konva.Node>>(new Map());
   const [refsVersion, setRefsVersion] = useState(0);
-  const [dragMoveVersion, setDragMoveVersion] = useState(0);
+  const draggedIdsRef = useRef<string[]>([]);
   const copiedObjectsRef = useRef<ObjectData[]>([]);
 
+  const rafIdRef = useRef<number | null>(null);
+  const dragEmitter = useMemo(() => {
+    const listeners = new Set<() => void>();
+    return {
+      emit: () => {
+        if (rafIdRef.current != null) return;
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          listeners.forEach((fn) => fn());
+        });
+      },
+      subscribe: (fn: () => void) => {
+        listeners.add(fn);
+        return () => listeners.delete(fn);
+      },
+    };
+  }, []);
+
   const onDragMoveTick = useCallback(() => {
-    setDragMoveVersion((v) => v + 1);
+    dragEmitter.emit();
+  }, [dragEmitter]);
+
+  const handleDragStart = useCallback((objectId: string) => {
+    draggedIdsRef.current = [objectId];
+  }, []);
+
+  const handleMultiDragStart = useCallback((ids: string[]) => {
+    draggedIdsRef.current = [...ids];
   }, []);
 
   useEffect(() => {
@@ -131,6 +157,14 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     return za - zb;
   });
 
+  const otherObjectsByExcludedId = useMemo(() => {
+    const map = new Map<string, ObjectData[]>();
+    for (const obj of objectList) {
+      map.set(obj.id, objectList.filter((o) => o.id !== obj.id));
+    }
+    return map;
+  }, [objectList]);
+
   const applyZOrderUpdates = useCallback(
     (updates: Map<string, number>) => {
       updates.forEach((zIndex, id) => {
@@ -141,6 +175,8 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   );
 
   const panStartRef = useRef<{ pointer: { x: number; y: number }; position: { x: number; y: number } } | null>(null);
+  const panRafIdRef = useRef<number | null>(null);
+  const pendingPanRef = useRef<{ pointer: { x: number; y: number }; position: { x: number; y: number } } | null>(null);
   const panningMovedRef = useRef(false);
   const pendingContextMenuRef = useRef<{ x: number; y: number; targetIds: string[] } | null>(null);
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -213,6 +249,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
 
   const handleShapeDragEnd = useCallback(() => {
     setLastDragEnd(Date.now());
+    draggedIdsRef.current = [];
   }, []);
 
   const lastDragMoveZUpdateRef = useRef<{
@@ -549,10 +586,19 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
       panStartRef.current = null;
       panningMovedRef.current = false;
       pendingContextMenuRef.current = null;
+      if (panRafIdRef.current != null) {
+        cancelAnimationFrame(panRafIdRef.current);
+        panRafIdRef.current = null;
+        const pending = pendingPanRef.current;
+        if (pending) {
+          setPosition(pending.position);
+        }
+        pendingPanRef.current = null;
+      }
     };
     window.addEventListener("mouseup", handleMouseUp);
     return () => window.removeEventListener("mouseup", handleMouseUp);
-  }, [select, setSelection, clearSelection]);
+  }, [select, setSelection, clearSelection, setPosition]);
 
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -593,7 +639,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
         const boardX = (pos.x - stage.x()) / stage.scaleX();
         const boardY = (pos.y - stage.y()) / stage.scaleY();
         cursorBoardPosRef.current = { x: boardX, y: boardY };
-        updateCursor({ x: boardX, y: boardY });
+        if (!panningRef.current) updateCursor({ x: boardX, y: boardY });
 
         if (selectionStartRef.current) {
           const start = selectionStartRef.current;
@@ -620,11 +666,20 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
             x: panStartRef.current.position.x + deltaX,
             y: panStartRef.current.position.y + deltaY,
           };
-          setPosition(newPosition);
-          panStartRef.current = {
+          pendingPanRef.current = {
             pointer: { x: pos.x, y: pos.y },
             position: newPosition,
           };
+          if (panRafIdRef.current == null) {
+            panRafIdRef.current = requestAnimationFrame(() => {
+              panRafIdRef.current = null;
+              const pending = pendingPanRef.current;
+              if (pending) {
+                setPosition(pending.position);
+                panStartRef.current = pending;
+              }
+            });
+          }
           setContextMenu(null);
         }
       }
@@ -675,7 +730,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   <ShapeRenderer
                     key={obj.id}
                     data={obj}
-                    otherObjects={objectList.filter((o) => o.id !== obj.id)}
+                    otherObjects={otherObjectsByExcludedId.get(obj.id) ?? []}
                     onSelect={handleSelect}
                     isSelected={isSelected(obj.id)}
                     isMultiSelect={selectedIds.length > 1}
@@ -684,8 +739,10 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                     onContextMenu={handleShapeContextMenu}
                     stageScale={scale}
                     onDragMoveTick={onDragMoveTick}
+                    onDragStart={handleDragStart}
                     getLiveSnapPoints={getLiveSnapPoints}
-                    dragMoveVersion={dragMoveVersion}
+                    draggedIdsRef={draggedIdsRef}
+                    subscribeToDragMove={dragEmitter.subscribe}
                     onDragEndAt={handleDragEndAt}
                     onDragMoveAt={handleDragMoveAt}
                     onFrameDragWithContents={handleFrameDragWithContents}
@@ -700,8 +757,10 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   objects={objects}
                   onTransformEnd={() => {
                     setLastDragEnd(Date.now());
+                    draggedIdsRef.current = [];
                   }}
                   onTransform={onDragMoveTick}
+                  onDragStart={handleMultiDragStart}
                   onContextMenu={handleTransformerContextMenu}
                   onDragEndAt={handleDragEndAt}
                   onDragMoveAt={handleDragMoveAt}

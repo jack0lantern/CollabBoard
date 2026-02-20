@@ -25,7 +25,6 @@ function getDotColor(userId: string): string {
 function UserDot({ userId, displayName }: { userId: string; displayName: string }) {
   const [hovered, setHovered] = useState(false);
   const colorClass = getDotColor(userId);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- displayName[0] can be undefined for empty string
   const initial = (displayName[0] ?? "?").toUpperCase();
 
   return (

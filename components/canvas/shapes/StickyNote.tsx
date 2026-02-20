@@ -25,6 +25,7 @@ export function StickyNote({
   onShapeDragEnd,
   onContextMenu,
   onDragMoveTick,
+  onDragStart,
   onDragEndAt,
   onDragMoveAt,
 }: {
@@ -38,6 +39,7 @@ export function StickyNote({
   onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
+  onDragStart?: (objectId: string) => void;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -246,7 +248,10 @@ export function StickyNote({
           onContextMenu?.(data.id, e.evt.clientX, e.evt.clientY);
         }}
         onDblClick={handleDblClick}
-        onDragStart={() => setIsDragging(true)}
+        onDragStart={() => {
+          setIsDragging(true);
+          onDragStart?.(data.id);
+        }}
         onDragMove={(e) => {
           const x = e.target.x();
           const y = e.target.y();
