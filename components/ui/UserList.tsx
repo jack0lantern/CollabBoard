@@ -35,7 +35,8 @@ function UserDot({ userId, displayName }: { userId: string; displayName: string 
       onMouseLeave={() => setHovered(false)}
     >
       <div
-        className={`w-8 h-8 rounded-full ${colorClass} flex items-center justify-center text-xs font-semibold text-white shadow-sm cursor-default select-none`}
+        className={`w-7 h-7 rounded-full ${colorClass} flex items-center justify-center text-xs font-semibold text-white cursor-default select-none`}
+        style={{ border: "2px solid #1a1a2e", boxShadow: "1.5px 1.5px 0 #1a1a2e" }}
         title={displayName}
       >
         {initial}
@@ -55,14 +56,25 @@ export function UserList() {
   if (others.length === 0) return null;
 
   return (
-    <div className="flex gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-      {others.map((user) => (
-        <UserDot
-          key={user.userId}
-          userId={user.userId}
-          displayName={user.displayName}
-        />
-      ))}
+    <div
+      className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl"
+      style={{ border: "2px solid #1a1a2e", boxShadow: "2px 2px 0 #1a1a2e" }}
+    >
+      <span
+        className="font-sketch text-xs font-bold select-none"
+        style={{ color: "#1a1a2e" }}
+      >
+        Online:
+      </span>
+      <div className="flex items-center gap-1.5">
+        {others.map((user) => (
+          <UserDot
+            key={user.userId}
+            userId={user.userId}
+            displayName={user.displayName}
+          />
+        ))}
+      </div>
     </div>
   );
 }
