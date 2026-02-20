@@ -9,4 +9,5 @@ node_modules
 firebase-debug.log
 firestore-debug.log
 supabase/.branches
+supabase/.temp
 tsconfig.tsbuildinfo
