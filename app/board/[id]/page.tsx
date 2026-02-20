@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { BoardHeader } from "@/components/ui/BoardHeader";
+import { ViewportProvider } from "@/components/providers/ViewportProvider";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
 import { ChatbotButton } from "@/components/ui/ChatbotButton";
@@ -93,11 +94,13 @@ export default function BoardPage({
         <div className="flex-1 flex relative overflow-hidden">
           <Toolbar />
           <div className="flex-1 relative overflow-hidden">
-            <BoardCanvas boardId={id} />
+            <ViewportProvider>
+              <BoardCanvas boardId={id} />
             <div className="absolute top-4 right-4 z-10">
               <UserList />
             </div>
-            <ChatbotFloatingButton />
+              <ChatbotFloatingButton />
+            </ViewportProvider>
           </div>
         </div>
       </div>

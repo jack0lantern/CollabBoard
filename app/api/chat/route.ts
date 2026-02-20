@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText, convertToModelMessages, tool, type UIMessage } from "ai";
+import { streamText, convertToModelMessages, tool, stepCountIs, type UIMessage } from "ai";
 import { z } from "zod";
 import { trace } from "@opentelemetry/api";
 import { startActiveObservation } from "@langfuse/tracing";
@@ -34,10 +34,12 @@ const handler = async (
 
 **Important: For any arithmetic or math calculations, you MUST use the calculator tools (add, subtract, mult, div). Do NOT compute numbers yourself—always call the appropriate calculator tool.**
 
+**Batching: When the user asks for multiple things (e.g., "add a sticky note and a circle", "create 3 shapes", "add a frame and connect it to the note"), make ALL required tool calls in a single response. Batch multiple tool calls together rather than doing them one at a time.**
+
 Current board state (for context):
 ${JSON.stringify(boardState ?? [], null, 2)}
 
-When the user asks you to add or change something, use the appropriate tool. For positions (x, y), use reasonable values (e.g. 100–500). For colors, use hex codes like #fef08a, #3b82f6, #ef4444.`;
+When the user asks you to add or change something, use the appropriate tool. For positions (x, y), you may omit them to place objects on the left side of the user's view; otherwise use reasonable board coordinates. For colors, use hex codes like #fef08a, #3b82f6, #ef4444.`;
 
   const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
   const inputText = lastUserMessage
@@ -57,6 +59,7 @@ When the user asks you to add or change something, use the appropriate tool. For
     model: openai("gpt-4o-mini"),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     experimental_telemetry: { isEnabled: true },
     onFinish: async (finishResult) => {
       span.update({ output: finishResult.text });
@@ -77,8 +80,8 @@ When the user asks you to add or change something, use the appropriate tool. For
         description: "Create a sticky note on the board",
         inputSchema: z.object({
           text: z.string().describe("The text content"),
-          x: z.number().describe("X position"),
-          y: z.number().describe("Y position"),
+          x: z.number().optional().describe("X position (omit to place on left side of view)"),
+          y: z.number().optional().describe("Y position (omit to place on left side of view)"),
           color: z.string().default("#fef08a").describe("Hex color"),
         }),
       }),
@@ -86,8 +89,8 @@ When the user asks you to add or change something, use the appropriate tool. For
         description: "Create a rectangle or circle",
         inputSchema: z.object({
           type: z.enum(["rect", "circle"]),
-          x: z.number(),
-          y: z.number(),
+          x: z.number().optional().describe("X position (omit to place on left side of view)"),
+          y: z.number().optional().describe("Y position (omit to place on left side of view)"),
           width: z.number(),
           height: z.number(),
           color: z.string().default("#3b82f6"),
@@ -97,8 +100,8 @@ When the user asks you to add or change something, use the appropriate tool. For
         description: "Create a frame/container",
         inputSchema: z.object({
           title: z.string(),
-          x: z.number(),
-          y: z.number(),
+          x: z.number().optional().describe("X position (omit to place on left side of view)"),
+          y: z.number().optional().describe("Y position (omit to place on left side of view)"),
           width: z.number().default(600),
           height: z.number().default(400),
         }),

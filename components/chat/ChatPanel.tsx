@@ -3,10 +3,13 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { useBoardTools } from "@/hooks/useBoardTools";
+import { useViewport } from "@/components/providers/ViewportProvider";
+import { getDefaultObjectPosition } from "@/lib/ai/boardTools";
 import { useRef, useEffect, useState } from "react";
 
 export function ChatPanel({ onClose }: { onClose: () => void }) {
   const tools = useBoardTools();
+  const viewport = useViewport();
   const [input, setInput] = useState("");
   const addToolOutputRef = useRef<((args: { tool: string; toolCallId: string; output: unknown }) => void) | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -35,10 +38,11 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
             y?: number;
             color?: string;
           };
+          const defaultPos = getDefaultObjectPosition(viewport);
           const id = tools.createStickyNote(
             text ?? "",
-            typeof x === "number" ? x : 100,
-            typeof y === "number" ? y : 100,
+            typeof x === "number" ? x : defaultPos.x,
+            typeof y === "number" ? y : defaultPos.y,
             color ?? "#fef08a"
           );
           addToolOutputFn({ tool: "createStickyNote", toolCallId: toolCall.toolCallId, output: { id } });
@@ -51,10 +55,11 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
             height?: number;
             color?: string;
           };
+          const defaultPos = getDefaultObjectPosition(viewport);
           const id = tools.createShape(
             type === "circle" ? "circle" : "rect",
-            typeof x === "number" ? x : 100,
-            typeof y === "number" ? y : 100,
+            typeof x === "number" ? x : defaultPos.x,
+            typeof y === "number" ? y : defaultPos.y,
             typeof width === "number" ? width : 100,
             typeof height === "number" ? height : 100,
             color ?? "#3b82f6"
@@ -68,10 +73,11 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
             width?: number;
             height?: number;
           };
+          const defaultPos = getDefaultObjectPosition(viewport);
           const id = tools.createFrame(
             title ?? "",
-            typeof x === "number" ? x : 0,
-            typeof y === "number" ? y : 0,
+            typeof x === "number" ? x : defaultPos.x,
+            typeof y === "number" ? y : defaultPos.y,
             width ?? 600,
             height ?? 400
           );

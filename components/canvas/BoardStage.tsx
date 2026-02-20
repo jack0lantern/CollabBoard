@@ -12,6 +12,7 @@ import { SelectionBox } from "./SelectionBox";
 import { MultiSelectTransformer } from "./MultiSelectTransformer";
 import { usePanZoom } from "@/hooks/usePanZoom";
 import { useGrid } from "@/components/providers/GridProvider";
+import { useSetViewport } from "@/components/providers/ViewportProvider";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useSelection } from "@/hooks/useSelection";
 import { ContextMenu } from "@/components/ui/ContextMenu";
@@ -47,6 +48,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   } | null>(null);
   const { scale, position, handleWheel, setPosition } = usePanZoom();
   const { gridVisible } = useGrid();
+  const setViewport = useSetViewport();
   const {
     selectedIds,
     select,
@@ -73,6 +75,10 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   const onDragMoveTick = useCallback(() => {
     setDragMoveVersion((v) => v + 1);
   }, []);
+
+  useEffect(() => {
+    setViewport({ position, scale, dimensions });
+  }, [position, scale, dimensions, setViewport]);
 
   const registerShapeRef = useCallback((id: string, node: Konva.Node | null) => {
     const map = shapeRefsRef.current;

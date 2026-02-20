@@ -14,6 +14,32 @@ export const DEFAULT_COLORS = [
   "#8b5cf6",
 ] as const;
 
+/** Padding from the left edge of the view when placing new objects */
+const DEFAULT_LEFT_PADDING = 50;
+
+/** Vertical offset from center when placing new objects */
+const DEFAULT_TOP_OFFSET = 0;
+
+export interface Viewport {
+  position: { x: number; y: number };
+  scale: number;
+  dimensions: { width: number; height: number };
+}
+
+/**
+ * Get the default position for a new object: left side of the user's view.
+ * X is at the left edge + padding; Y is vertically centered.
+ */
+export function getDefaultObjectPosition(viewport: Viewport): { x: number; y: number } {
+  const { position, scale, dimensions } = viewport;
+  const leftEdgeBoardX = -position.x / scale;
+  const centerBoardY = (dimensions.height / 2 - position.y) / scale;
+  return {
+    x: leftEdgeBoardX + DEFAULT_LEFT_PADDING,
+    y: centerBoardY + DEFAULT_TOP_OFFSET,
+  };
+}
+
 /** Connector/arrow style: line only, arrow at end, or arrows at both ends */
 export type ConnectorStyle = "line" | "arrow" | "both";
 
