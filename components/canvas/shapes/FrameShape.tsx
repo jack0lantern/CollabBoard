@@ -29,6 +29,7 @@ export function FrameShape({
   onFrameDragWithContents,
   onFrameDragStart,
   onFrameDragEnd,
+  readOnly = false,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -48,6 +49,7 @@ export function FrameShape({
   onDragStart?: (objectId: string) => void;
   onFrameDragStart?: (frameId: string, startX: number, startY: number) => void;
   onFrameDragEnd?: (frameId: string, newX: number, newY: number) => void;
+  readOnly?: boolean;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -120,7 +122,7 @@ export function FrameShape({
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        draggable
+        draggable={!readOnly}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;

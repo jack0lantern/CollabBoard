@@ -14,6 +14,9 @@ export function ShareModal({
   onUpdated?: (board: Board) => void;
 }) {
   const [isPublic, setIsPublic] = useState(board.is_public ?? false);
+  const [isPublicReadonly, setIsPublicReadonly] = useState(
+    board.is_public_readonly ?? false
+  );
   const [sharedWith, setSharedWith] = useState<Record<string, ShareRole>>(
     board.shared_with ?? {}
   );
@@ -21,19 +24,27 @@ export function ShareModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [boardUrl, setBoardUrl] = useState("");
+  const [readOnlyUrl, setReadOnlyUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedReadOnly, setCopiedReadOnly] = useState(false);
 
   useEffect(() => {
     setIsPublic(board.is_public ?? false);
+    setIsPublicReadonly(board.is_public_readonly ?? false);
     setSharedWith(board.shared_with ?? {});
-  }, [board.id, board.is_public, board.shared_with]);
+  }, [board.id, board.is_public, board.is_public_readonly, board.shared_with]);
 
   useEffect(() => {
     setBoardUrl(`${window.location.origin}/board/${board.id}`);
+    setReadOnlyUrl(`${window.location.origin}/view/${board.id}`);
   }, [board.id]);
 
   const persistSharing = useCallback(
-    async (updates: { is_public?: boolean; shared_with?: Record<string, ShareRole> }) => {
+    async (updates: {
+      is_public?: boolean;
+      is_public_readonly?: boolean;
+      shared_with?: Record<string, ShareRole>;
+    }) => {
       setSaving(true);
       setError(null);
       try {
@@ -42,6 +53,7 @@ export function ShareModal({
           onUpdated?.({
             ...board,
             is_public: updates.is_public ?? isPublic,
+            is_public_readonly: updates.is_public_readonly ?? isPublicReadonly,
             shared_with: updates.shared_with ?? sharedWith,
           });
         } else {
@@ -53,15 +65,33 @@ export function ShareModal({
         setSaving(false);
       }
     },
-    [board, isPublic, sharedWith, onUpdated]
+    [board, isPublic, isPublicReadonly, sharedWith, onUpdated]
   );
 
   const handlePublicToggle = useCallback(
     async (checked: boolean) => {
       setIsPublic(checked);
-      await persistSharing({ is_public: checked, shared_with: sharedWith });
+      setIsPublicReadonly(checked ? false : isPublicReadonly);
+      await persistSharing({
+        is_public: checked,
+        is_public_readonly: checked ? false : isPublicReadonly,
+        shared_with: sharedWith,
+      });
     },
-    [sharedWith, persistSharing]
+    [sharedWith, isPublicReadonly, persistSharing]
+  );
+
+  const handlePublicReadonlyToggle = useCallback(
+    async (checked: boolean) => {
+      setIsPublicReadonly(checked);
+      setIsPublic(checked ? false : isPublic);
+      await persistSharing({
+        is_public_readonly: checked,
+        is_public: checked ? false : isPublic,
+        shared_with: sharedWith,
+      });
+    },
+    [sharedWith, isPublic, persistSharing]
   );
 
   const handleAddEmail = useCallback(async () => {
@@ -75,8 +105,12 @@ export function ShareModal({
     setSharedWith(next);
     setEmailInput("");
     setError(null);
-    await persistSharing({ is_public: isPublic, shared_with: next });
-  }, [emailInput, sharedWith, isPublic, persistSharing]);
+    await persistSharing({
+      is_public: isPublic,
+      is_public_readonly: isPublicReadonly,
+      shared_with: next,
+    });
+  }, [emailInput, sharedWith, isPublic, isPublicReadonly, persistSharing]);
 
   const handleRemoveEmail = useCallback(
     async (email: string) => {
@@ -84,10 +118,24 @@ export function ShareModal({
         Object.entries(sharedWith).filter(([k]) => k !== email)
       );
       setSharedWith(rest);
-      await persistSharing({ is_public: isPublic, shared_with: rest });
+      await persistSharing({
+        is_public: isPublic,
+        is_public_readonly: isPublicReadonly,
+        shared_with: rest,
+      });
     },
-    [sharedWith, isPublic, persistSharing]
+    [sharedWith, isPublic, isPublicReadonly, persistSharing]
   );
+
+  const handleCopyReadOnlyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(readOnlyUrl);
+      setCopiedReadOnly(true);
+      setTimeout(() => setCopiedReadOnly(false), 2000);
+    } catch {
+      setError("Failed to copy link");
+    }
+  }, [readOnlyUrl]);
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -147,7 +195,7 @@ export function ShareModal({
             </button>
           </div>
 
-          {/* Public toggle */}
+          {/* Public toggle - view & edit */}
           <div
             className="flex items-center gap-3 p-3 rounded-xl"
             style={{ background: "#f0fff5", border: "2px solid var(--crayon-green)" }}
@@ -175,6 +223,55 @@ export function ShareModal({
             <label className="text-sm font-bold">
               🌍 Anyone with link can view & edit
             </label>
+          </div>
+
+          {/* Read-only link section */}
+          <div
+            className="flex flex-col gap-2 p-3 rounded-xl"
+            style={{ background: "#f0f5ff", border: "2px solid var(--crayon-blue)" }}
+          >
+            <div className="flex items-center gap-3">
+              <button
+                role="switch"
+                aria-checked={isPublicReadonly}
+                onClick={() => { void handlePublicReadonlyToggle(!isPublicReadonly); }}
+                disabled={saving}
+                className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full transition-all focus:outline-none disabled:opacity-50"
+                style={{
+                  border: "2.5px solid #1a1a2e",
+                  background: isPublicReadonly ? "var(--crayon-blue)" : "#e5e7eb",
+                  boxShadow: "2px 2px 0 #1a1a2e",
+                }}
+              >
+                <span
+                  className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform mt-0.5"
+                  style={{
+                    border: "1.5px solid #1a1a2e",
+                    transform: isPublicReadonly ? "translateX(1.4rem)" : "translateX(0.15rem)",
+                  }}
+                />
+              </button>
+              <label className="text-sm font-bold">
+                👁️ Anyone with link can view only (no edits)
+              </label>
+            </div>
+            {isPublicReadonly && (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  readOnly
+                  value={readOnlyUrl}
+                  className="flex-1 px-3 py-2 text-sm rounded-xl font-semibold truncate"
+                  style={{ background: "#fff", border: "2px solid var(--crayon-blue)", color: "#555" }}
+                />
+                <button
+                  onClick={() => { void handleCopyReadOnlyLink(); }}
+                  className="crayon-btn crayon-btn-blue text-sm py-1.5 whitespace-nowrap"
+                >
+                  {copiedReadOnly ? "Copied! ✓" : "Copy 📋"}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Add by email */}

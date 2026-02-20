@@ -30,6 +30,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   onFrameDragWithContents,
   onFrameDragStart,
   onFrameDragEnd,
+  frameDragOffset,
+  readOnly,
 }: {
   data: ObjectData;
   otherObjects?: ObjectData[];
@@ -56,6 +58,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   ) => void;
   onFrameDragStart?: (frameId: string, startX: number, startY: number) => void;
   onFrameDragEnd?: (frameId: string, newX: number, newY: number) => void;
+  frameDragOffset?: { dx: number; dy: number };
+  readOnly?: boolean;
 }) {
   const common = {
     data,
@@ -69,6 +73,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
     onDragStart,
     onDragEndAt,
     onDragMoveAt,
+    frameDragOffset,
+    readOnly,
   };
   switch (data.type) {
     case "sticky":

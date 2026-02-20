@@ -35,6 +35,8 @@ export function TextShape({
   onDragStart,
   onDragEndAt,
   onDragMoveAt,
+  frameDragOffset,
+  readOnly = false,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -47,6 +49,8 @@ export function TextShape({
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
   onDragStart?: (objectId: string) => void;
+  frameDragOffset?: { dx: number; dy: number };
+  readOnly?: boolean;
 }) {
   const { updateObject, deleteObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -60,8 +64,10 @@ export function TextShape({
   const [localSize, setLocalSize] = useState<{ width: number; height: number } | null>(null);
   const [localRotation, setLocalRotation] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
-  const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
+  const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayX = baseX + (frameDragOffset?.dx ?? 0);
+  const displayY = baseY + (frameDragOffset?.dy ?? 0);
   const displayRotation = localRotation ?? data.rotation ?? 0;
   const editInfoRef = useRef<{
     stage: Konva.Stage;
@@ -178,7 +184,7 @@ export function TextShape({
   const wasSelectedOnMouseDownRef = useRef(false);
   const handleClickToEdit = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (e.evt.button !== 0 || isEditing || didDragRef.current) return;
+      if (readOnly || e.evt.button !== 0 || isEditing || didDragRef.current) return;
       e.cancelBubble = true;
       if (!isSelected || !wasSelectedOnMouseDownRef.current) return;
       const stage = e.target.getStage();
@@ -191,11 +197,12 @@ export function TextShape({
       };
       setIsEditing(true);
     },
-    [displayX, displayY, isEditing, isSelected]
+    [displayX, displayY, isEditing, isSelected, readOnly]
   );
 
   const handleDblClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (readOnly) return;
       e.cancelBubble = true;
       const stage = e.target.getStage();
       if (!stage) return;
@@ -207,11 +214,11 @@ export function TextShape({
       };
       setIsEditing(true);
     },
-    [displayX, displayY]
+    [displayX, displayY, readOnly]
   );
 
   useEffect(() => {
-    if (!isSelected || isEditing || isMultiSelect) return;
+    if (readOnly || !isSelected || isEditing || isMultiSelect) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (
@@ -239,7 +246,7 @@ export function TextShape({
     return () => {
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     };
-  }, [isSelected, isEditing, isMultiSelect, displayX, displayY]);
+  }, [readOnly, isSelected, isEditing, isMultiSelect, displayX, displayY]);
 
   useEffect(() => {
     if (!isEditing || !editInfoRef.current) return;
@@ -480,7 +487,7 @@ export function TextShape({
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        draggable={!isEditing}
+        draggable={!readOnly && !isEditing}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;

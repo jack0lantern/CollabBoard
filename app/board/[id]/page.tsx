@@ -50,13 +50,29 @@ export default function BoardPage() {
       return;
     }
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
+    void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session?.user) {
         const next = encodeURIComponent(`/board/${id}`);
         router.replace(`/login?next=${next}`);
         return;
       }
-      void getBoard(id).then(setBoard);
+      const boardData = await getBoard(id);
+      if (boardData == null) {
+        setBoard(null);
+        return;
+      }
+      const isOwner = boardData.owner_id === session.user.id;
+      const userEmail = (session.user.email ?? "").toLowerCase();
+      const role = userEmail ? boardData.shared_with?.[userEmail] : undefined;
+      const canEdit =
+        isOwner ||
+        role === "editor" ||
+        (boardData.is_public === true && !boardData.is_public_readonly);
+      if (!canEdit) {
+        router.replace(`/view/${id}`);
+        return;
+      }
+      setBoard(boardData);
     });
   }, [id, router]);
 

@@ -27,6 +27,8 @@ export function CircleShape({
   onDragStart,
   onDragEndAt,
   onDragMoveAt,
+  frameDragOffset,
+  readOnly = false,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -39,6 +41,8 @@ export function CircleShape({
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
   onDragStart?: (objectId: string) => void;
+  frameDragOffset?: { dx: number; dy: number };
+  readOnly?: boolean;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -59,8 +63,10 @@ export function CircleShape({
   const radiusY = localSize?.radiusY ?? data.radiusY ?? data.radius ?? DEFAULT_RADIUS;
   const absRadiusX = Math.max(MIN_RADIUS, Math.abs(radiusX));
   const absRadiusY = Math.max(MIN_RADIUS, Math.abs(radiusY));
-  const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
-  const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
+  const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayX = baseX + (frameDragOffset?.dx ?? 0);
+  const displayY = baseY + (frameDragOffset?.dy ?? 0);
   const displayRotation = data.rotation ?? 0;
 
   const prevPosRef = useRef({ x: data.x, y: data.y });
@@ -113,13 +119,14 @@ export function CircleShape({
 
   const handleDblClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (readOnly) return;
       e.cancelBubble = true;
       const stage = e.target.getStage();
       if (!stage) return;
       editInfoRef.current = { stage, pos: { x: displayX, y: displayY } };
       setIsEditing(true);
     },
-    [displayX, displayY]
+    [displayX, displayY, readOnly]
   );
 
   useEffect(() => {
@@ -230,7 +237,7 @@ export function CircleShape({
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        draggable={!isEditing}
+        draggable={!readOnly && !isEditing}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;

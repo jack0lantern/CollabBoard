@@ -59,6 +59,8 @@ export function LineShape({
   subscribeToDragMove,
   onDragEndAt,
   onDragMoveAt,
+  frameDragOffset,
+  readOnly = false,
 }: {
   data: ObjectData;
   otherObjects?: ObjectData[];
@@ -75,6 +77,8 @@ export function LineShape({
   getLiveSnapPoints?: (objectId: string) => { x: number; y: number }[] | null;
   draggedIdsRef?: RefObject<string[]>;
   subscribeToDragMove?: (fn: () => void) => () => void;
+  frameDragOffset?: { dx: number; dy: number };
+  readOnly?: boolean;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -105,8 +109,10 @@ export function LineShape({
     });
   }, [hasConnections, subscribeToDragMove, draggedIdsRef, data.lineStartConnection?.objectId, data.lineEndConnection?.objectId]);
 
-  const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
-  const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
+  const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayX = baseX + (frameDragOffset?.dx ?? 0);
+  const displayY = baseY + (frameDragOffset?.dy ?? 0);
   const displayRotation = data.rotation ?? 0;
 
   const lineColor = data.strokeColor ?? data.color ?? "#6b7280";
@@ -341,7 +347,7 @@ export function LineShape({
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        draggable
+        draggable={!readOnly}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;
@@ -429,7 +435,7 @@ export function LineShape({
               strokeWidth={2}
               scaleX={inverseScale}
               scaleY={inverseScale}
-              draggable
+              draggable={!readOnly}
               onMouseDown={(e) => {
                 e.cancelBubble = true;
                 setCursor(e, "grabbing");
@@ -449,7 +455,7 @@ export function LineShape({
               strokeWidth={2}
               scaleX={inverseScale}
               scaleY={inverseScale}
-              draggable
+              draggable={!readOnly}
               onMouseDown={(e) => {
                 e.cancelBubble = true;
                 setCursor(e, "grabbing");

@@ -9,6 +9,7 @@ interface BoardRow {
   owner_id: string | null;
   last_snapshot: Record<string, ObjectData> | null;
   is_public: boolean;
+  is_public_readonly?: boolean;
   shared_with: Record<string, ShareRole>;
 }
 
@@ -20,6 +21,7 @@ function rowToBoard(row: BoardRow): Board {
     owner_id: row.owner_id,
     last_snapshot: row.last_snapshot,
     is_public: row.is_public,
+    is_public_readonly: row.is_public_readonly,
     shared_with: row.shared_with,
   };
 }
@@ -228,13 +230,19 @@ export async function updateBoardTitle(
 
 export async function updateBoardSharing(
   boardId: string,
-  updates: { is_public?: boolean; shared_with?: Record<string, ShareRole> }
+  updates: {
+    is_public?: boolean;
+    is_public_readonly?: boolean;
+    shared_with?: Record<string, ShareRole>;
+  }
 ): Promise<boolean> {
   const supabase = createSupabaseClient();
   if (!supabase) return false;
 
   const updateData: Record<string, unknown> = {};
   if (updates.is_public !== undefined) updateData.is_public = updates.is_public;
+  if (updates.is_public_readonly !== undefined)
+    updateData.is_public_readonly = updates.is_public_readonly;
   if (updates.shared_with !== undefined)
     updateData.shared_with = updates.shared_with;
 

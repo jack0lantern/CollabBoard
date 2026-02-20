@@ -60,6 +60,7 @@ export interface Board {
   owner_id: string | null;
   last_snapshot: Record<string, ObjectData> | null;
   is_public?: boolean;
+  is_public_readonly?: boolean;
   shared_with?: Record<string, ShareRole>;
 }
 

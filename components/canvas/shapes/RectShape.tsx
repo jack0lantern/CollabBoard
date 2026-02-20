@@ -32,6 +32,8 @@ export function RectShape({
   onDragStart,
   onDragEndAt,
   onDragMoveAt,
+  frameDragOffset,
+  readOnly = false,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -44,6 +46,8 @@ export function RectShape({
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
   onDragStart?: (objectId: string) => void;
+  frameDragOffset?: { dx: number; dy: number };
+  readOnly?: boolean;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -64,8 +68,10 @@ export function RectShape({
   const height = localSize?.height ?? data.height ?? 80;
   const absWidth = Math.max(MIN_SIZE, Math.abs(width));
   const absHeight = Math.max(MIN_SIZE, Math.abs(height));
-  const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
-  const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
+  const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayX = baseX + (frameDragOffset?.dx ?? 0);
+  const displayY = baseY + (frameDragOffset?.dy ?? 0);
   const displayRotation = data.rotation ?? 0;
 
   const prevPosRef = useRef({ x: data.x, y: data.y });
@@ -110,13 +116,14 @@ export function RectShape({
 
   const handleDblClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (readOnly) return;
       e.cancelBubble = true;
       const stage = e.target.getStage();
       if (!stage) return;
       editInfoRef.current = { stage, pos: { x: displayX, y: displayY } };
       setIsEditing(true);
     },
-    [displayX, displayY]
+    [displayX, displayY, readOnly]
   );
 
   useEffect(() => {
@@ -229,7 +236,7 @@ export function RectShape({
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        draggable={!isEditing}
+        draggable={!readOnly && !isEditing}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;

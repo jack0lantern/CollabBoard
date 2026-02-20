@@ -7,6 +7,7 @@ interface BoardContextValue {
   userId: string;
   displayName: string;
   avatarUrl: string | null;
+  readOnly?: boolean;
 }
 
 const BoardContext = createContext<BoardContextValue | null>(null);
@@ -24,7 +25,8 @@ interface RealtimeBoardProviderProps {
   userId: string;
   displayName: string;
   avatarUrl: string | null;
-  children: ReactNode;
+  readOnly?: boolean;
+  children?: ReactNode;
 }
 
 export function RealtimeBoardProvider({
@@ -32,10 +34,11 @@ export function RealtimeBoardProvider({
   userId,
   displayName,
   avatarUrl,
+  readOnly = false,
   children,
 }: RealtimeBoardProviderProps) {
   return (
-    <BoardContext.Provider value={{ boardId, userId, displayName, avatarUrl }}>
+    <BoardContext.Provider value={{ boardId, userId, displayName, avatarUrl, readOnly }}>
       {children}
     </BoardContext.Provider>
   );

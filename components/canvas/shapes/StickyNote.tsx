@@ -28,6 +28,8 @@ export function StickyNote({
   onDragStart,
   onDragEndAt,
   onDragMoveAt,
+  frameDragOffset,
+  readOnly = false,
 }: {
   data: ObjectData;
   onSelect: (id: string, addToSelection?: boolean) => void;
@@ -40,6 +42,8 @@ export function StickyNote({
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
   onDragMoveTick?: () => void;
   onDragStart?: (objectId: string) => void;
+  frameDragOffset?: { dx: number; dy: number };
+  readOnly?: boolean;
 }) {
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
@@ -52,8 +56,10 @@ export function StickyNote({
   const [localSize, setLocalSize] = useState<{ width: number; height: number } | null>(null);
   const [localRotation, setLocalRotation] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
-  const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
+  const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayX = baseX + (frameDragOffset?.dx ?? 0);
+  const displayY = baseY + (frameDragOffset?.dy ?? 0);
   const displayRotation = localRotation ?? data.rotation ?? 0;
   const editInfoRef = useRef<{
     stage: Konva.Stage;
@@ -121,13 +127,14 @@ export function StickyNote({
 
   const handleDblClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (readOnly) return;
       e.cancelBubble = true;
       const stage = e.target.getStage();
       if (!stage) return;
       editInfoRef.current = { stage, pos: { x: displayX, y: displayY } };
       setIsEditing(true);
     },
-    [displayX, displayY]
+    [displayX, displayY, readOnly]
   );
 
   useEffect(() => {
@@ -237,7 +244,7 @@ export function StickyNote({
         x={displayX}
         y={displayY}
         rotation={displayRotation}
-        draggable={!isEditing}
+        draggable={!readOnly && !isEditing}
         onMouseDown={(e) => {
           if (e.evt.button !== 0) return;
           e.cancelBubble = true;

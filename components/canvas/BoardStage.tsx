@@ -5,6 +5,7 @@ import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
 import { usePresence } from "@/hooks/usePresence";
+import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import { ShapeRenderer } from "./shapes/ShapeRenderer";
 import { CursorOverlay } from "./CursorOverlay";
 import { GridBackground } from "./GridBackground";
@@ -37,6 +38,7 @@ import { getNodeSnapPoints } from "@/lib/utils/snapPoints";
 import { ShapeToolbar } from "./ShapeToolbar";
 
 export function BoardStage({ boardId: _boardId }: { boardId: string }) {
+  const { readOnly = false } = useBoardContext();
   const stageRef = useRef<Konva.Stage | null>(null);
   const panningRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -453,6 +455,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   }, [addObject, setSelection, selectedIds, contextMenu?.targetIds]);
 
   useEffect(() => {
+    if (readOnly) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const tagName = (e.target as HTMLElement).tagName;
       if (["INPUT", "TEXTAREA"].includes(tagName)) {
@@ -496,6 +499,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    readOnly,
     selectedIds,
     handleDeleteSelected,
     addObject,
@@ -692,11 +696,12 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
 
   return (
     <>
-      <div
+          <div
             ref={containerRef}
-            className="w-full h-full"
+            className="w-full h-full relative"
             data-testid="board-stage"
             onMouseDownCapture={handleContainerMouseDownCapture}
+            onContextMenu={readOnly ? (e) => e.preventDefault() : undefined}
             data-stage-x={position.x}
             data-stage-y={position.y}
             data-object-count={objectList.length}
@@ -718,7 +723,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
               onMouseDown={handleStageMouseDown}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
-              onContextMenu={handleStageContextMenu}
+              onContextMenu={readOnly ? (e) => e.evt.preventDefault() : handleStageContextMenu}
             >
               <Layer>
                 {gridVisible && <GridBackground />}
@@ -727,25 +732,27 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                     key={obj.id}
                     data={obj}
                     otherObjects={otherObjectsByExcludedId.get(obj.id) ?? []}
-                    onSelect={handleSelect}
-                    isSelected={isSelected(obj.id)}
-                    isMultiSelect={selectedIds.length > 1}
-                    registerShapeRef={registerShapeRef}
-                    onShapeDragEnd={handleShapeDragEnd}
-                    onContextMenu={handleShapeContextMenu}
+                    onSelect={readOnly ? () => {} : handleSelect}
+                    isSelected={!readOnly && isSelected(obj.id)}
+                    isMultiSelect={!readOnly && selectedIds.length > 1}
+                    registerShapeRef={readOnly ? undefined : registerShapeRef}
+                    onShapeDragEnd={readOnly ? undefined : handleShapeDragEnd}
+                    onContextMenu={readOnly ? undefined : handleShapeContextMenu}
                     stageScale={scale}
-                    onDragMoveTick={onDragMoveTick}
-                    onDragStart={handleDragStart}
-                    getLiveSnapPoints={getLiveSnapPoints}
-                    draggedIdsRef={draggedIdsRef}
-                    subscribeToDragMove={dragEmitter.subscribe}
-                    onDragEndAt={handleDragEndAt}
-                    onDragMoveAt={handleDragMoveAt}
-                    onFrameDragWithContents={handleFrameDragWithContents}
-                    onFrameDragStart={handleFrameDragStart}
-                    onFrameDragEnd={handleFrameDragEnd}
+                    onDragMoveTick={readOnly ? undefined : onDragMoveTick}
+                    onDragStart={readOnly ? undefined : handleDragStart}
+                    getLiveSnapPoints={readOnly ? undefined : getLiveSnapPoints}
+                    draggedIdsRef={readOnly ? undefined : draggedIdsRef}
+                    subscribeToDragMove={readOnly ? undefined : dragEmitter.subscribe}
+                    onDragEndAt={readOnly ? undefined : handleDragEndAt}
+                    onDragMoveAt={readOnly ? undefined : handleDragMoveAt}
+                    onFrameDragWithContents={readOnly ? undefined : handleFrameDragWithContents}
+                    onFrameDragStart={readOnly ? undefined : handleFrameDragStart}
+                    onFrameDragEnd={readOnly ? undefined : handleFrameDragEnd}
+                    readOnly={readOnly}
                   />
                 ))}
+                {!readOnly && (
                 <MultiSelectTransformer
                   selectedIds={selectedIds}
                   nodeRefsRef={shapeRefsRef}
@@ -761,9 +768,10 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   onDragEndAt={handleDragEndAt}
                   onDragMoveAt={handleDragMoveAt}
                 />
+                )}
               </Layer>
               <Layer listening={false}>
-                {selectionBox && (
+                {!readOnly && selectionBox && (
                   <SelectionBox
                     x={Math.min(selectionBox.startX, selectionBox.currentX)}
                     y={Math.min(selectionBox.startY, selectionBox.currentY)}
@@ -772,11 +780,14 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   />
                 )}
               </Layer>
+              {!readOnly && (
               <Layer listening={false}>
                 <CursorOverlay others={others} />
               </Layer>
+              )}
             </Stage>
-            {selectedSingleObject != null &&
+            {!readOnly &&
+              selectedSingleObject != null &&
               containerRect != null &&
               selectedIds.length === 1 && (
                 <ShapeToolbar
@@ -796,7 +807,15 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   }}
                 />
               )}
-            {contextMenu != null && (
+            {readOnly && (
+              <div
+                className="absolute bottom-3 right-3 px-2 py-1 rounded text-xs text-gray-500 bg-white/80 backdrop-blur-sm pointer-events-none"
+                style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }}
+              >
+                Pan with middle or right click
+              </div>
+            )}
+            {!readOnly && contextMenu != null && (
               <ContextMenu
                 x={contextMenu.x}
                 y={contextMenu.y}

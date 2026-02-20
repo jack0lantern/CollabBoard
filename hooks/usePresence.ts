@@ -21,13 +21,13 @@ export interface OtherUser {
 }
 
 export function usePresence() {
-  const { boardId, userId, displayName, avatarUrl } = useBoardContext();
+  const { boardId, userId, displayName, avatarUrl, readOnly } = useBoardContext();
   const [others, setOthers] = useState<OtherUser[]>([]);
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    if (!boardId || !userId) return;
+    if (!boardId || !userId || readOnly) return;
 
     setPresence(boardId, userId, {
       cursor: null,
@@ -72,11 +72,11 @@ export function usePresence() {
       unsubscribe();
       removePresence(boardId, userId);
     };
-  }, [boardId, userId, displayName, avatarUrl]);
+  }, [boardId, userId, displayName, avatarUrl, readOnly]);
 
   const updateCursor = useCallback(
     (cursor: { x: number; y: number } | null) => {
-      if (!boardId || !userId) return;
+      if (!boardId || !userId || readOnly) return;
 
       if (cursor === null) {
         if (cursorTimerRef.current) {
@@ -98,7 +98,7 @@ export function usePresence() {
         }, CURSOR_DEBOUNCE_MS);
       }
     },
-    [boardId, userId]
+    [boardId, userId, readOnly]
   );
 
   return { others, updateCursor };
