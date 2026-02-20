@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import { getBoard } from "@/lib/supabase/boards";
 import { ViewBoardWrapper } from "./ViewBoardWrapper";
 import type { Board } from "@/types";
@@ -15,13 +16,37 @@ const BoardCanvas = dynamic(
 
 export default function ViewBoardPage() {
   const params = useParams();
+  const router = useRouter();
   const id = typeof params.id === "string" ? params.id : params.id?.[0];
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
 
   useEffect(() => {
     if (!id) return;
-    void getBoard(id).then(setBoard);
-  }, [id]);
+    const supabase = createSupabaseClient();
+    void getBoard(id).then(async (boardData) => {
+      if (!boardData) {
+        setBoard(null);
+        return;
+      }
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const isOwner = boardData.owner_id === session.user.id;
+          const userEmail = (session.user.email ?? "").toLowerCase();
+          const role = userEmail ? boardData.shared_with?.[userEmail] : undefined;
+          const canEdit =
+            isOwner ||
+            role === "editor" ||
+            (boardData.is_public === true && !boardData.is_public_readonly);
+          if (canEdit) {
+            router.replace(`/board/${id}`);
+            return;
+          }
+        }
+      }
+      setBoard(boardData);
+    });
+  }, [id, router]);
 
   if (!id || board === undefined) {
     return (
