@@ -4,14 +4,15 @@ import { z } from "zod";
 import { trace } from "@opentelemetry/api";
 import { startActiveObservation } from "@langfuse/tracing";
 import { langfuseSpanProcessor } from "@/instrumentation";
+
+type FlushableProcessor = { forceFlush(): Promise<void> };
 import { executeCalculatorTool } from "@/lib/ai/calculator";
 
 export const maxDuration = 30;
 
-const handler = async (
-  req: Request,
-  span: { update: (a: object) => void; updateTrace: (a: object) => void }
-) => {
+type LangfuseSpan = { update: (a: object) => void; updateTrace: (a: object) => void };
+
+const handler = async (req: Request, span: LangfuseSpan) => {
   const { messages, boardState } = (await req.json()) as {
     messages: UIMessage[];
     boardState?: Array<{
@@ -65,7 +66,7 @@ When the user asks you to add or change something, use the appropriate tool. For
       span.update({ output: finishResult.text });
       span.updateTrace({ output: finishResult.text });
       trace.getActiveSpan()?.end();
-      await langfuseSpanProcessor.forceFlush();
+      await (langfuseSpanProcessor as FlushableProcessor).forceFlush();
     },
     onError: async (error) => {
       const errorOutput =
@@ -73,7 +74,7 @@ When the user asks you to add or change something, use the appropriate tool. For
       span.update({ output: errorOutput, level: "ERROR" });
       span.updateTrace({ output: errorOutput });
       trace.getActiveSpan()?.end();
-      await langfuseSpanProcessor.forceFlush();
+      await (langfuseSpanProcessor as FlushableProcessor).forceFlush();
     },
     tools: {
       createStickyNote: tool({
@@ -195,6 +196,9 @@ When the user asks you to add or change something, use the appropriate tool. For
 };
 
 export const POST = async (req: Request) =>
-  startActiveObservation("handle-chat-message", (span) => handler(req, span), {
-    endOnExit: false,
-  });
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- startActiveObservation from @langfuse/tracing may not resolve types in this build
+  await startActiveObservation(
+    "handle-chat-message",
+    (span: LangfuseSpan) => handler(req, span),
+    { endOnExit: false }
+  );

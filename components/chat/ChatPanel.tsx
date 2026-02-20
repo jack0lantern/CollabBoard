@@ -162,7 +162,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
                 <li key={example}>
                   <button
                     type="button"
-                    onClick={() => { sendMessage({ text: example }); }}
+                    onClick={() => { void sendMessage({ text: example }); }}
                     className="text-left w-full px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5"
                     style={{
                       border: "2px solid var(--crayon-blue)",

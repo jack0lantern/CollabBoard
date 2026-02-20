@@ -159,10 +159,12 @@ export function getNodeSnapPoints(
   const scaleY = node.scaleY();
 
   if (type === "rect") {
-    const ox = node.x();
-    const oy = node.y();
-    const w = (node as Konva.Rect).width();
-    const h = (node as Konva.Rect).height();
+    const group = node as Konva.Group;
+    const ox = group.x();
+    const oy = group.y();
+    const rect = group.findOne("Rect");
+    const w = rect?.width() ?? DEFAULT_RECT.width;
+    const h = rect?.height() ?? DEFAULT_RECT.height;
     const effW = w * scaleX;
     const effH = h * scaleY;
     const corners = [
@@ -184,10 +186,12 @@ export function getNodeSnapPoints(
   }
 
   if (type === "circle") {
-    const ox = node.x();
-    const oy = node.y();
-    const rx = (node as Konva.Ellipse).radiusX();
-    const ry = (node as Konva.Ellipse).radiusY();
+    const group = node as Konva.Group;
+    const ox = group.x();
+    const oy = group.y();
+    const ellipse = group.findOne<Konva.Ellipse>("Ellipse");
+    const rx = ellipse?.radiusX() ?? DEFAULT_CIRCLE;
+    const ry = ellipse?.radiusY() ?? DEFAULT_CIRCLE;
     const effRx = rx * scaleX;
     const effRy = ry * scaleY;
     const points = [
