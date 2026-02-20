@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { getBoard } from "@/lib/supabase/boards";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { UserBadge } from "@/components/ui/UserBadge";
 import { ViewBoardWrapper } from "./ViewBoardWrapper";
 import type { Board } from "@/types";
 
@@ -19,6 +21,15 @@ export default function ViewBoardPage() {
   const router = useRouter();
   const id = typeof params.id === "string" ? params.id : params.id?.[0];
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
+  const user = useCurrentUser();
+
+  const handleSignOut = async () => {
+    const supabase = createSupabaseClient();
+    if (supabase) {
+      await supabase.auth.signOut();
+      router.replace("/login");
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -121,6 +132,23 @@ export default function ViewBoardPage() {
               View only
             </span>
           </div>
+          {user != null && (
+            <div className="flex items-center gap-3">
+              <UserBadge
+                user={{
+                  displayName: user.displayName,
+                  email: user.email,
+                }}
+              />
+              <button
+                onClick={() => { void handleSignOut(); }}
+                className="text-sm font-bold underline px-2"
+                style={{ color: "var(--crayon-red)" }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
         </header>
         <div className="flex-1 relative overflow-hidden">
           <div className="w-full h-full relative">
