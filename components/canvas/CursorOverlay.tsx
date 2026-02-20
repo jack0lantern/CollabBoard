@@ -1,7 +1,6 @@
 "use client";
 
 import { Group, Text, Line } from "react-konva";
-import type Konva from "konva";
 import type { OtherUser } from "@/hooks/usePresence";
 
 const CURSOR_COLORS = [
@@ -23,15 +22,7 @@ function getCursorColor(userId: string): string {
   return CURSOR_COLORS[Math.abs(hash) % CURSOR_COLORS.length];
 }
 
-export function CursorOverlay({
-  stage,
-  others,
-}: {
-  stage: Konva.Stage | null;
-  others: OtherUser[];
-}) {
-  if (!stage) return null;
-
+export function CursorOverlay({ others }: { others: OtherUser[] }) {
   return (
     <>
       {others.map((user) => {

@@ -38,7 +38,6 @@ import { ShapeToolbar } from "./ShapeToolbar";
 
 export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   const stageRef = useRef<Konva.Stage | null>(null);
-  const [stage, setStage] = useState<Konva.Stage | null>(null);
   const panningRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [lastDragEnd, setLastDragEnd] = useState(0);
@@ -707,10 +706,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
             data-first-object-y={sortedObjects[0]?.y ?? ""}
           >
             <Stage
-              ref={(node) => {
-                stageRef.current = node;
-                setStage(node);
-              }}
+              ref={stageRef}
               width={dimensions.width}
               height={dimensions.height}
               scaleX={scale}
@@ -777,7 +773,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                 )}
               </Layer>
               <Layer listening={false}>
-                <CursorOverlay stage={stage} others={others} />
+                <CursorOverlay others={others} />
               </Layer>
             </Stage>
             {selectedSingleObject != null &&
