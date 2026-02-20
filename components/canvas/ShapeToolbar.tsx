@@ -148,7 +148,7 @@ export function ShapeToolbar({
       ref={toolbarRef}
       role="toolbar"
       aria-label="Shape formatting"
-      className="fixed z-50 flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+      className="crayon-panel fixed z-50 flex items-center gap-2 rounded-xl px-3 py-2"
       style={{
         left,
         top,
@@ -160,7 +160,7 @@ export function ShapeToolbar({
           <select
             value={object.fontFamily ?? "sans-serif"}
             onChange={(e) => onUpdate({ fontFamily: e.target.value })}
-            className="h-8 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            className="crayon-input h-8 min-w-0 px-2 text-sm py-1"
             title="Font family"
           >
             {FONT_FAMILIES.map((f) => (
@@ -200,7 +200,7 @@ export function ShapeToolbar({
                 (e.target as HTMLInputElement).blur();
               }
             }}
-            className="h-8 w-14 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            className="crayon-input h-8 w-14 px-2 text-sm py-1"
             title="Font size"
           />
           <div className="flex gap-0.5">
@@ -211,11 +211,12 @@ export function ShapeToolbar({
                   fontWeight: object.fontWeight === "bold" ? "normal" : "bold",
                 });
               }}
-              className={`h-8 w-8 rounded px-1 text-sm font-bold ${
+              className={`h-8 w-8 rounded-xl px-1 text-sm font-bold transition-all ${
                 object.fontWeight === "bold"
-                  ? "bg-gray-200 dark:bg-gray-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "crayon-icon-dark"
+                  : "border-2 border-[#1a1a2e] hover:bg-gray-100"
               }`}
+              style={object.fontWeight === "bold" ? undefined : { boxShadow: "2px 2px 0 #1a1a2e" }}
               title="Bold"
             >
               B
@@ -227,11 +228,12 @@ export function ShapeToolbar({
                   fontStyle: object.fontStyle === "italic" ? "normal" : "italic",
                 });
               }}
-              className={`h-8 w-8 rounded px-1 text-sm italic ${
+              className={`h-8 w-8 rounded-xl px-1 text-sm italic transition-all ${
                 object.fontStyle === "italic"
-                  ? "bg-gray-200 dark:bg-gray-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "crayon-icon-dark"
+                  : "border-2 border-[#1a1a2e] hover:bg-gray-100"
               }`}
+              style={object.fontStyle === "italic" ? undefined : { boxShadow: "2px 2px 0 #1a1a2e" }}
               title="Italic"
             >
               I
@@ -244,30 +246,32 @@ export function ShapeToolbar({
                     object.textDecoration === "underline" ? "none" : "underline",
                 });
               }}
-              className={`h-8 w-8 rounded px-1 text-sm underline ${
+              className={`h-8 w-8 rounded-xl px-1 text-sm underline transition-all ${
                 object.textDecoration === "underline"
-                  ? "bg-gray-200 dark:bg-gray-600"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "crayon-icon-dark"
+                  : "border-2 border-[#1a1a2e] hover:bg-gray-100"
               }`}
+              style={object.textDecoration === "underline" ? undefined : { boxShadow: "2px 2px 0 #1a1a2e" }}
               title="Underline"
             >
               U
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
               Text
             </span>
             <input
               type="color"
               value={object.textColor ?? "#000000"}
               onChange={(e) => debouncedUpdate({ textColor: e.target.value })}
-              className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+              className="h-8 w-8 cursor-pointer rounded-xl border-2 border-[#1a1a2e]"
+              style={{ boxShadow: "2px 2px 0 #1a1a2e" }}
               title="Text color"
             />
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
               Highlight
             </span>
             <input
@@ -276,7 +280,8 @@ export function ShapeToolbar({
               onChange={(e) => {
                 debouncedUpdate({ textHighlightColor: e.target.value });
               }}
-              className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+              className="h-8 w-8 cursor-pointer rounded-xl border-2 border-[#1a1a2e]"
+              style={{ boxShadow: "2px 2px 0 #1a1a2e" }}
               title="Highlight color"
             />
             {object.textHighlightColor != null &&
@@ -286,21 +291,22 @@ export function ShapeToolbar({
                   onClick={() => {
                     onUpdate({ textHighlightColor: undefined });
                   }}
-                  className="h-8 px-2 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="h-8 px-2 rounded-xl text-xs font-bold border-2 border-[#1a1a2e] hover:bg-gray-100 transition-all"
+                  style={{ boxShadow: "2px 2px 0 #1a1a2e" }}
                   title="Remove highlight"
                 >
                   Clear
                 </button>
               )}
           </div>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+          <div className="w-px h-6 bg-[#1a1a2e]/30" />
         </>
       )}
 
       {object.type === "frame" && (
         <>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
               Title
             </span>
             <input
@@ -308,18 +314,18 @@ export function ShapeToolbar({
               value={object.title ?? ""}
               onChange={(e) => debouncedUpdate({ title: e.target.value })}
               placeholder="Frame title"
-              className="h-8 min-w-[120px] rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+              className="crayon-input h-8 min-w-[120px] px-2 text-sm py-1"
               title="Frame title"
             />
           </div>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+          <div className="w-px h-6 bg-[#1a1a2e]/30" />
         </>
       )}
 
       {showFillControl && (
         <>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
               Fill
             </span>
             <input
@@ -341,12 +347,13 @@ export function ShapeToolbar({
                     : { color: e.target.value }
                 );
               }}
-              className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+              className="h-8 w-8 cursor-pointer rounded-xl border-2 border-[#1a1a2e]"
+              style={{ boxShadow: "2px 2px 0 #1a1a2e" }}
               title="Fill color"
             />
           </div>
           {(showFontControls || showStrokeControl) && (
-            <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+            <div className="w-px h-6 bg-[#1a1a2e]/30" />
           )}
         </>
       )}
@@ -354,7 +361,7 @@ export function ShapeToolbar({
       {showStrokeControl && (
         <>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
               Border
             </span>
             <input
@@ -363,14 +370,15 @@ export function ShapeToolbar({
               onChange={(e) => {
                 debouncedUpdate({ strokeColor: e.target.value });
               }}
-              className="h-8 w-8 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+              className="h-8 w-8 cursor-pointer rounded-xl border-2 border-[#1a1a2e]"
+              style={{ boxShadow: "2px 2px 0 #1a1a2e" }}
               title="Border color"
             />
           </div>
           <select
             value={object.strokeWidth ?? 0}
             onChange={(e) => onUpdate({ strokeWidth: Number(e.target.value) })}
-            className="h-8 w-14 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            className="crayon-input h-8 w-20 px-2 text-sm py-1"
             title="Border width"
           >
             {STROKE_WIDTHS.map((w) => (
@@ -381,7 +389,7 @@ export function ShapeToolbar({
           </select>
           {object.type === "line" && (
             <>
-              <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+              <div className="w-px h-6 bg-[#1a1a2e]/30" />
               <button
                 type="button"
                 onClick={() => {
@@ -391,11 +399,12 @@ export function ShapeToolbar({
                     arrowEnd: hasArrow ? undefined : true,
                   });
                 }}
-                className={`h-8 px-2 rounded text-sm ${
+                className={`h-8 px-2 rounded-xl text-sm font-bold transition-all ${
                   (object.arrowStart ?? object.arrowEnd) ?? false
-                    ? "bg-gray-200 dark:bg-gray-600"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                    ? "crayon-icon-dark"
+                    : "border-2 border-[#1a1a2e] hover:bg-gray-100"
                 }`}
+                style={((object.arrowStart ?? object.arrowEnd) ?? false) ? undefined : { boxShadow: "2px 2px 0 #1a1a2e" }}
                 title="Toggle arrow"
               >
                 →
