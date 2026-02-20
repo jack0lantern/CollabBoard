@@ -77,51 +77,58 @@ export function LoginForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Log in</h1>
+    <div
+      className="bg-white rounded-2xl p-8 space-y-6"
+      style={{ border: "3px solid #1a1a2e", boxShadow: "6px 6px 0 #1a1a2e", filter: "url(#hand-drawn)" }}
+    >
+      <div className="text-center">
+        <h1 className="font-sketch text-4xl font-bold" style={{ color: "var(--crayon-blue)" }}>
+          Welcome back! ✏️
+        </h1>
+        <p className="text-sm font-semibold text-gray-500 mt-1">Log in to your boards</p>
+      </div>
 
       <form
-        onSubmit={(e) => {
-          void handleSubmit(e);
-        }}
+        onSubmit={(e) => { void handleSubmit(e); }}
         className="space-y-4"
       >
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
-            Email
+          <label htmlFor="email" className="block text-sm font-bold mb-1">
+            Email 📧
           </label>
           <input
             id="email"
             type="email"
             value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-            }}
+            onChange={(e) => { setEmail(e.target.value); }}
             required
-            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+            className="crayon-input text-sm"
+            placeholder="you@school.com"
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1">
-            Password
+          <label htmlFor="password" className="block text-sm font-bold mb-1">
+            Password 🔑
           </label>
           <input
             id="password"
             type="password"
             value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-            }}
+            onChange={(e) => { setPassword(e.target.value); }}
             required
-            className="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+            className="crayon-input text-sm"
+            placeholder="••••••••"
           />
         </div>
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400">
+          <div
+            className="text-sm font-bold px-4 py-2 rounded-xl"
+            style={{ background: "#fff5f5", border: "2px solid var(--crayon-red)", color: "var(--crayon-red)" }}
+          >
             {error === "invalid-credential" ? (
               <>
-                Invalid username/password combination. Have you{" "}
-                <Link href="/signup" className="text-blue-600 hover:underline">
+                Wrong password or email. Have you{" "}
+                <Link href="/signup" className="underline font-black">
                   made an account
                 </Link>
                 {" "}yet?
@@ -129,48 +136,55 @@ export function LoginForm() {
             ) : (
               error
             )}
-          </p>
+          </div>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:opacity-90 disabled:opacity-50"
+          className="crayon-btn crayon-btn-blue w-full text-base justify-center flex"
         >
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? "Signing in... 🖍️" : "Sign in 🎨"}
         </button>
       </form>
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+          <div
+            className="w-full"
+            style={{ borderTop: "2.5px dashed #ccc" }}
+          />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">
-            or
-          </span>
+          <span className="px-3 bg-white font-bold text-gray-400">or</span>
         </div>
       </div>
 
       <button
         type="button"
-        onClick={() => {
-          void handleGoogleSignIn();
-        }}
+        onClick={() => { void handleGoogleSignIn(); }}
         disabled={loading}
-        className="w-full py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+        className="crayon-btn crayon-btn-ghost w-full text-base flex justify-center gap-2"
       >
-        Sign in with Google
+        🌐 Sign in with Google
       </button>
 
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-blue-600 hover:underline">
-          Sign up
+      <p className="text-sm font-semibold text-center">
+        No account?{" "}
+        <Link
+          href="/signup"
+          className="font-black underline"
+          style={{ color: "var(--crayon-purple)" }}
+        >
+          Sign up!
         </Link>
       </p>
 
-      <Link href="/" className="block text-blue-600 hover:underline">
-        ← Back
+      <Link
+        href="/"
+        className="block text-sm font-bold text-center"
+        style={{ color: "var(--crayon-blue)" }}
+      >
+        ← Back home
       </Link>
     </div>
   );

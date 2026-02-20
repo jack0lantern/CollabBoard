@@ -21,6 +21,7 @@ export function ShareModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [boardUrl, setBoardUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setIsPublic(board.is_public ?? false);
@@ -91,6 +92,8 @@ export function ShareModal({
   const handleCopyLink = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(boardUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       setError("Failed to copy link");
     }
@@ -100,18 +103,26 @@ export function ShareModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(26,26,46,0.6)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 shadow-xl p-6"
+        className="w-full max-w-md bg-white rounded-2xl p-6"
+        style={{
+          border: "3px solid #1a1a2e",
+          boxShadow: "6px 6px 0 #1a1a2e",
+          filter: "url(#hand-drawn)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Share board</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-sketch text-2xl font-bold" style={{ color: "var(--crayon-green)" }}>
+            🔗 Share board
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            className="font-black text-xl leading-none hover:opacity-60 transition-opacity"
             aria-label="Close"
           >
             ✕
@@ -119,86 +130,104 @@ export function ShareModal({
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
+          {/* Copy link */}
+          <div className="flex items-center gap-2">
             <input
               type="text"
               readOnly
               value={boardUrl}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-900"
+              className="flex-1 px-3 py-2 text-sm rounded-xl font-semibold truncate"
+              style={{ background: "#f0fff5", border: "2px solid var(--crayon-green)", color: "#555" }}
             />
             <button
-              onClick={() => {
-                void handleCopyLink();
-              }}
-              className="px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              onClick={() => { void handleCopyLink(); }}
+              className="crayon-btn crayon-btn-green text-sm py-1.5 whitespace-nowrap"
             >
-              Copy link
+              {copied ? "Copied! ✓" : "Copy 📋"}
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="is-public"
-              checked={isPublic}
-              onChange={(e) => {
-                void handlePublicToggle((e.target as HTMLInputElement).checked);
-              }}
+          {/* Public toggle */}
+          <div
+            className="flex items-center gap-3 p-3 rounded-xl"
+            style={{ background: "#f0fff5", border: "2px solid var(--crayon-green)" }}
+          >
+            <button
+              role="switch"
+              aria-checked={isPublic}
+              onClick={() => { void handlePublicToggle(!isPublic); }}
               disabled={saving}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="is-public" className="text-sm">
-              Anyone with the link can view and edit
+              className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full transition-all focus:outline-none disabled:opacity-50"
+              style={{
+                border: "2.5px solid #1a1a2e",
+                background: isPublic ? "var(--crayon-green)" : "#e5e7eb",
+                boxShadow: "2px 2px 0 #1a1a2e",
+              }}
+            >
+              <span
+                className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform mt-0.5"
+                style={{
+                  border: "1.5px solid #1a1a2e",
+                  transform: isPublic ? "translateX(1.4rem)" : "translateX(0.15rem)",
+                }}
+              />
+            </button>
+            <label className="text-sm font-bold">
+              🌍 Anyone with link can view & edit
             </label>
           </div>
 
+          {/* Add by email */}
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Add people by email
+            <label className="block text-sm font-bold mb-2">
+              ✉️ Add people by email
             </label>
             <div className="flex gap-2">
               <input
                 type="email"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleAddEmail();
-                }}
-                placeholder="email@example.com"
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+                onKeyDown={(e) => { if (e.key === "Enter") void handleAddEmail(); }}
+                placeholder="friend@school.com"
+                className="flex-1 px-3 py-2 text-sm rounded-xl font-semibold focus:outline-none"
+                style={{ border: "2.5px solid #1a1a2e", boxShadow: "2px 2px 0 #1a1a2e" }}
               />
               <button
-                onClick={() => {
-                  void handleAddEmail();
-                }}
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => { void handleAddEmail(); }}
+                className="crayon-btn crayon-btn-blue text-sm py-1.5"
               >
                 Add
               </button>
             </div>
           </div>
 
+          {/* People list */}
           {sharedEmails.length > 0 && (
             <div>
-              <p className="text-sm font-medium mb-2">People with access</p>
+              <p className="text-sm font-bold mb-2">👥 People with access</p>
               <ul className="space-y-2">
                 {sharedEmails.map(([email, role]) => (
                   <li
                     key={email}
-                    className="flex items-center justify-between text-sm"
+                    className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold"
+                    style={{ background: "#f0f5ff", border: "2px solid var(--crayon-blue)" }}
                   >
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span>
                       {email}
-                      <span className="text-gray-500 ml-1">({role})</span>
+                      <span
+                        className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold"
+                        style={{ background: "var(--crayon-blue)", color: "white" }}
+                      >
+                        {role}
+                      </span>
                     </span>
                     <button
-                      onClick={() => {
-                        void handleRemoveEmail(email);
-                      }}
+                      onClick={() => { void handleRemoveEmail(email); }}
                       disabled={saving}
-                      className="text-red-600 hover:underline disabled:opacity-50"
+                      className="text-xs font-black disabled:opacity-50"
+                      style={{ color: "var(--crayon-red)" }}
                     >
-                      Remove
+                      Remove ✕
                     </button>
                   </li>
                 ))}
@@ -207,16 +236,18 @@ export function ShareModal({
           )}
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p
+              className="text-sm font-bold px-3 py-2 rounded-xl"
+              style={{ background: "#fff5f5", border: "2px solid var(--crayon-red)", color: "var(--crayon-red)" }}
+            >
+              {error}
+            </p>
           )}
         </div>
 
         <div className="flex justify-end mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
-            Done
+          <button onClick={onClose} className="crayon-btn crayon-btn-ghost text-sm">
+            Done ✓
           </button>
         </div>
       </div>

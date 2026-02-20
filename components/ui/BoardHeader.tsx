@@ -80,42 +80,60 @@ export function BoardHeader({
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <header
+        className="flex items-center justify-between px-4 py-2 bg-white flex-shrink-0"
+        style={{ borderBottom: "3px solid #1a1a2e" }}
+      >
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard"
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            className="font-bold text-sm px-3 py-1 rounded-xl transition-all"
+            style={{
+              color: "var(--crayon-blue)",
+              border: "2px solid var(--crayon-blue)",
+            }}
           >
-            ← Back
+            ← Boards
           </Link>
+
           {isEditingTitle && isOwner ? (
             <input
               type="text"
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
-              onBlur={() => {
-                void handleSaveTitle();
-              }}
+              onBlur={() => { void handleSaveTitle(); }}
               onKeyDown={handleTitleKeyDown}
               autoFocus
-              className="text-lg font-semibold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500 min-w-[120px]"
+              className="font-sketch text-xl font-bold bg-transparent focus:outline-none"
+              style={{
+                borderBottom: "2.5px solid var(--crayon-yellow)",
+                minWidth: "120px",
+                color: "var(--crayon-purple)",
+              }}
             />
           ) : (
             <h1
               onClick={() => isOwner && setIsEditingTitle(true)}
-              className={`text-lg font-semibold ${isOwner ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400" : ""}`}
+              className={`font-sketch text-xl font-bold ${isOwner ? "cursor-pointer" : ""}`}
+              style={{ color: "var(--crayon-purple)" }}
             >
               {board?.title ?? "Board"}
             </h1>
           )}
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-3">
+          {/* Undo / Redo */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => undo()}
               disabled={!canUndo}
               aria-label="Undo"
-              className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="p-1.5 rounded-xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                border: "2px solid #1a1a2e",
+                boxShadow: canUndo ? "2px 2px 0 #1a1a2e" : "none",
+              }}
             >
               <UndoIcon />
             </button>
@@ -123,43 +141,51 @@ export function BoardHeader({
               onClick={() => redo()}
               disabled={!canRedo}
               aria-label="Redo"
-              className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="p-1.5 rounded-xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{
+                border: "2px solid #1a1a2e",
+                boxShadow: canRedo ? "2px 2px 0 #1a1a2e" : "none",
+              }}
             >
               <RedoIcon />
             </button>
           </div>
+
           {isOwner && (
             <button
               onClick={() => setShowShareModal(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+              className="crayon-btn crayon-btn-green text-sm py-1.5 flex items-center gap-1.5"
             >
               <ShareIcon />
               Share
             </button>
           )}
+
           <button
             onClick={() => setShowProfileModal(true)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="p-1.5 rounded-xl transition-all"
             aria-label="Profile"
+            style={{ border: "2px solid var(--crayon-orange)", boxShadow: "2px 2px 0 var(--crayon-orange)", color: "var(--crayon-orange)" }}
           >
             <ProfileIcon />
           </button>
+
           <button
             onClick={() => setShowSettingsModal(true)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="p-1.5 rounded-xl transition-all"
             aria-label="Settings"
+            style={{ border: "2px solid var(--crayon-purple)", boxShadow: "2px 2px 0 var(--crayon-purple)", color: "var(--crayon-purple)" }}
           >
             <GearIcon />
           </button>
         </div>
       </header>
+
       {showShareModal && board != null && (
         <ShareModal
           board={board}
           onClose={() => setShowShareModal(false)}
-          onUpdated={(updated) => {
-            onBoardUpdated?.(updated);
-          }}
+          onUpdated={(updated) => { onBoardUpdated?.(updated); }}
         />
       )}
       {showSettingsModal && (
@@ -174,17 +200,7 @@ export function BoardHeader({
 
 function ProfileIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <circle cx="12" cy="10" r="3" />
       <path d="M6.168 18.849A4 4 0 0 1 10 16h4a4 4 0 0 1 3.834 2.855" />
@@ -194,17 +210,7 @@ function ProfileIcon() {
 
 function GearIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
@@ -213,17 +219,7 @@ function GearIcon() {
 
 function UndoIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 10h10a5 5 0 0 1 5 5v2" />
       <path d="M3 10l4-4" />
       <path d="M3 10l4 4" />
@@ -233,17 +229,7 @@ function UndoIcon() {
 
 function RedoIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 10H11a5 5 0 0 0-5 5v2" />
       <path d="M21 10l-4-4" />
       <path d="M21 10l-4 4" />
@@ -253,17 +239,7 @@ function RedoIcon() {
 
 function ShareIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="18" cy="5" r="3" />
       <circle cx="6" cy="12" r="3" />
       <circle cx="18" cy="19" r="3" />

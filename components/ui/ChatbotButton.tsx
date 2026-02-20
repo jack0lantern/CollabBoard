@@ -7,7 +7,7 @@ function ChatIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -28,9 +28,20 @@ export function ChatbotButton({
       type="button"
       onClick={onClick}
       aria-label="Open AI assistant"
-      className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+      className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full text-white transition-all flex items-center justify-center font-bold text-xl active:translate-x-[2px] active:translate-y-[2px]"
+      style={{
+        background: "var(--crayon-purple)",
+        border: "3px solid #7200ab",
+        boxShadow: isOpen ? "none" : "4px 4px 0 #7200ab",
+        transform: isOpen ? "translate(2px, 2px)" : undefined,
+      }}
+      title="AI Assistant ✨"
     >
-      <ChatIcon className={`w-6 h-6 ${isOpen ? "opacity-70" : ""}`} />
+      {isOpen ? (
+        <span className="text-base">✕</span>
+      ) : (
+        <ChatIcon className="w-6 h-6" />
+      )}
     </button>
   );
 }

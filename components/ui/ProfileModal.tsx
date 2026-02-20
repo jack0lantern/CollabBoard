@@ -28,9 +28,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       }
       if (!cancelled) setLoading(false);
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user?.id, user?.displayName]);
 
   const handleSave = useCallback(async () => {
@@ -60,18 +58,26 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(26,26,46,0.6)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 shadow-xl p-6"
+        className="w-full max-w-sm bg-white rounded-2xl p-6"
+        style={{
+          border: "3px solid #1a1a2e",
+          boxShadow: "6px 6px 0 #1a1a2e",
+          filter: "url(#hand-drawn)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Profile</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-sketch text-2xl font-bold" style={{ color: "var(--crayon-orange)" }}>
+            👤 Profile
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            className="font-black text-xl leading-none hover:opacity-60 transition-opacity"
             aria-label="Close"
           >
             ✕
@@ -80,17 +86,17 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
         <div className="space-y-4">
           {loading ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Loading...
+            <p className="text-sm font-bold" style={{ color: "var(--crayon-purple)" }}>
+              Loading... 📚
             </p>
           ) : (
             <>
               <div>
                 <label
                   htmlFor="profile-name"
-                  className="block text-sm font-medium mb-2"
+                  className="block text-sm font-bold mb-2"
                 >
-                  Display name
+                  ✏️ Display name
                 </label>
                 <input
                   id="profile-name"
@@ -98,16 +104,22 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+                  className="crayon-input text-sm"
                 />
               </div>
               {user?.email && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {user.email}
+                <p
+                  className="text-sm font-semibold px-3 py-2 rounded-xl"
+                  style={{ background: "#f0f5ff", border: "2px solid var(--crayon-blue)", color: "var(--crayon-blue)" }}
+                >
+                  📧 {user.email}
                 </p>
               )}
               {error && (
-                <p className="text-sm text-red-600 dark:text-red-400">
+                <p
+                  className="text-sm font-bold px-3 py-2 rounded-xl"
+                  style={{ background: "#fff5f5", border: "2px solid var(--crayon-red)", color: "var(--crayon-red)" }}
+                >
                   {error}
                 </p>
               )}
@@ -117,28 +129,25 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex justify-between mt-6 gap-2">
           <button
-            onClick={() => {
-              void handleLogOut();
-            }}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:underline"
+            onClick={() => { void handleLogOut(); }}
+            className="text-sm font-bold underline"
+            style={{ color: "var(--crayon-red)" }}
           >
             Log out
           </button>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="crayon-btn crayon-btn-ghost text-sm py-1.5"
             >
               Cancel
             </button>
             <button
-              onClick={() => {
-                void handleSave();
-              }}
+              onClick={() => { void handleSave(); }}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+              className="crayon-btn crayon-btn-orange text-sm py-1.5 disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"}
+              {saving ? "Saving... 🖍️" : "Save ✓"}
             </button>
           </div>
         </div>

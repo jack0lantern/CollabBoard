@@ -21,15 +21,7 @@ const iconClass = "w-5 h-5";
 
 function ShapesIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="10" height="10" rx="1" />
       <circle cx="16" cy="16" r="6" />
     </svg>
@@ -38,15 +30,7 @@ function ShapesIcon() {
 
 function StickyIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
       <path d="M16 3v5h5" />
     </svg>
@@ -55,15 +39,7 @@ function StickyIcon() {
 
 function RectIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2" />
     </svg>
   );
@@ -71,15 +47,7 @@ function RectIcon() {
 
 function CircleIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
     </svg>
   );
@@ -87,15 +55,7 @@ function CircleIcon() {
 
 function LineIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="4" y1="20" x2="20" y2="4" />
     </svg>
   );
@@ -103,15 +63,7 @@ function LineIcon() {
 
 function ArrowIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 19L17 7" />
       <polygon points="19,5 16,6 18,8" fill="currentColor" />
     </svg>
@@ -120,15 +72,7 @@ function ArrowIcon() {
 
 function FrameIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="2" width="20" height="20" rx="2" />
       <line x1="2" y1="8" x2="22" y2="8" />
     </svg>
@@ -137,15 +81,7 @@ function FrameIcon() {
 
 function TextIcon() {
   return (
-    <svg
-      className={iconClass}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 7V4h16v3" />
       <path d="M9 20h6" />
       <path d="M12 4v16" />
@@ -190,7 +126,7 @@ export function Toolbar() {
       }
       if (buttonRef.current != null) {
         const rect = buttonRef.current.getBoundingClientRect();
-        setDropdownPosition({ top: rect.top, left: rect.right + 4 });
+        setDropdownPosition({ top: rect.top, left: rect.right + 6 });
       }
       return true;
     });
@@ -296,28 +232,44 @@ export function Toolbar() {
   }, [addObject, objects]);
 
   return (
-    <aside className="flex flex-col gap-1 p-2 w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm">
+    <aside
+      className="flex flex-col gap-2 p-2 w-14 bg-white"
+      style={{
+        borderRight: "3px solid #1a1a2e",
+        boxShadow: "2px 0 0 #1a1a2e",
+      }}
+    >
+      {/* Sticky note – yellow */}
       <button
         onClick={addSticky}
         aria-label="Add sticky note"
-        className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
+        className="crayon-icon-btn crayon-icon-yellow"
+        title="Sticky note"
       >
         <StickyIcon />
       </button>
+
+      {/* Frame – orange */}
       <button
         onClick={addFrame}
         aria-label="Add frame"
-        className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
+        className="crayon-icon-btn crayon-icon-orange"
+        title="Frame"
       >
         <FrameIcon />
       </button>
+
+      {/* Text – purple */}
       <button
         onClick={addText}
         aria-label="Add text"
-        className="p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 transition-colors"
+        className="crayon-icon-btn crayon-icon-purple"
+        title="Text"
       >
         <TextIcon />
       </button>
+
+      {/* Shapes – blue, expandable */}
       <div ref={shapesRef} className="relative">
         <button
           ref={buttonRef}
@@ -325,50 +277,57 @@ export function Toolbar() {
           aria-label="Add shapes"
           aria-expanded={shapesExpanded}
           aria-haspopup="true"
-          className={`p-2 rounded-md transition-colors ${
-            shapesExpanded
-              ? "bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100"
-              : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
+          className={`crayon-icon-btn ${
+            shapesExpanded ? "crayon-icon-blue" : "crayon-icon-blue opacity-80"
           }`}
+          title="Shapes"
         >
           <ShapesIcon />
         </button>
+
         {shapesExpanded &&
           dropdownPosition != null &&
           createPortal(
             <div
               id="toolbar-shapes-dropdown"
-              className="fixed flex flex-col gap-1 min-w-[2.5rem] py-1 px-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50"
+              className="fixed flex flex-col gap-2 py-2 px-2 bg-white rounded-2xl z-50"
               style={{
                 top: dropdownPosition.top,
                 left: dropdownPosition.left,
+                border: "3px solid #1a1a2e",
+                boxShadow: "4px 4px 0 #1a1a2e",
+                filter: "url(#hand-drawn)",
               }}
             >
               <button
                 onClick={addRect}
                 aria-label="Add rectangle"
-                className="p-2 rounded-md bg-blue-200 dark:bg-blue-800 hover:bg-blue-300 dark:hover:bg-blue-700 text-blue-900 dark:text-blue-100 transition-colors"
+                className="crayon-icon-btn crayon-icon-blue"
+                title="Rectangle"
               >
                 <RectIcon />
               </button>
               <button
                 onClick={addCircle}
                 aria-label="Add circle"
-                className="p-2 rounded-md bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-900 dark:text-green-100 transition-colors"
+                className="crayon-icon-btn crayon-icon-green"
+                title="Circle"
               >
                 <CircleIcon />
               </button>
               <button
                 onClick={addLine}
                 aria-label="Add line"
-                className="p-2 rounded-md bg-red-200 dark:bg-red-800 hover:bg-red-300 dark:hover:bg-red-700 text-red-900 dark:text-red-100 transition-colors"
+                className="crayon-icon-btn crayon-icon-red"
+                title="Line"
               >
                 <LineIcon />
               </button>
               <button
                 onClick={addArrow}
                 aria-label="Add arrow"
-                className="p-2 rounded-md bg-orange-200 dark:bg-orange-800 hover:bg-orange-300 dark:hover:bg-orange-700 text-orange-900 dark:text-orange-100 transition-colors"
+                className="crayon-icon-btn crayon-icon-orange"
+                title="Arrow"
               >
                 <ArrowIcon />
               </button>

@@ -1,21 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #fffbee;
+  --foreground: #1a1a2e;
+  --paper-line: #c8e6ff;
+  --crayon-red: #ff4757;
+  --crayon-blue: #2979ff;
+  --crayon-green: #00c853;
+  --crayon-yellow: #ffd600;
+  --crayon-purple: #aa00ff;
+  --crayon-orange: #ff6d00;
+  --crayon-pink: #f50057;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--background);
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
 }
+
+/* ─── Notebook paper background ─── */
+.paper-bg {
+  background-color: #fffbee;
+  background-image:
+    linear-gradient(#fffbee 0px, #fffbee 26px, var(--paper-line) 26px, var(--paper-line) 27px);
+  background-size: 100% 27px;
+}
+
+/* ─── Crayon border cards ─── */
+@layer components {
+  /* Base crayon card – thick solid border + offset shadow same color */
+  .crayon-card {
+    @apply bg-white rounded-2xl;
+    border: 3px solid;
+    filter: url(#hand-drawn);
+  }
+
+  .crayon-card-red   { border-color: var(--crayon-red);    box-shadow: 4px 4px 0 var(--crayon-red); }
+  .crayon-card-blue  { border-color: var(--crayon-blue);   box-shadow: 4px 4px 0 var(--crayon-blue); }
+  .crayon-card-green { border-color: var(--crayon-green);  box-shadow: 4px 4px 0 var(--crayon-green); }
+  .crayon-card-yellow{ border-color: var(--crayon-yellow); box-shadow: 4px 4px 0 var(--crayon-yellow); }
+  .crayon-card-purple{ border-color: var(--crayon-purple); box-shadow: 4px 4px 0 var(--crayon-purple); }
+  .crayon-card-orange{ border-color: var(--crayon-orange); box-shadow: 4px 4px 0 var(--crayon-orange); }
+
+  /* Crayon-style panel (toolbar, chat, header) */
+  .crayon-panel {
+    @apply bg-white;
+    border: 3px solid #1a1a2e;
+    box-shadow: 3px 3px 0 #1a1a2e;
+    filter: url(#hand-drawn);
+  }
+
+  /* Crayon buttons */
+  .crayon-btn {
+    @apply font-bold rounded-xl px-4 py-2 transition-all active:translate-x-[2px] active:translate-y-[2px];
+    border: 2.5px solid;
+  }
+  .crayon-btn:active { box-shadow: none !important; }
+
+  .crayon-btn-red    { @apply text-white bg-[#ff4757]; border-color: #cc1a2a; box-shadow: 3px 3px 0 #cc1a2a; }
+  .crayon-btn-blue   { @apply text-white bg-[#2979ff]; border-color: #0046cc; box-shadow: 3px 3px 0 #0046cc; }
+  .crayon-btn-green  { @apply text-white bg-[#00c853]; border-color: #007a32; box-shadow: 3px 3px 0 #007a32; }
+  .crayon-btn-yellow { @apply text-gray-900 bg-[#ffd600]; border-color: #b39700; box-shadow: 3px 3px 0 #b39700; }
+  .crayon-btn-purple { @apply text-white bg-[#aa00ff]; border-color: #7200ab; box-shadow: 3px 3px 0 #7200ab; }
+  .crayon-btn-orange { @apply text-white bg-[#ff6d00]; border-color: #b34800; box-shadow: 3px 3px 0 #b34800; }
+  .crayon-btn-pink   { @apply text-white bg-[#f50057]; border-color: #a30039; box-shadow: 3px 3px 0 #a30039; }
+  .crayon-btn-dark   { @apply text-white bg-[#1a1a2e]; border-color: #000; box-shadow: 3px 3px 0 #000; }
+
+  /* Ghost/outline crayon button */
+  .crayon-btn-ghost {
+    @apply font-bold rounded-xl px-4 py-2 transition-all bg-white text-[#1a1a2e] active:translate-x-[2px] active:translate-y-[2px];
+    border: 2.5px solid #1a1a2e;
+    box-shadow: 3px 3px 0 #1a1a2e;
+  }
+  .crayon-btn-ghost:active { box-shadow: none !important; }
+
+  /* Toolbar icon buttons */
+  .crayon-icon-btn {
+    @apply rounded-xl p-2 transition-all flex items-center justify-center active:translate-x-[1px] active:translate-y-[1px];
+    border: 2.5px solid;
+  }
+  .crayon-icon-btn:active { box-shadow: none !important; }
+
+  .crayon-icon-red    { @apply text-[#ff4757] bg-red-50;    border-color: #ff4757; box-shadow: 2px 2px 0 #ff4757; }
+  .crayon-icon-blue   { @apply text-[#2979ff] bg-blue-50;   border-color: #2979ff; box-shadow: 2px 2px 0 #2979ff; }
+  .crayon-icon-green  { @apply text-[#00c853] bg-green-50;  border-color: #00c853; box-shadow: 2px 2px 0 #00c853; }
+  .crayon-icon-yellow { @apply text-[#d4a800] bg-yellow-50; border-color: #ffd600; box-shadow: 2px 2px 0 #ffd600; }
+  .crayon-icon-purple { @apply text-[#aa00ff] bg-purple-50; border-color: #aa00ff; box-shadow: 2px 2px 0 #aa00ff; }
+  .crayon-icon-orange { @apply text-[#ff6d00] bg-orange-50; border-color: #ff6d00; box-shadow: 2px 2px 0 #ff6d00; }
+  .crayon-icon-dark   { @apply text-[#1a1a2e] bg-gray-100;  border-color: #1a1a2e; box-shadow: 2px 2px 0 #1a1a2e; }
+
+  /* Inputs */
+  .crayon-input {
+    @apply w-full px-3 py-2 rounded-xl font-semibold bg-white focus:outline-none transition-all;
+    border: 2.5px solid #1a1a2e;
+    box-shadow: 2px 2px 0 #1a1a2e;
+  }
+  .crayon-input:focus {
+    border-color: var(--crayon-blue);
+    box-shadow: 2px 2px 0 var(--crayon-blue);
+  }
+
+  /* Modal overlay */
+  .crayon-modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center;
+    background: repeating-linear-gradient(
+      rgba(0,0,0,0.45),
+      rgba(0,0,0,0.45) 26px,
+      rgba(0,0,0,0.5) 26px,
+      rgba(0,0,0,0.5) 27px
+    );
+  }
+
+  /* Modal container */
+  .crayon-modal {
+    @apply w-full max-w-md rounded-2xl bg-white p-6;
+    border: 3px solid #1a1a2e;
+    box-shadow: 6px 6px 0 #1a1a2e;
+    filter: url(#hand-drawn);
+  }
+
+  /* Sketch heading font */
+  .font-sketch {
+    font-family: 'Caveat', cursive;
+  }
+}
+
+/* Rainbow divider stripe */
+.rainbow-stripe {
+  background: linear-gradient(
+    90deg,
+    var(--crayon-red)    0%  14.3%,
+    var(--crayon-orange) 14.3% 28.6%,
+    var(--crayon-yellow) 28.6% 42.9%,
+    var(--crayon-green)  42.9% 57.2%,
+    var(--crayon-blue)   57.2% 71.5%,
+    var(--crayon-purple) 71.5% 85.8%,
+    var(--crayon-pink)   85.8% 100%
+  );
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f5f5f5; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
