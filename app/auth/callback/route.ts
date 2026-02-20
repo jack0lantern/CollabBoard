@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+function isValidRedirect(path: string): boolean {
+  return path.startsWith("/") && !path.startsWith("//");
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const rawNext = searchParams.get("next") ?? "/dashboard";
+  const next = isValidRedirect(rawNext) ? rawNext : "/dashboard";
 
   if (code) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,5 +39,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+  const loginUrl = new URL("/login", origin);
+  loginUrl.searchParams.set("error", "auth");
+  if (next && next !== "/dashboard") {
+    loginUrl.searchParams.set("next", next);
+  }
+  return NextResponse.redirect(loginUrl.toString());
 }

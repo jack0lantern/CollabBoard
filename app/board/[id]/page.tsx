@@ -52,7 +52,8 @@ export default function BoardPage() {
 
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) {
-        router.replace("/login");
+        const next = encodeURIComponent(`/board/${id}`);
+        router.replace(`/login?next=${next}`);
         return;
       }
       void getBoard(id).then(setBoard);

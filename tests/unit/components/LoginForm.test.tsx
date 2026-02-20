@@ -38,13 +38,13 @@ vi.mock("@/lib/supabase/client", () => ({
 import { LoginForm } from "@/components/auth/LoginForm";
 
 function fillAndSubmit(email = "test@example.com", password = "password123") {
-  fireEvent.change(screen.getByLabelText("Email"), {
+  fireEvent.change(screen.getByLabelText(/Email/), {
     target: { value: email },
   });
-  fireEvent.change(screen.getByLabelText("Password"), {
+  fireEvent.change(screen.getByLabelText(/Password/), {
     target: { value: password },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Sign in(?! with)/ }));
 }
 
 describe("LoginForm", () => {
@@ -90,7 +90,7 @@ describe("LoginForm", () => {
       render(<LoginForm />);
 
       fireEvent.click(
-        screen.getByRole("button", { name: "Sign in with Google" })
+        screen.getByRole("button", { name: /Sign in with Google/ })
       );
 
       await waitFor(() => {
@@ -99,10 +99,48 @@ describe("LoginForm", () => {
         );
       });
     });
+
+    it("redirects to redirectTo after successful email sign-in when provided", async () => {
+      mockSignInWithPassword.mockResolvedValue({
+        data: { user: {}, session: {} },
+        error: null,
+      });
+      render(<LoginForm redirectTo="/board/abc123" />);
+
+      fireEvent.change(screen.getByLabelText(/Email/), {
+        target: { value: "test@example.com" },
+      });
+      fireEvent.change(screen.getByLabelText(/Password/), {
+        target: { value: "password123" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /^Sign in(?! with)/ }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/board/abc123");
+      });
+    });
+
+    it("includes next param in OAuth redirectTo when redirectTo is provided", async () => {
+      mockSignInWithOAuth.mockResolvedValue({
+        data: { url: "https://google.com/oauth" },
+        error: null,
+      });
+      render(<LoginForm redirectTo="/board/xyz" />);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /Sign in with Google/ })
+      );
+
+      await waitFor(() => {
+        const redirectTo = mockSignInWithOAuth.mock.calls[0][0].options.redirectTo;
+        expect(redirectTo).toContain("/auth/callback");
+        expect(redirectTo).toContain("next=%2Fboard%2Fxyz");
+      });
+    });
   });
 
   describe("invalid-credential error", () => {
-    it('shows "Invalid username/password combination" message', async () => {
+    it('shows invalid credential error with "made an account" link', async () => {
       mockSignInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: { message: "Invalid login credentials" },
@@ -113,7 +151,7 @@ describe("LoginForm", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Invalid username\/password combination/)
+          screen.getByText(/Wrong password or email/)
         ).toBeInTheDocument();
       });
     });

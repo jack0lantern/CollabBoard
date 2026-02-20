@@ -5,7 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
-export function LoginForm() {
+function isValidRedirect(path: string): boolean {
+  return path.startsWith("/") && !path.startsWith("//");
+}
+
+export function LoginForm({ redirectTo }: { redirectTo?: string }) {
+  const destination = redirectTo && isValidRedirect(redirectTo) ? redirectTo : "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -39,7 +44,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push(destination);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to sign in");
     } finally {
@@ -59,10 +64,14 @@ export function LoginForm() {
     }
 
     try {
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      if (redirectTo && isValidRedirect(redirectTo)) {
+        callbackUrl.searchParams.set("next", redirectTo);
+      }
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
         },
       });
 
@@ -128,7 +137,10 @@ export function LoginForm() {
             {error === "invalid-credential" ? (
               <>
                 Wrong password or email. Have you{" "}
-                <Link href="/signup" className="underline font-black">
+                <Link
+                  href={redirectTo && isValidRedirect(redirectTo) ? `/signup?next=${encodeURIComponent(redirectTo)}` : "/signup"}
+                  className="underline font-black"
+                >
                   made an account
                 </Link>
                 {" "}yet?
@@ -171,7 +183,7 @@ export function LoginForm() {
       <p className="text-sm font-semibold text-center">
         No account?{" "}
         <Link
-          href="/signup"
+          href={redirectTo && isValidRedirect(redirectTo) ? `/signup?next=${encodeURIComponent(redirectTo)}` : "/signup"}
           className="font-black underline"
           style={{ color: "var(--crayon-purple)" }}
         >

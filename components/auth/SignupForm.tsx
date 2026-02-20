@@ -5,7 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
-export function SignupForm() {
+function isValidRedirect(path: string): boolean {
+  return path.startsWith("/") && !path.startsWith("//");
+}
+
+export function SignupForm({ redirectTo }: { redirectTo?: string }) {
+  const destination = redirectTo && isValidRedirect(redirectTo) ? redirectTo : "/dashboard";
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -59,7 +64,7 @@ export function SignupForm() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push(destination);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create account");
     } finally {
@@ -79,10 +84,14 @@ export function SignupForm() {
     }
 
     try {
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      if (redirectTo && isValidRedirect(redirectTo)) {
+        callbackUrl.searchParams.set("next", redirectTo);
+      }
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
         },
       });
 
@@ -210,7 +219,7 @@ export function SignupForm() {
       <p className="text-sm font-semibold text-center">
         Already have an account?{" "}
         <Link
-          href="/login"
+          href={redirectTo && isValidRedirect(redirectTo) ? `/login?next=${encodeURIComponent(redirectTo)}` : "/login"}
           className="font-black underline"
           style={{ color: "var(--crayon-blue)" }}
         >
