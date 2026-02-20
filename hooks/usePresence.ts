@@ -33,6 +33,7 @@ export function usePresence() {
       cursor: null,
       displayName: displayName ?? "Anonymous",
       avatarUrl: avatarUrl ?? null,
+      email: null,
       lastSeen: Date.now(),
     });
 
@@ -62,6 +63,7 @@ export function usePresence() {
         cursor: null,
         displayName: displayName ?? "Anonymous",
         avatarUrl: avatarUrl ?? null,
+        email: null,
         lastSeen: Date.now(),
       });
     }, 10000);
