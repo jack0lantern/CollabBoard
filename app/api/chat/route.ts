@@ -191,8 +191,9 @@ When the user asks you to add or change something, use the appropriate tool. For
       }),
     },
   });
-
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    onError: () => "Something went wrong. Please try again.",
+  });
 };
 
 export const POST = async (req: Request) =>
