@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
 import { ShareModal } from "./ShareModal";
 import { SettingsModal } from "./SettingsModal";
@@ -20,7 +22,17 @@ export function BoardHeader({
   onBoardUpdated?: (board: Board) => void;
 }) {
   const user = useCurrentUser();
+  const router = useRouter();
   const { undo, redo, canUndo, canRedo } = useBoardObjectsContext();
+
+  const handleLogOut = useCallback(async () => {
+    const supabase = createSupabaseClient();
+    if (supabase) {
+      await supabase.auth.signOut();
+      router.replace("/login");
+    }
+    setShowUserDropdown(false);
+  }, [router]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -217,11 +229,11 @@ export function BoardHeader({
                       Profile
                     </button>
                     <button
-                      onClick={() => { setShowUserDropdown(false); setShowSettingsModal(true); }}
+                      onClick={() => { setShowUserDropdown(false); void handleLogOut(); }}
                       className="text-xs font-bold underline"
-                      style={{ color: "var(--crayon-purple)" }}
+                      style={{ color: "var(--crayon-red)" }}
                     >
-                      Settings
+                      Log out
                     </button>
                   </div>
                 </div>
