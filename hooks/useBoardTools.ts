@@ -176,11 +176,13 @@ export function useBoardTools() {
       if (obj.type === "circle") {
         const radius = Math.max(1, Math.min(width, height) / 2);
         updateObject(objectId, { radius });
-      } else if (
+      } else       if (
         obj.type === "rect" ||
         obj.type === "sticky" ||
         obj.type === "frame" ||
-        obj.type === "text"
+        obj.type === "text" ||
+        obj.type === "diamond" ||
+        obj.type === "triangle"
       ) {
         updateObject(objectId, { width, height });
       } else {

@@ -6,6 +6,8 @@ import type { ObjectData } from "@/types";
 import { StickyNote } from "./StickyNote";
 import { RectShape } from "./RectShape";
 import { CircleShape } from "./CircleShape";
+import { DiamondShape } from "./DiamondShape";
+import { TriangleShape } from "./TriangleShape";
 import { LineShape } from "./LineShape";
 import { FrameShape } from "./FrameShape";
 import { TextShape } from "./TextShape";
@@ -87,6 +89,10 @@ export const ShapeRenderer = memo(function ShapeRenderer({
       return <RectShape {...common} />;
     case "circle":
       return <CircleShape {...common} />;
+    case "diamond":
+      return <DiamondShape {...common} />;
+    case "triangle":
+      return <TriangleShape {...common} />;
     case "frame":
       return (
         <FrameShape

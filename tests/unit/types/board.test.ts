@@ -103,7 +103,7 @@ describe("ObjectData type", () => {
   });
 
   it("accepts all valid ShapeType values", () => {
-    const types: ShapeType[] = ["sticky", "rect", "circle", "line", "frame", "text", "pen"];
+    const types: ShapeType[] = ["sticky", "rect", "circle", "diamond", "triangle", "line", "frame", "text", "pen"];
     types.forEach((type) => {
       const obj: ObjectData = { id: "id", type, x: 0, y: 0 };
       expect(obj.type).toBe(type);

@@ -43,8 +43,8 @@ export function getDefaultObjectPosition(viewport: Viewport): { x: number; y: nu
 /** Connector/arrow style: line only, arrow at end, or arrows at both ends */
 export type ConnectorStyle = "line" | "arrow" | "both";
 
-/** Shape type for createShape (rect or circle) */
-export type CreateShapeType = "rect" | "circle";
+/** Shape type for createShape (rect, circle, diamond, triangle) */
+export type CreateShapeType = "rect" | "circle" | "diamond" | "triangle";
 
 export function getNextZIndex(objects: Record<string, ObjectData>): number {
   const values = Object.values(objects).filter(
@@ -80,7 +80,7 @@ export function buildStickyNoteObject(
 }
 
 /**
- * Build ObjectData for createShape (rect or circle).
+ * Build ObjectData for createShape (rect, circle, diamond, triangle).
  */
 export function buildShapeObject(
   type: CreateShapeType,
@@ -97,9 +97,12 @@ export function buildShapeObject(
   if (type === "rect") {
     return { ...base, type: "rect", width, height };
   }
-  // circle: use width as diameter for radius
-  const radius = Math.max(1, Math.min(width, height) / 2);
-  return { ...base, type: "circle", radius };
+  if (type === "circle") {
+    const radius = Math.max(1, Math.min(width, height) / 2);
+    return { ...base, type: "circle", radius };
+  }
+  // diamond | triangle
+  return { ...base, type, width, height };
 }
 
 /**

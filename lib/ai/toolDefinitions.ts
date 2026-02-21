@@ -24,13 +24,13 @@ export const BOARD_TOOL_DEFINITIONS = [
   },
   {
     name: "createShape",
-    description: "Create a rectangle or circle shape. Optionally add text inside the shape.",
+    description: "Create a rectangle, circle, diamond, or triangle shape. Optionally add text inside the shape.",
     parameters: {
       type: "object",
       properties: {
         type: {
           type: "string",
-          enum: ["rect", "circle"],
+          enum: ["rect", "circle", "diamond", "triangle"],
           description: "Shape type",
         },
         x: { type: "number", description: "X position" },
@@ -100,7 +100,7 @@ export const BOARD_TOOL_DEFINITIONS = [
   },
   {
     name: "resizeObject",
-    description: "Resize an object (rect, circle, sticky, frame)",
+    description: "Resize an object (rect, circle, diamond, triangle, sticky, frame)",
     parameters: {
       type: "object",
       properties: {

@@ -54,6 +54,22 @@ function CircleIcon() {
   );
 }
 
+function DiamondIcon() {
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l9 10-9 10-9-10 9-10z" />
+    </svg>
+  );
+}
+
+function TriangleIcon() {
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 22h20L12 2z" />
+    </svg>
+  );
+}
+
 function LineIcon() {
   return (
     <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -203,6 +219,34 @@ export function Toolbar() {
       zIndex: getNextZIndex(objects),
       radius: 50,
       color: COLORS[2],
+    });
+    setShapesExpanded(false);
+  }, [addObject, objects]);
+
+  const addDiamond = useCallback(() => {
+    addObject({
+      id: crypto.randomUUID(),
+      type: "diamond",
+      x: 175,
+      y: 175,
+      zIndex: getNextZIndex(objects),
+      width: 100,
+      height: 80,
+      color: COLORS[4],
+    });
+    setShapesExpanded(false);
+  }, [addObject, objects]);
+
+  const addTriangle = useCallback(() => {
+    addObject({
+      id: crypto.randomUUID(),
+      type: "triangle",
+      x: 175,
+      y: 175,
+      zIndex: getNextZIndex(objects),
+      width: 100,
+      height: 80,
+      color: COLORS[3],
     });
     setShapesExpanded(false);
   }, [addObject, objects]);
@@ -412,6 +456,22 @@ export function Toolbar() {
                 title="Circle"
               >
                 <CircleIcon />
+              </button>
+              <button
+                onClick={addDiamond}
+                aria-label="Add diamond"
+                className="crayon-icon-btn crayon-icon-purple"
+                title="Diamond"
+              >
+                <DiamondIcon />
+              </button>
+              <button
+                onClick={addTriangle}
+                aria-label="Add triangle"
+                className="crayon-icon-btn crayon-icon-orange"
+                title="Triangle"
+              >
+                <TriangleIcon />
               </button>
               <button
                 onClick={addLine}

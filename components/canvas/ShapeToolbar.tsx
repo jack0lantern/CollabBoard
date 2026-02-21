@@ -58,9 +58,9 @@ const FONT_SIZE_MAX = 120;
 
 const STROKE_WIDTHS = [0, 1, 2, 3, 4, 6, 8];
 
-const SHAPES_WITH_TEXT: ShapeType[] = ["sticky", "text", "rect", "circle"];
-const SHAPES_WITH_FILL: ShapeType[] = ["sticky", "rect", "circle", "frame"];
-const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "line", "frame", "pen"];
+const SHAPES_WITH_TEXT: ShapeType[] = ["sticky", "text", "rect", "circle", "diamond", "triangle"];
+const SHAPES_WITH_FILL: ShapeType[] = ["sticky", "rect", "circle", "diamond", "triangle", "frame"];
+const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "diamond", "triangle", "line", "frame", "pen"];
 
 function hasText(type: ShapeType): boolean {
   return SHAPES_WITH_TEXT.includes(type);
@@ -339,7 +339,11 @@ export function ShapeToolbar({
                     ? "#3b82f6"
                     : object.type === "frame"
                       ? "#ffffff"
-                      : "#10b981")
+                      : object.type === "diamond"
+                        ? "#8b5cf6"
+                        : object.type === "triangle"
+                          ? "#f59e0b"
+                          : "#10b981")
               }
               onChange={(e) => {
                 debouncedUpdate(

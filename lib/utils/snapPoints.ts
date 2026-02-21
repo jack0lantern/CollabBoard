@@ -108,6 +108,37 @@ export function getObjectSnapPoints(obj: ObjectData): { x: number; y: number }[]
         return { x: ox + r.x, y: oy + r.y };
       });
     }
+    case "diamond": {
+      const w = obj.width ?? DEFAULT_RECT.width;
+      const h = obj.height ?? DEFAULT_RECT.height;
+      const ox = obj.x;
+      const oy = obj.y;
+      const corners = [
+        { x: w / 2, y: 0 },
+        { x: w, y: h / 2 },
+        { x: w / 2, y: h },
+        { x: 0, y: h / 2 },
+      ];
+      return corners.map((p) => {
+        const r = rotatePoint(p.x, p.y, rot);
+        return { x: ox + r.x, y: oy + r.y };
+      });
+    }
+    case "triangle": {
+      const w = obj.width ?? DEFAULT_RECT.width;
+      const h = obj.height ?? DEFAULT_RECT.height;
+      const ox = obj.x;
+      const oy = obj.y;
+      const corners = [
+        { x: w / 2, y: 0 },
+        { x: 0, y: h },
+        { x: w, y: h },
+      ];
+      return corners.map((p) => {
+        const r = rotatePoint(p.x, p.y, rot);
+        return { x: ox + r.x, y: oy + r.y };
+      });
+    }
     case "text": {
       const w = obj.width ?? DEFAULT_TEXT.width;
       const h = obj.height ?? DEFAULT_TEXT.height;
@@ -255,6 +286,49 @@ export function getNodeSnapPoints(
     ];
     return [...corners, ...edges].map((p) => {
       const r = rotatePoint(p.x, p.y, rot);
+      return { x: ox + r.x, y: oy + r.y };
+    });
+  }
+
+  if (type === "diamond" || type === "triangle") {
+    const group = node as Konva.Group;
+    const ox = group.x();
+    const oy = group.y();
+    const line = group.findOne<Konva.Line>("Line");
+    const pts = line?.points() ?? [];
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (let i = 0; i < pts.length; i += 2) {
+      const px = pts[i] ?? 0;
+      const py = pts[i + 1] ?? 0;
+      minX = Math.min(minX, px);
+      maxX = Math.max(maxX, px);
+      minY = Math.min(minY, py);
+      maxY = Math.max(maxY, py);
+    }
+    if (minX === Infinity) {
+      minX = 0;
+      maxX = DEFAULT_RECT.width;
+      minY = 0;
+      maxY = DEFAULT_RECT.height;
+    }
+    const corners =
+      type === "diamond"
+        ? [
+            { x: minX + (maxX - minX) / 2, y: minY },
+            { x: maxX, y: minY + (maxY - minY) / 2 },
+            { x: minX + (maxX - minX) / 2, y: maxY },
+            { x: minX, y: minY + (maxY - minY) / 2 },
+          ]
+        : [
+            { x: minX + (maxX - minX) / 2, y: minY },
+            { x: minX, y: maxY },
+            { x: maxX, y: maxY },
+          ];
+    return corners.map((p) => {
+      const r = rotatePoint(p.x * scaleX, p.y * scaleY, rot);
       return { x: ox + r.x, y: oy + r.y };
     });
   }
