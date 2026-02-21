@@ -61,7 +61,7 @@ ${JSON.stringify(boardState ?? [], null, 2)}
 When the user asks you to add or change something, use the appropriate tool. For positions (x, y), use reasonable values (e.g. 100–500). For colors, use hex codes like #fef08a, #3b82f6, #ef4444.`;
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-4o-nano"),
     system: systemPrompt,
     messages: convertToModelMessages(messages),
     tools: {
