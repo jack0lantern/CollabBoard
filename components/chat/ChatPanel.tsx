@@ -66,8 +66,8 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
         );
         addToolOutputFn({ tool: "createStickyNote", toolCallId: toolCall.toolCallId, output: { id } });
       } else if (toolCall.toolName === "createShape") {
-        const { type, x, y, width, height, color } = (input ?? {}) as {
-          type?: "rect" | "circle"; x?: number; y?: number; width?: number; height?: number; color?: string;
+        const { type, x, y, width, height, color, text } = (input ?? {}) as {
+          type?: "rect" | "circle"; x?: number; y?: number; width?: number; height?: number; color?: string; text?: string;
         };
         const defaultPos = getDefaultObjectPosition(viewport);
         const id = tools.createShape(
@@ -76,7 +76,8 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           typeof y === "number" ? y : defaultPos.y,
           typeof width === "number" ? width : 100,
           typeof height === "number" ? height : 100,
-          color ?? "#3b82f6"
+          color ?? "#3b82f6",
+          typeof text === "string" ? text : undefined
         );
         addToolOutputFn({ tool: "createShape", toolCallId: toolCall.toolCallId, output: { id } });
       } else if (toolCall.toolName === "createFrame") {

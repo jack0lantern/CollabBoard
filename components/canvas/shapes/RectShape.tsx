@@ -81,9 +81,6 @@ function useRerenderWatch(
     if (prev.onDragStart !== props.onDragStart) changed.push("onDragStart");
     if (prev.onDragEndAt !== props.onDragEndAt) changed.push("onDragEndAt");
     if (prev.onDragMoveAt !== props.onDragMoveAt) changed.push("onDragMoveAt");
-    if (changed.length > 0) {
-      console.log(`[RectShape ${props.data.id}] rerender caused by:`, changed.join(", "));
-    }
   }
   prevRef.current = props;
 }

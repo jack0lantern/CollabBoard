@@ -47,7 +47,8 @@ export function useBoardTools() {
       y: number,
       width: number,
       height: number,
-      color: string
+      color: string,
+      text?: string
     ) => {
       const id = crypto.randomUUID();
       const obj = buildShapeObject(
@@ -58,7 +59,8 @@ export function useBoardTools() {
         height,
         color,
         getNextZIndex(objects),
-        id
+        id,
+        text
       );
       addObject(obj);
       return id;

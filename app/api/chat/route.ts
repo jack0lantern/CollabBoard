@@ -25,7 +25,7 @@ const handler = async (req: Request, span: LangfuseSpan) => {
     }>;
   };
 
-  const systemPrompt = `You are an AI assistant for a collaborative whiteboard. You can create and modify shapes, sticky notes, frames, connectors, and draw with the pen on the board. If the user doesn't give you parameters, use defaults. Assume drawing refers to the pen tool.
+  const systemPrompt = `You are an AI assistant for a collaborative whiteboard. You can create and modify shapes, sticky notes, frames, connectors, and draw with the pen on the board. If the user doesn't give you parameters, use defaults. 
 
 **Scope & guard rails:**
 - Only respond to requests related to the whiteboard: creating/editing shapes, sticky notes, frames, connectors, drawing straight lines or curved strokes with the pen, moving or resizing objects, changing colors or text, or arithmetic that supports those tasks.
@@ -87,7 +87,7 @@ When the user asks you to add or change something, use the appropriate tool. For
         }),
       }),
       createShape: tool({
-        description: "Create a rectangle or circle",
+        description: "Create a rectangle or circle. Optionally add text inside the shape.",
         inputSchema: z.object({
           type: z.enum(["rect", "circle"]),
           x: z.number().optional().describe("X position (omit to place on left side of view)"),
@@ -95,6 +95,7 @@ When the user asks you to add or change something, use the appropriate tool. For
           width: z.number(),
           height: z.number(),
           color: z.string().default("#3b82f6"),
+          text: z.string().optional().describe("Optional text to display inside the shape"),
         }),
       }),
       createFrame: tool({
@@ -108,7 +109,7 @@ When the user asks you to add or change something, use the appropriate tool. For
         }),
       }),
       createConnector: tool({
-        description: "Create an arrow/connector between two objects",
+        description: "Create an arrow/connector between two objects. Use for diagrams, charts, or arrows.",
         inputSchema: z.object({
           fromId: z.string().describe("Source object ID"),
           toId: z.string().describe("Target object ID"),
@@ -117,7 +118,7 @@ When the user asks you to add or change something, use the appropriate tool. For
       }),
       createStraightLine: tool({
         description:
-          "Draw straight line segments on the board. Use for diagrams, arrows, geometric shapes, or anything with sharp corners. Points are relative to (x,y).",
+          "Draw straight line segments on the board. Use for geometric shapes, drawings, or anything with sharp corners. Points are relative to (x,y).",
         inputSchema: z.object({
           points: z
             .array(z.number())

@@ -24,7 +24,7 @@ export const BOARD_TOOL_DEFINITIONS = [
   },
   {
     name: "createShape",
-    description: "Create a rectangle or circle shape",
+    description: "Create a rectangle or circle shape. Optionally add text inside the shape.",
     parameters: {
       type: "object",
       properties: {
@@ -41,6 +41,10 @@ export const BOARD_TOOL_DEFINITIONS = [
           type: "string",
           description: "Hex color",
           default: "#3b82f6",
+        },
+        text: {
+          type: "string",
+          description: "Optional text to display inside the shape",
         },
       },
       required: ["type", "x", "y", "width", "height"],

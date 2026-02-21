@@ -90,31 +90,16 @@ export function buildShapeObject(
   height: number,
   color: string,
   zIndex: number,
-  id: string
+  id: string,
+  text?: string
 ): ObjectData {
+  const base = { id, x, y, zIndex, color, ...(text != null && text !== "" && { text }) };
   if (type === "rect") {
-    return {
-      id,
-      type: "rect",
-      x,
-      y,
-      zIndex,
-      width,
-      height,
-      color,
-    };
+    return { ...base, type: "rect", width, height };
   }
   // circle: use width as diameter for radius
   const radius = Math.max(1, Math.min(width, height) / 2);
-  return {
-    id,
-    type: "circle",
-    x,
-    y,
-    zIndex,
-    radius,
-    color,
-  };
+  return { ...base, type: "circle", radius };
 }
 
 /**
