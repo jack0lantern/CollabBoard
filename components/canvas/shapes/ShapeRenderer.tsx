@@ -9,6 +9,7 @@ import { CircleShape } from "./CircleShape";
 import { LineShape } from "./LineShape";
 import { FrameShape } from "./FrameShape";
 import { TextShape } from "./TextShape";
+import { PenShape } from "./PenShape";
 
 export const ShapeRenderer = memo(function ShapeRenderer({
   data,
@@ -108,6 +109,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
       );
     case "text":
       return <TextShape {...common} />;
+    case "pen":
+      return <PenShape {...common} />;
     default:
       return null;
   }

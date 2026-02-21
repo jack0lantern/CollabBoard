@@ -3,6 +3,7 @@
 import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvider";
 import { BoardObjectsProvider } from "@/components/providers/BoardObjectsProvider";
 import { GridProvider } from "@/components/providers/GridProvider";
+import { ToolProvider } from "@/components/providers/ToolProvider";
 import { IdleDisconnectProvider } from "@/hooks/useIdleDisconnect";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { ensureAnonymousAuth } from "@/lib/firebase/anonymous-auth";
@@ -72,7 +73,9 @@ export function BoardClientWrapper({
     >
       <IdleDisconnectProvider readOnly={false}>
         <GridProvider>
-          <BoardObjectsProvider>{children}</BoardObjectsProvider>
+          <ToolProvider>
+            <BoardObjectsProvider>{children}</BoardObjectsProvider>
+          </ToolProvider>
         </GridProvider>
       </IdleDisconnectProvider>
     </RealtimeBoardProvider>

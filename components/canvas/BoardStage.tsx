@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer } from "react-konva";
+import { Stage, Layer, Line } from "react-konva";
 import type Konva from "konva";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
 import { useThrottledDragBroadcast } from "@/hooks/useThrottledDragBroadcast";
@@ -17,6 +17,7 @@ import { useGrid } from "@/components/providers/GridProvider";
 import { useSetViewport } from "@/components/providers/ViewportProvider";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useSelection } from "@/hooks/useSelection";
+import { useTool } from "@/components/providers/ToolProvider";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import type { ObjectData } from "@/types";
 import {
@@ -61,6 +62,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
     clearSelection,
     isSelected,
   } = useSelection();
+  const { activeTool, penColor, penStrokeWidth } = useTool();
 
   const [selectionBox, setSelectionBox] = useState<{
     startX: number;
@@ -222,6 +224,16 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
   const cursorBoardPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  const [drawingStroke, setDrawingStroke] = useState<{
+    originX: number;
+    originY: number;
+    points: number[];
+  } | null>(null);
+  const drawingStrokeRef = useRef(drawingStroke);
+  useLayoutEffect(() => {
+    drawingStrokeRef.current = drawingStroke;
+  }, [drawingStroke]);
+
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
       const stage = e.target.getStage();
@@ -231,7 +243,15 @@ export function BoardStage({ boardId }: { boardId: string }) {
         const pos = stage.getPointerPosition();
         if (pos) {
           const board = screenToBoard(stage, pos.x, pos.y);
-          selectionStartRef.current = { x: board.x, y: board.y };
+          if (activeTool === "pen" && !readOnly) {
+            setDrawingStroke({
+              originX: board.x,
+              originY: board.y,
+              points: [0, 0],
+            });
+          } else {
+            selectionStartRef.current = { x: board.x, y: board.y };
+          }
         }
       }
 
@@ -247,7 +267,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
         }
       }
     },
-    [position.x, position.y]
+    [position.x, position.y, activeTool, readOnly]
   );
 
   const handleContainerMouseDownCapture = useCallback(
@@ -494,7 +514,9 @@ export function BoardStage({ boardId }: { boardId: string }) {
       if (["INPUT", "TEXTAREA"].includes(tagName)) {
         return;
       }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
+      if (e.key === "Escape") {
+        setDrawingStroke(null);
+      } else if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
         e.preventDefault();
         handleDeleteSelected();
       } else if (e.key === "f" || e.key === "F") {
@@ -596,6 +618,24 @@ export function BoardStage({ boardId }: { boardId: string }) {
 
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
+      const stroke = drawingStrokeRef.current;
+      if (e.button === 0 && stroke) {
+        pushUndoSnapshot();
+        const maxZ = Math.max(0, ...objectListRef.current.map((o) => o.zIndex ?? 0));
+        const points = stroke.points.length >= 4 ? stroke.points : [0, 0, 1, 1];
+        addObject({
+          id: crypto.randomUUID(),
+          type: "pen",
+          x: stroke.originX,
+          y: stroke.originY,
+          zIndex: maxZ + 1,
+          points,
+          strokeColor: penColor,
+          strokeWidth: penStrokeWidth,
+        });
+        setDrawingStroke(null);
+      }
+
       const box = selectionBoxRef.current;
       if (e.button === 0 && box) {
         const rect = {
@@ -610,7 +650,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
         if (ids.length > 0) {
           setSelection(ids);
         }
-      } else if (e.button === 0 && selectionStartRef.current) {
+      } else if (e.button === 0 && selectionStartRef.current && !stroke) {
         clearSelection();
       }
       setSelectionBox(null);
@@ -639,7 +679,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
     };
     window.addEventListener("mouseup", handleMouseUp);
     return () => window.removeEventListener("mouseup", handleMouseUp);
-  }, [select, setSelection, clearSelection, setPosition]);
+  }, [select, setSelection, clearSelection, setPosition, addObject, pushUndoSnapshot, penColor, penStrokeWidth]);
 
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -682,7 +722,22 @@ export function BoardStage({ boardId }: { boardId: string }) {
         cursorBoardPosRef.current = { x: boardX, y: boardY };
         if (!panningRef.current) updateCursor({ x: boardX, y: boardY });
 
-        if (selectionStartRef.current) {
+        if (drawingStroke) {
+          setDrawingStroke((prev) => {
+            if (!prev) return null;
+            const dx = boardX - prev.originX;
+            const dy = boardY - prev.originY;
+            const lastPx = prev.points[prev.points.length - 2];
+            const lastPy = prev.points[prev.points.length - 1];
+            if (Math.abs(dx - lastPx) < 0.5 && Math.abs(dy - lastPy) < 0.5) {
+              return prev;
+            }
+            return {
+              ...prev,
+              points: [...prev.points, dx, dy],
+            };
+          });
+        } else if (selectionStartRef.current) {
           const start = selectionStartRef.current;
           const dx = Math.abs(boardX - start.x);
           const dy = Math.abs(boardY - start.y);
@@ -700,6 +755,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
           panningMovedRef.current = true;
           pendingContextMenuRef.current = null;
           selectionStartRef.current = null;
+          setDrawingStroke(null);
           setSelectionBox(null);
           const deltaX = pos.x - panStartRef.current.pointer.x;
           const deltaY = pos.y - panStartRef.current.pointer.y;
@@ -725,7 +781,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
         }
       }
     },
-    [updateCursor, setPosition]
+    [updateCursor, setPosition, drawingStroke]
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -795,6 +851,20 @@ export function BoardStage({ boardId }: { boardId: string }) {
                     readOnly={readOnly}
                   />
                 ))}
+                {!readOnly && drawingStroke && (
+                  <Line
+                    points={drawingStroke.points}
+                    x={drawingStroke.originX}
+                    y={drawingStroke.originY}
+                    stroke={penColor}
+                    strokeWidth={penStrokeWidth}
+                    strokeScaleEnabled={false}
+                    lineCap="round"
+                    lineJoin="round"
+                    tension={0.5}
+                    listening={false}
+                  />
+                )}
                 {!readOnly && (
                 <MultiSelectTransformer
                   selectedIds={selectedIds}

@@ -196,16 +196,24 @@ export function formatBoardStateForAI(
   text?: string;
   title?: string;
   color?: string;
+  strokeColor?: string;
+  points?: number[];
 }> {
-  return Object.values(objects).map((obj) => ({
-    id: obj.id,
-    type: obj.type,
-    x: obj.x,
-    y: obj.y,
-    width: obj.width,
-    height: obj.height,
-    text: obj.text,
-    title: obj.title,
-    color: obj.color ?? obj.strokeColor,
-  }));
+  return Object.values(objects).map((obj) => {
+    const base = {
+      id: obj.id,
+      type: obj.type,
+      x: obj.x,
+      y: obj.y,
+      width: obj.width,
+      height: obj.height,
+      text: obj.text,
+      title: obj.title,
+      color: obj.color ?? obj.strokeColor,
+    };
+    if (obj.type === "line" || obj.type === "pen") {
+      return { ...base, strokeColor: obj.strokeColor, points: obj.points };
+    }
+    return base;
+  });
 }

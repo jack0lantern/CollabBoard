@@ -154,7 +154,7 @@ export function useBoardTools() {
       const obj = objects[objectId];
       if (!obj) return false;
       const updates: { color?: string; strokeColor?: string } = { color };
-      if (obj.type === "line") {
+      if (obj.type === "line" || obj.type === "pen") {
         updates.strokeColor = color;
       }
       updateObject(objectId, updates);

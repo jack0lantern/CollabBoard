@@ -88,8 +88,22 @@ describe("ObjectData type", () => {
     expect(text.text).toBe("Standalone text");
   });
 
+  it("validates pen shape structure", () => {
+    const pen: ObjectData = {
+      id: "pen-1",
+      type: "pen",
+      x: 50,
+      y: 50,
+      points: [0, 0, 10, 20, 30, 15],
+      strokeColor: "#1a1a2e",
+      strokeWidth: 2,
+    };
+    expect(pen.type).toBe("pen");
+    expect(pen.points).toHaveLength(6);
+  });
+
   it("accepts all valid ShapeType values", () => {
-    const types: ShapeType[] = ["sticky", "rect", "circle", "line", "frame", "text"];
+    const types: ShapeType[] = ["sticky", "rect", "circle", "line", "frame", "text", "pen"];
     types.forEach((type) => {
       const obj: ObjectData = { id: "id", type, x: 0, y: 0 };
       expect(obj.type).toBe(type);

@@ -60,7 +60,7 @@ const STROKE_WIDTHS = [0, 1, 2, 3, 4, 6, 8];
 
 const SHAPES_WITH_TEXT: ShapeType[] = ["sticky", "text", "rect", "circle"];
 const SHAPES_WITH_FILL: ShapeType[] = ["sticky", "rect", "circle", "frame"];
-const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "line", "frame"];
+const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "line", "frame", "pen"];
 
 function hasText(type: ShapeType): boolean {
   return SHAPES_WITH_TEXT.includes(type);

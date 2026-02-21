@@ -45,7 +45,8 @@ export function applyObjectToKonvaNode(
       }
       break;
     }
-    case "line": {
+    case "line":
+    case "pen": {
       const line = (container.findOne("Line") ?? container.findOne("Arrow")) as
         | Konva.Line
         | undefined;

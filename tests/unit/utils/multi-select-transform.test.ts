@@ -82,6 +82,23 @@ describe("multi-select transform", () => {
       expect(updated.points).toEqual([0, 0, 200, 120]);
     });
 
+    it("pen points scale by scale factors", () => {
+      const pen: ObjectData = {
+        id: "p1",
+        type: "pen",
+        x: 10,
+        y: 20,
+        points: [0, 0, 50, 30, 80, 60],
+      };
+      const updated = computeTransformedObject(pen, {
+        x: 10,
+        y: 20,
+        scaleX: 2,
+        scaleY: 0.5,
+      });
+      expect(updated.points).toEqual([0, 0, 100, 15, 160, 30]);
+    });
+
     it("rotation is included in output for rect, circle, line when group is rotated", () => {
       const rect: ObjectData = {
         id: "r1",

@@ -2,6 +2,7 @@
 
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
+import { useTool } from "@/components/providers/ToolProvider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ObjectData } from "@/types";
@@ -89,16 +90,49 @@ function TextIcon() {
   );
 }
 
+function PenIcon() {
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19l7-7 3 3-7 7-3-3z" />
+      <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+    </svg>
+  );
+}
+
+const PEN_STROKE_WIDTHS = [1, 2, 4, 6, 8];
+
 export function Toolbar() {
   const { addObject } = useBoardMutations();
   const { objects } = useBoardObjectsContext();
+  const {
+    activeTool,
+    setActiveTool,
+    penColor,
+    penStrokeWidth,
+    setPenColor,
+    setPenStrokeWidth,
+  } = useTool();
   const [shapesExpanded, setShapesExpanded] = useState(false);
   const shapesRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const penButtonRef = useRef<HTMLButtonElement>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
     left: number;
   } | null>(null);
+  const [penToolbarPosition, setPenToolbarPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (activeTool === "pen" && penButtonRef.current) {
+      const rect = penButtonRef.current.getBoundingClientRect();
+      setPenToolbarPosition({ top: rect.top, left: rect.right + 6 });
+    } else if (activeTool !== "pen") {
+      setPenToolbarPosition(null);
+    }
+  }, [activeTool]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -268,6 +302,70 @@ export function Toolbar() {
       >
         <TextIcon />
       </button>
+
+      {/* Pen – freedrawing */}
+      <div className="relative">
+        <button
+          ref={penButtonRef}
+          onClick={() => setActiveTool(activeTool === "pen" ? "select" : "pen")}
+          aria-label="Pen tool"
+          aria-pressed={activeTool === "pen"}
+          aria-expanded={activeTool === "pen"}
+          aria-haspopup="true"
+          className={`crayon-icon-btn ${activeTool === "pen" ? "crayon-icon-blue" : "crayon-icon-blue opacity-80"}`}
+          title="Pen (draw)"
+        >
+          <PenIcon />
+        </button>
+
+        {activeTool === "pen" &&
+          penToolbarPosition != null &&
+          createPortal(
+            <div
+              id="toolbar-pen-dropdown"
+              className="fixed flex flex-col gap-2 py-2 px-2 bg-white rounded-2xl z-50"
+              style={{
+                top: penToolbarPosition.top,
+                left: penToolbarPosition.left,
+                border: "3px solid #1a1a2e",
+                boxShadow: "4px 4px 0 #1a1a2e",
+                filter: "url(#hand-drawn)",
+              }}
+            >
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold px-1" style={{ color: "var(--foreground)" }}>
+                  Color
+                </span>
+                <input
+                  type="color"
+                  value={penColor}
+                  onChange={(e) => setPenColor(e.target.value)}
+                  className="h-8 w-8 cursor-pointer rounded-xl border-2 border-[#1a1a2e]"
+                  style={{ boxShadow: "2px 2px 0 #1a1a2e" }}
+                  title="Pen color"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold px-1" style={{ color: "var(--foreground)" }}>
+                  Size
+                </span>
+                <select
+                  value={penStrokeWidth}
+                  onChange={(e) => setPenStrokeWidth(Number(e.target.value))}
+                  className="crayon-input h-8 w-20 px-2 text-sm py-1"
+                  title="Pen size"
+                >
+                  {PEN_STROKE_WIDTHS.map((w) => (
+                    <option key={w} value={w}>
+                      {w}px
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>,
+            document.body
+          )}
+      </div>
 
       {/* Shapes – blue, expandable */}
       <div ref={shapesRef} className="relative">

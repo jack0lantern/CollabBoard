@@ -1,4 +1,4 @@
-export type ShapeType = "sticky" | "rect" | "circle" | "line" | "frame" | "text";
+export type ShapeType = "sticky" | "rect" | "circle" | "line" | "frame" | "text" | "pen";
 
 /** Connection from a line endpoint to a snap point on another object */
 export interface LineConnection {

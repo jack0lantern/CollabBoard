@@ -78,7 +78,8 @@ export function computeTransformedObject(
         rotation: rotation ?? undefined,
       };
     }
-    case "line": {
+    case "line":
+    case "pen": {
       const pts = obj.points ?? [0, 0, 100, 100];
       const newPoints = pts.map((p, i) =>
         i % 2 === 0 ? p * scaleX : p * scaleY

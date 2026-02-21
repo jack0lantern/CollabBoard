@@ -54,7 +54,8 @@ export function getObjectBoundingBox(obj: ObjectData): {
         width: obj.width ?? DEFAULT_TEXT.width,
         height: obj.height ?? DEFAULT_TEXT.height,
       };
-    case "line": {
+    case "line":
+    case "pen": {
       const pts = obj.points ?? [0, 0, 100, 100];
       let minX = pts[0];
       let minY = pts[1];
