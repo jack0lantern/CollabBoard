@@ -45,36 +45,54 @@ export default function BoardPage() {
 
   useEffect(() => {
     if (!id) return;
-    const supabase = createSupabaseClient();
-    if (!supabase) {
+    const client = createSupabaseClient();
+    if (!client) {
       queueMicrotask(() => setBoard(null));
       return;
     }
 
-    void supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session?.user) {
-        const next = encodeURIComponent(`/board/${id}`);
-        router.replace(`/login?next=${next}`);
-        return;
-      }
+    async function loadBoard(supabase: NonNullable<ReturnType<typeof createSupabaseClient>>) {
       const boardData = await getBoard(id);
       if (boardData == null) {
         setBoard(null);
         return;
       }
-      const isOwner = boardData.owner_id === session.user.id;
-      const userEmail = (session.user.email ?? "").toLowerCase();
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const isOwner = session?.user ? boardData.owner_id === session.user.id : false;
+      const userEmail = session?.user?.email?.toLowerCase() ?? "";
       const role = userEmail ? boardData.shared_with?.[userEmail] : undefined;
       const canEdit =
         isOwner ||
         role === "editor" ||
         (boardData.is_public === true && !boardData.is_public_readonly);
+
+      const linkSharingActive =
+        (boardData.is_public ?? false) || (boardData.is_public_readonly ?? false);
+
+      if (linkSharingActive) {
+        if (boardData.is_public_readonly && !canEdit) {
+          router.replace(`/view/${id}`);
+          return;
+        }
+        setBoard(boardData);
+        return;
+      }
+
+      if (!session?.user) {
+        const next = encodeURIComponent(`/board/${id}`);
+        router.replace(`/login?next=${next}`);
+        return;
+      }
+
       if (!canEdit) {
         router.replace(`/view/${id}`);
         return;
       }
       setBoard(boardData);
-    });
+    }
+
+    void loadBoard(client);
   }, [id, router]);
 
   if (!id || board === undefined) {
