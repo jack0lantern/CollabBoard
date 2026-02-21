@@ -206,6 +206,24 @@ export function useBoardObjects() {
     setCanUndo(undoStackRef.current.length > 0);
   }, [objects]);
 
+  const pendingChangesRef = useRef<Map<string, ObjectData>>(new Map());
+  const coalesceScheduledRef = useRef(false);
+
+  const flushCoalescedChanges = useCallback(() => {
+    coalesceScheduledRef.current = false;
+    const pending = pendingChangesRef.current;
+    if (pending.size === 0) return;
+    const batch = new Map(pending);
+    pendingChangesRef.current = new Map();
+    setObjects((prev) => {
+      const next = { ...prev };
+      for (const [id, data] of batch) {
+        next[id] = data;
+      }
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (!boardId) return;
 
@@ -214,7 +232,11 @@ export function useBoardObjects() {
         setObjects((prev) => ({ ...prev, [id]: data }));
       },
       onChanged(id, data) {
-        setObjects((prev) => ({ ...prev, [id]: data }));
+        pendingChangesRef.current.set(id, data);
+        if (!coalesceScheduledRef.current) {
+          coalesceScheduledRef.current = true;
+          queueMicrotask(flushCoalescedChanges);
+        }
       },
       onRemoved(id) {
         setObjects((prev) => {
@@ -226,7 +248,7 @@ export function useBoardObjects() {
     });
 
     return unsubscribe;
-  }, [boardId]);
+  }, [boardId, flushCoalescedChanges]);
 
   return {
     objects,

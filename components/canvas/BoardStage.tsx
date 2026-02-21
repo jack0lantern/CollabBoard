@@ -140,6 +140,10 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   );
 
   const objectListRef = useRef<ObjectData[]>([]);
+  const objectsRef = useRef(objects);
+  useLayoutEffect(() => {
+    objectsRef.current = objects;
+  });
   const rawList = Object.values(objects).filter(
     (obj): obj is ObjectData =>
       typeof obj === "object" &&
@@ -253,15 +257,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     draggedIdsRef.current = [];
   }, []);
 
-  const lastDragMoveZUpdateRef = useRef<{
-    objectId: string;
-    time: number;
-  }>({ objectId: "", time: 0 });
-  const DRAG_MOVE_THROTTLE_MS = 50;
-
   const handleDragEndAt = useCallback(
     (objectId: string, newX: number, newY: number) => {
-      const obj = objectListRef.current.find((o) => o.id === objectId);
+      const obj = objectsRef.current[objectId];
       if (!obj || obj.type === "frame") return;
       const objWithNewPos = { ...obj, x: newX, y: newY };
       const objects = objectListRef.current;
@@ -306,7 +304,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   const handleFrameDragStart = useCallback(
     (frameId: string, startX: number, startY: number) => {
       pushUndoSnapshot();
-      const frame = objectListRef.current.find((o) => o.id === frameId);
+      const frame = objectsRef.current[frameId];
       if (!frame || frame.type !== "frame") return;
       const frameBox = getObjectBoundingBox({ ...frame, x: startX, y: startY });
       const frameZ = frame.zIndex ?? 0;
@@ -333,19 +331,28 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
       const batch: Array<{ id: string; updates: Partial<ObjectData> }> = [
         { id: frameId, updates: { x: newX, y: newY } },
       ];
+      const fullObjects: ObjectData[] = [];
       const refs = shapeRefsRef.current;
+      const frame = objectsRef.current[frameId];
+      if (frame) {
+        fullObjects.push({ ...frame, x: newX, y: newY });
+      }
       for (const id of frameDragContentsRef.current) {
         const node = refs.get(id);
-        if (node) {
-          batch.push({
-            id,
-            updates: { x: node.x(), y: node.y() },
-          });
+        const obj = objectsRef.current[id];
+        if (node && obj) {
+          const x = node.x();
+          const y = node.y();
+          batch.push({ id, updates: { x, y } });
+          fullObjects.push({ ...obj, x, y });
         }
       }
       frameDragContentsRef.current.clear();
       if (batch.length > 1) {
-        updateMultipleObjects(batch, { skipUndo: true });
+        updateMultipleObjects(batch, {
+          skipUndo: true,
+          fullObjects,
+        });
       } else {
         updateObject(frameId, { x: newX, y: newY }, { skipUndo: true });
       }
@@ -353,21 +360,9 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     [updateObject, updateMultipleObjects]
   );
 
-  const handleDragMoveAt = useCallback(
-    (objectId: string, newX: number, newY: number) => {
-      const now = Date.now();
-      const last = lastDragMoveZUpdateRef.current;
-      if (
-        last.objectId === objectId &&
-        now - last.time < DRAG_MOVE_THROTTLE_MS
-      ) {
-        return;
-      }
-      lastDragMoveZUpdateRef.current = { objectId, time: now };
-      handleDragEndAt(objectId, newX, newY);
-    },
-    [handleDragEndAt]
-  );
+  const handleDragMoveAt = useCallback(() => {
+    // Z-index deferred to dragend; no work during drag
+  }, []);
 
   const handleDeleteSelected = useCallback(
     (ids?: string[]) => {
@@ -383,7 +378,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
 
   const handleCopy = useCallback(() => {
     const toCopy = selectedIds
-      .map((id) => objectListRef.current.find((o) => o.id === id))
+      .map((id) => objectsRef.current[id])
       .filter((o): o is ObjectData => o != null);
     copiedObjectsRef.current = toCopy.map((obj) => ({ ...obj }));
   }, [selectedIds]);
@@ -427,7 +422,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     const ids = contextMenu?.targetIds ?? selectedIds;
     if (ids.length < 2) return;
     const selected = ids
-      .map((id) => objectListRef.current.find((o) => o.id === id))
+      .map((id) => objectsRef.current[id])
       .filter((o): o is ObjectData => o != null);
     if (selected.length < 2) return;
     const box = computeGroupBoundingBox(selected);
@@ -480,7 +475,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
       } else if ((e.metaKey || e.ctrlKey) && e.key === "c" && selectedIds.length > 0) {
         e.preventDefault();
         const toCopy = selectedIds
-          .map((id) => objectListRef.current.find((o) => o.id === id))
+          .map((id) => objectsRef.current[id])
           .filter((o): o is ObjectData => o != null);
         copiedObjectsRef.current = toCopy.map((obj) => ({ ...obj }));
       } else if ((e.metaKey || e.ctrlKey) && e.key === "v" && copiedObjectsRef.current.length > 0) {

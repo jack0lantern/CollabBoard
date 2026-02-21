@@ -350,6 +350,31 @@ export async function updateBoardObject(
   }
 }
 
+/** Batch upsert multiple board objects in a single DB round-trip. */
+export async function updateMultipleBoardObjects(
+  boardId: string,
+  objects: ObjectData[]
+): Promise<void> {
+  const supabase = createSupabaseClient();
+  if (!supabase || objects.length === 0) return;
+
+  const rows = objects.map((obj) =>
+    objectToRow(sanitizeObjectData(obj), boardId)
+  );
+  const { error } = await supabase.from("board_objects").upsert(rows, {
+    onConflict: "id",
+  });
+
+  if (error) {
+    console.error(
+      "[updateMultipleBoardObjects] Supabase upsert failed:",
+      error.message,
+      error.code,
+      error.details
+    );
+  }
+}
+
 export async function removeBoardObject(
   boardId: string,
   objectId: string

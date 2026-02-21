@@ -4,6 +4,7 @@ import { useCallback, useContext } from "react";
 import {
   setBoardObject,
   updateBoardObject,
+  updateMultipleBoardObjects,
   removeBoardObject,
 } from "@/lib/supabase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
@@ -45,12 +46,17 @@ export function useBoardMutations() {
   const updateMultipleObjects = useCallback(
     (
       updates: Array<{ id: string; updates: Partial<ObjectData> }>,
-      options?: { skipUndo?: boolean }
+      options?: { skipUndo?: boolean; fullObjects?: ObjectData[] }
     ) => {
       if (updates.length === 0) return;
       patchMultipleObjects?.(updates, options);
-      for (const { id, updates: u } of updates) {
-        updateBoardObject(boardId, id, u);
+      const fullObjects = options?.fullObjects;
+      if (fullObjects != null && fullObjects.length === updates.length) {
+        void updateMultipleBoardObjects(boardId, fullObjects);
+      } else {
+        for (const { id, updates: u } of updates) {
+          updateBoardObject(boardId, id, u);
+        }
       }
     },
     [boardId, patchMultipleObjects]

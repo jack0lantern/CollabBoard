@@ -62,7 +62,7 @@ describe("useBoardObjects", () => {
     expect(result.current.objects["obj-1"]).toEqual(sticky);
   });
 
-  it("updates objects when onChildChanged fires", () => {
+  it("updates objects when onChildChanged fires", async () => {
     const { result } = renderHook(() => useBoardObjects());
 
     const original: ObjectData = {
@@ -82,6 +82,11 @@ describe("useBoardObjects", () => {
 
     act(() => {
       capturedCallbacks.onChanged("obj-1", updated);
+    });
+
+    // Coalescing defers updates to queueMicrotask; await to let it flush
+    await act(async () => {
+      await Promise.resolve();
     });
 
     expect(result.current.objects["obj-1"].x).toBe(50);

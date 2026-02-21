@@ -43,27 +43,44 @@ export function MultiSelectTransformer({
 }: MultiSelectTransformerProps) {
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
-  const { updateObject } = useBoardMutations();
+  const { updateMultipleObjects } = useBoardMutations();
 
   const persistPositions = useCallback(() => {
     const tr = trRef.current;
     if (!tr) return;
     const nodes = tr.nodes();
     const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
+    const nodeToId = new Map<Konva.Node, string>();
+    for (const [id, n] of refs) nodeToId.set(n, id);
+    const updates: Array<{ id: string; updates: Partial<ObjectData> }> = [];
+    const fullObjects: ObjectData[] = [];
     for (const node of nodes) {
-      const entry = Array.from(refs.entries()).find(
-        ([, ref]) => ref === node
-      );
-      const id = entry?.[0];
+      const id = nodeToId.get(node);
       if (id == null) continue;
       const newX = node.x();
       const newY = node.y();
-      updateObject(id, { x: newX, y: newY });
+      const obj = objects[id];
+      if (obj) {
+        updates.push({ id, updates: { x: newX, y: newY } });
+        fullObjects.push({ ...obj, x: newX, y: newY });
+      }
       onDragEndAt?.(id, newX, newY);
+    }
+    if (updates.length > 0) {
+      updateMultipleObjects(updates, {
+        skipUndo: true,
+        fullObjects,
+      });
     }
     tr.getLayer()?.batchDraw();
     onTransformEnd?.();
-  }, [nodeRefsRef, updateObject, onTransformEnd, onDragEndAt]);
+  }, [
+    nodeRefsRef,
+    objects,
+    updateMultipleObjects,
+    onTransformEnd,
+    onDragEndAt,
+  ]);
 
   useLayoutEffect(() => {
     const tr = trRef.current;
@@ -85,11 +102,10 @@ export function MultiSelectTransformer({
     if (!tr) return;
     const nodes = tr.nodes();
     const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
+    const nodeToId = new Map<Konva.Node, string>();
+    for (const [id, n] of refs) nodeToId.set(n, id);
     for (const node of nodes) {
-      const entry = Array.from(refs.entries()).find(
-        ([, ref]) => ref === node
-      );
-      const id = entry?.[0];
+      const id = nodeToId.get(node);
       if (id == null) continue;
       onDragMoveAt?.(id, node.x(), node.y());
     }
@@ -126,28 +142,33 @@ export function MultiSelectTransformer({
 
     const nodes = tr.nodes();
     const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
+    const nodeToId = new Map<Konva.Node, string>();
+    for (const [id, n] of refs) nodeToId.set(n, id);
+    const updates: Array<{ id: string; updates: Partial<ObjectData> }> = [];
+    const fullObjects: ObjectData[] = [];
     for (const node of nodes) {
-      const entry = Array.from(refs.entries()).find(
-        ([, ref]) => ref === node
-      );
-      const id = entry?.[0];
+      const id = nodeToId.get(node);
       if (id == null) continue;
 
       const obj = objects[id];
       if (!obj) continue;
-      const updates = computeTransformedObject(obj, {
+      const transformed = computeTransformedObject(obj, {
         x: node.x(),
         y: node.y(),
         scaleX: node.scaleX(),
         scaleY: node.scaleY(),
         rotation: node.rotation(),
       });
-      updateObject(id, updates);
+      updates.push({ id, updates: transformed });
+      fullObjects.push(transformed);
       node.scaleX(1);
       node.scaleY(1);
       node.rotation(0);
     }
 
+    if (updates.length > 0) {
+      updateMultipleObjects(updates, { fullObjects });
+    }
     tr.getLayer()?.batchDraw();
     onTransformEnd?.();
   };
