@@ -134,6 +134,7 @@ export function MultiSelectTransformer({
       if (id == null) continue;
 
       const obj = objects[id];
+      if (!obj) continue;
       const updates = computeTransformedObject(obj, {
         x: node.x(),
         y: node.y(),
@@ -153,7 +154,7 @@ export function MultiSelectTransformer({
 
   if (selectedIds.length < 2) return null;
 
-  const hasFrame = selectedIds.some((id) => objects[id].type === "frame");
+  const hasFrame = selectedIds.some((id) => objects[id]?.type === "frame");
   const rotateEnabled = !hasFrame;
 
   return (
