@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { GoogleIcon } from "@/components/ui/icons/GoogleIcon";
-import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 
 function isValidRedirect(path: string): boolean {
@@ -16,7 +15,6 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +43,9 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         return;
       }
 
-      router.push(destination);
+      // Full page navigation ensures session cookies are sent and the board page
+      // sees the user as logged in (avoids client-side nav race with session)
+      window.location.href = destination;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to sign in");
     } finally {
@@ -111,7 +111,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           </label>
           <input
             id="email"
-            type="email"
+            type="text"
             value={email}
             onChange={(e) => { setEmail(e.target.value); }}
             required

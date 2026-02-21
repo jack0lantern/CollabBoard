@@ -1,12 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
-const mockPush = vi.fn();
-const mockRefresh = vi.fn();
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
-}));
+let locationHref = "";
+beforeEach(() => {
+  locationHref = "";
+  Object.defineProperty(window, "location", {
+    value: {
+      get href() {
+        return locationHref;
+      },
+      set href(v: string) {
+        locationHref = v;
+      },
+      origin: "http://localhost:3000",
+    },
+    writable: true,
+  });
+});
 
 vi.mock("next/link", () => ({
   default: ({
@@ -21,6 +31,13 @@ vi.mock("next/link", () => ({
       {children}
     </a>
   ),
+}));
+
+const mockPush = vi.fn((path: string) => {
+  locationHref = path;
+});
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
 }));
 
 const mockSignUp = vi.fn();
@@ -43,19 +60,19 @@ function fillAndSubmit(
   email = "test@example.com",
   password = "password123"
 ) {
-  fireEvent.change(screen.getByLabelText("First name"), {
+  fireEvent.change(screen.getByLabelText(/First name/), {
     target: { value: firstName },
   });
-  fireEvent.change(screen.getByLabelText("Last name"), {
+  fireEvent.change(screen.getByLabelText(/Last name/), {
     target: { value: lastName },
   });
-  fireEvent.change(screen.getByLabelText("Email"), {
+  fireEvent.change(screen.getByLabelText(/Email/), {
     target: { value: email },
   });
-  fireEvent.change(screen.getByLabelText("Password"), {
+  fireEvent.change(screen.getByLabelText(/Password/), {
     target: { value: password },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+  fireEvent.click(screen.getByRole("button", { name: /Create account/ }));
 }
 
 describe("SignupForm", () => {
@@ -64,7 +81,7 @@ describe("SignupForm", () => {
   });
 
   describe("post-auth redirect", () => {
-    it("redirects to /dashboard after successful email signup", async () => {
+    it("redirects to /dashboard after successful email signup (with session)", async () => {
       mockSignUp.mockResolvedValue({
         data: { user: { id: "abc123" }, session: {} },
         error: null,
@@ -74,7 +91,21 @@ describe("SignupForm", () => {
       fillAndSubmit();
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith("/dashboard");
+        expect(window.location.href).toBe("/dashboard");
+      });
+    });
+
+    it("redirects to /dashboard when session is null (email verification required)", async () => {
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: "abc123" }, session: null },
+        error: null,
+      });
+      render(<SignupForm />);
+
+      fillAndSubmit();
+
+      await waitFor(() => {
+        expect(window.location.href).toBe("/dashboard");
       });
     });
 
@@ -88,9 +119,23 @@ describe("SignupForm", () => {
       fillAndSubmit();
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalled();
+        expect(window.location.href).toBe("/dashboard");
       });
-      expect(mockPush).not.toHaveBeenCalledWith("/");
+      expect(window.location.href).not.toBe("/");
+    });
+
+    it("redirects to redirectTo (board) after successful signup when provided", async () => {
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: "abc123" }, session: {} },
+        error: null,
+      });
+      render(<SignupForm redirectTo="/board/xyz" />);
+
+      fillAndSubmit();
+
+      await waitFor(() => {
+        expect(window.location.href).toBe("/board/xyz");
+      });
     });
 
     it("calls signInWithOAuth for Google signup", async () => {

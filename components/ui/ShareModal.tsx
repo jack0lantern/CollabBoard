@@ -281,7 +281,7 @@ export function ShareModal({
             </label>
             <div className="flex gap-2">
               <input
-                type="email"
+                type="text"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") void handleAddEmail(); }}

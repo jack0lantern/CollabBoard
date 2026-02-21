@@ -213,7 +213,7 @@ export default function ViewBoardPage() {
               </div>
             ) : (
               <Link
-                href={`/login?next=${encodeURIComponent(`/view/${id}`)}`}
+                href={`/login?next=${encodeURIComponent(`/board/${id}`)}`}
                 className="font-bold text-sm px-3 py-1.5 rounded-xl transition-all flex items-center gap-2"
                 style={{
                   color: "var(--crayon-orange)",

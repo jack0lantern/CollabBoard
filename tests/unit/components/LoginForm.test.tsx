@@ -1,12 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
-const mockPush = vi.fn();
-const mockRefresh = vi.fn();
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
-}));
+let locationHref = "";
+beforeEach(() => {
+  locationHref = "";
+  Object.defineProperty(window, "location", {
+    value: {
+      get href() {
+        return locationHref;
+      },
+      set href(v: string) {
+        locationHref = v;
+      },
+      origin: "http://localhost:3000",
+    },
+    writable: true,
+  });
+});
 
 vi.mock("next/link", () => ({
   default: ({
@@ -63,7 +73,7 @@ describe("LoginForm", () => {
       fillAndSubmit();
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith("/dashboard");
+        expect(window.location.href).toBe("/dashboard");
       });
     });
 
@@ -77,9 +87,9 @@ describe("LoginForm", () => {
       fillAndSubmit();
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalled();
+        expect(window.location.href).toBe("/dashboard");
       });
-      expect(mockPush).not.toHaveBeenCalledWith("/");
+      expect(window.location.href).not.toBe("/");
     });
 
     it("calls signInWithOAuth for Google sign-in", async () => {
@@ -116,7 +126,7 @@ describe("LoginForm", () => {
       fireEvent.click(screen.getByRole("button", { name: /^Sign in(?! with)/ }));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith("/board/abc123");
+        expect(window.location.href).toBe("/board/abc123");
       });
     });
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+const AUTH_REDIRECT_COOKIE = "auth_redirect_after_verify";
+
 function isValidRedirect(path: string): boolean {
   return path.startsWith("/") && !path.startsWith("//");
 }
@@ -8,7 +10,10 @@ function isValidRedirect(path: string): boolean {
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const rawNext = searchParams.get("next") ?? "/dashboard";
+  const rawNextFromUrl = searchParams.get("next");
+  const rawNextFromCookie = request.cookies.get(AUTH_REDIRECT_COOKIE)?.value;
+  const rawNext =
+    rawNextFromUrl ?? (rawNextFromCookie ? decodeURIComponent(rawNextFromCookie) : null) ?? "/dashboard";
   const next = isValidRedirect(rawNext) ? rawNext : "/dashboard";
 
   if (code) {
@@ -33,6 +38,13 @@ export async function GET(request: NextRequest) {
 
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
+        // Clear redirect cookie if we used it (email verification flow)
+        if (rawNextFromCookie) {
+          redirectResponse.cookies.set(AUTH_REDIRECT_COOKIE, "", {
+            path: "/",
+            maxAge: 0,
+          });
+        }
         return redirectResponse;
       }
       console.error("[auth/callback] exchangeCodeForSession failed:", error.message);
