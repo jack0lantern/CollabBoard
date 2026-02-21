@@ -240,14 +240,15 @@ export function BoardHeader({
               )}
             </div>
           ) : (
-            <button
-              onClick={() => setShowProfileModal(true)}
-              className="p-1.5 rounded-xl transition-all"
-              aria-label="Profile"
+            <Link
+              href={`/login?next=${encodeURIComponent(`/board/${boardId}`)}`}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-all font-bold text-sm"
+              aria-label="Log in"
               style={{ border: "2px solid var(--crayon-orange)", boxShadow: "2px 2px 0 var(--crayon-orange)", color: "var(--crayon-orange)" }}
             >
               <ProfileIcon />
-            </button>
+              Log in
+            </Link>
           )}
 
           <button
