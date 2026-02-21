@@ -312,7 +312,7 @@ export function Toolbar() {
           aria-pressed={activeTool === "pen"}
           aria-expanded={activeTool === "pen"}
           aria-haspopup="true"
-          className={`crayon-icon-btn ${activeTool === "pen" ? "crayon-icon-blue" : "crayon-icon-blue opacity-80"}`}
+          className={`crayon-icon-btn ${activeTool === "pen" ? "crayon-icon-green" : "crayon-icon-green opacity-80"}`}
           title="Pen (draw)"
         >
           <PenIcon />

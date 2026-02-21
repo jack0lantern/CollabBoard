@@ -145,6 +145,34 @@ export function buildFrameObject(
 }
 
 /**
+ * Build ObjectData for pen strokes (straight lines or curves).
+ * Points are relative to (x, y); tension: 0 = straight, 0.5 = smooth curves.
+ */
+export function buildPenObject(
+  x: number,
+  y: number,
+  points: number[],
+  strokeColor: string,
+  strokeWidth: number,
+  tension: number,
+  zIndex: number,
+  id: string
+): ObjectData {
+  const normalizedPoints = points.length >= 4 ? points : [0, 0, 1, 1];
+  return {
+    id,
+    type: "pen",
+    x,
+    y,
+    zIndex,
+    points: normalizedPoints,
+    strokeColor,
+    strokeWidth,
+    tension,
+  };
+}
+
+/**
  * Build ObjectData for createConnector (line/arrow between two objects).
  */
 export function buildConnectorObject(
@@ -198,6 +226,7 @@ export function formatBoardStateForAI(
   color?: string;
   strokeColor?: string;
   points?: number[];
+  tension?: number;
 }> {
   return Object.values(objects).map((obj) => {
     const base = {
@@ -212,7 +241,7 @@ export function formatBoardStateForAI(
       color: obj.color ?? obj.strokeColor,
     };
     if (obj.type === "line" || obj.type === "pen") {
-      return { ...base, strokeColor: obj.strokeColor, points: obj.points };
+      return { ...base, strokeColor: obj.strokeColor, points: obj.points, tension: obj.tension };
     }
     return base;
   });

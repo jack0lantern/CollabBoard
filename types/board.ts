@@ -41,6 +41,8 @@ export interface ObjectData {
   strokeColor?: string;
   /** Border/stroke width in pixels */
   strokeWidth?: number;
+  /** Bezier tension for pen strokes: 0 = straight lines, 0.5 = smooth curves */
+  tension?: number;
   /** Line start endpoint connection to another object's snap point */
   lineStartConnection?: LineConnection;
   /** Line end endpoint connection to another object's snap point */

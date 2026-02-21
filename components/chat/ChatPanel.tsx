@@ -98,6 +98,40 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
         };
         const id = tools.createConnector(fromId, toId, style ?? "arrow");
         addToolOutputFn({ tool: "createConnector", toolCallId: toolCall.toolCallId, output: { id } });
+      } else if (toolCall.toolName === "createStraightLine") {
+        const { points, x, y, strokeColor, strokeWidth } = (input ?? {}) as {
+          points?: number[];
+          x?: number;
+          y?: number;
+          strokeColor?: string;
+          strokeWidth?: number;
+        };
+        const defaultPos = getDefaultObjectPosition(viewport);
+        const id = tools.createStraightLine(
+          typeof x === "number" ? x : defaultPos.x,
+          typeof y === "number" ? y : defaultPos.y,
+          Array.isArray(points) && points.length >= 4 ? points : [0, 0, 50, 50],
+          strokeColor ?? "#1a1a2e",
+          typeof strokeWidth === "number" ? strokeWidth : 2
+        );
+        addToolOutputFn({ tool: "createStraightLine", toolCallId: toolCall.toolCallId, output: { id } });
+      } else if (toolCall.toolName === "createCurvedStroke") {
+        const { points, x, y, strokeColor, strokeWidth } = (input ?? {}) as {
+          points?: number[];
+          x?: number;
+          y?: number;
+          strokeColor?: string;
+          strokeWidth?: number;
+        };
+        const defaultPos = getDefaultObjectPosition(viewport);
+        const id = tools.createCurvedStroke(
+          typeof x === "number" ? x : defaultPos.x,
+          typeof y === "number" ? y : defaultPos.y,
+          Array.isArray(points) && points.length >= 4 ? points : [0, 0, 50, 50],
+          strokeColor ?? "#1a1a2e",
+          typeof strokeWidth === "number" ? strokeWidth : 2
+        );
+        addToolOutputFn({ tool: "createCurvedStroke", toolCallId: toolCall.toolCallId, output: { id } });
       } else if (toolCall.toolName === "moveObject") {
         const { objectId, x, y } = (input ?? {}) as { objectId: string; x: number; y: number };
         const ok = tools.moveObject(objectId, x, y);

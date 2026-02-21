@@ -25,17 +25,17 @@ const handler = async (req: Request, span: LangfuseSpan) => {
     }>;
   };
 
-  const systemPrompt = `You are an AI assistant for a collaborative whiteboard. You can create and modify shapes, sticky notes, frames, connectors, and draw with the pen on the board. If the user doesn't give you parameters, use defaults.
+  const systemPrompt = `You are an AI assistant for a collaborative whiteboard. You can create and modify shapes, sticky notes, frames, connectors, and draw with the pen on the board. If the user doesn't give you parameters, use defaults. Assume drawing refers to the pen tool.
 
 **Scope & guard rails:**
-- Only respond to requests related to the whiteboard: creating/editing shapes, sticky notes, frames, connectors, drawing with the pen, moving or resizing objects, changing colors or text, or arithmetic that supports those tasks.
+- Only respond to requests related to the whiteboard: creating/editing shapes, sticky notes, frames, connectors, drawing straight lines or curved strokes with the pen, moving or resizing objects, changing colors or text, or arithmetic that supports those tasks.
 - If the user asks something off-topic (e.g., general knowledge, coding help, creative writing, personal advice, or anything unrelated to the board), politely redirect: "I'm here to help with your whiteboard—adding shapes, sticky notes, frames, and connectors. What would you like to create or change on the board?"
 - Do NOT use any tools for off-topic requests. Do NOT answer unrelated questions.
 - Keep responses concise and focused on board actions.
 
 **Important: For any arithmetic or math calculations, you MUST use the calculator tools (add, subtract, mult, div). Do NOT compute numbers yourself—always call the appropriate calculator tool.**
 
-**Batching: When the user asks for multiple things (e.g., "add a sticky note and a circle", "create 3 shapes", "add a frame and connect it to the note"), make ALL required tool calls in a single response. Batch multiple tool calls together rather than doing them one at a time.**
+**Batching: When the user asks for multiple things (e.g., "add a sticky note and a circle", "create 3 shapes", "add a frame and connect it to the note"), make ALL required tool calls in a single response. Batch multiple tool calls together rather than doing them one at a time, especially for drawing with the pen.**
 
 Current board state (for context):
 ${JSON.stringify(boardState ?? [], null, 2)}
@@ -113,6 +113,38 @@ When the user asks you to add or change something, use the appropriate tool. For
           fromId: z.string().describe("Source object ID"),
           toId: z.string().describe("Target object ID"),
           style: z.enum(["line", "arrow", "both"]).default("arrow"),
+        }),
+      }),
+      createStraightLine: tool({
+        description:
+          "Draw straight line segments on the board. Use for diagrams, arrows, geometric shapes, or anything with sharp corners. Points are relative to (x,y).",
+        inputSchema: z.object({
+          points: z
+            .array(z.number())
+            .min(4)
+            .describe(
+              "Flat array [x1,y1,x2,y2,...] of coordinates relative to (x,y). Each pair is a vertex; lines connect vertices with no curve."
+            ),
+          x: z.number().optional().describe("X position (omit to place on left side of view)"),
+          y: z.number().optional().describe("Y position (omit to place on left side of view)"),
+          strokeColor: z.string().default("#1a1a2e").describe("Hex color"),
+          strokeWidth: z.number().min(1).max(20).default(2).describe("Stroke width in pixels"),
+        }),
+      }),
+      createCurvedStroke: tool({
+        description:
+          "Draw smooth curved strokes on the board. Use for organic shapes, smiley faces, waves, or freehand-style illustrations. Points are relative to (x,y); curves are interpolated between them.",
+        inputSchema: z.object({
+          points: z
+            .array(z.number())
+            .min(4)
+            .describe(
+              "Flat array [x1,y1,x2,y2,...] of coordinates relative to (x,y). Minimum 2 points (4 numbers). More points = smoother curves."
+            ),
+          x: z.number().optional().describe("X position (omit to place on left side of view)"),
+          y: z.number().optional().describe("Y position (omit to place on left side of view)"),
+          strokeColor: z.string().default("#1a1a2e").describe("Hex color"),
+          strokeWidth: z.number().min(1).max(20).default(2).describe("Stroke width in pixels"),
         }),
       }),
       moveObject: tool({

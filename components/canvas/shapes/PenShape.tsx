@@ -8,7 +8,7 @@ import { useBoardMutations } from "@/hooks/useBoardMutations";
 
 const HIT_STROKE_WIDTH = 20;
 const DEFAULT_STROKE_WIDTH = 2;
-const PEN_TENSION = 0.5; // Smooth bezier curves like Miro
+const DEFAULT_TENSION = 0.5; // Smooth bezier curves like Miro
 
 export function PenShape({
   data,
@@ -54,6 +54,7 @@ export function PenShape({
     (data.strokeWidth ?? 0) > 0 ? (data.strokeWidth ?? DEFAULT_STROKE_WIDTH) : DEFAULT_STROKE_WIDTH
   );
   const points = data.points ?? [];
+  const tension = typeof data.tension === "number" ? data.tension : DEFAULT_TENSION;
 
   return (
     <Group
@@ -94,7 +95,7 @@ export function PenShape({
     >
       <Line
         points={points}
-        tension={PEN_TENSION}
+        tension={tension}
         stroke={strokeColor}
         strokeWidth={strokeWidth}
         strokeScaleEnabled={false}

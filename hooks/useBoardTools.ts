@@ -9,6 +9,7 @@ import {
   buildShapeObject,
   buildFrameObject,
   buildConnectorObject,
+  buildPenObject,
   formatBoardStateForAI,
   type ConnectorStyle,
   type CreateShapeType,
@@ -106,6 +107,56 @@ export function useBoardTools() {
     [addObject, objects]
   );
 
+  const createStraightLine = useCallback(
+    (
+      x: number,
+      y: number,
+      points: number[],
+      strokeColor: string = "#1a1a2e",
+      strokeWidth: number = 2
+    ) => {
+      const id = crypto.randomUUID();
+      const obj = buildPenObject(
+        x,
+        y,
+        points,
+        strokeColor,
+        strokeWidth,
+        0,
+        getNextZIndex(objects),
+        id
+      );
+      addObject(obj);
+      return id;
+    },
+    [addObject, objects]
+  );
+
+  const createCurvedStroke = useCallback(
+    (
+      x: number,
+      y: number,
+      points: number[],
+      strokeColor: string = "#1a1a2e",
+      strokeWidth: number = 2
+    ) => {
+      const id = crypto.randomUUID();
+      const obj = buildPenObject(
+        x,
+        y,
+        points,
+        strokeColor,
+        strokeWidth,
+        0.5,
+        getNextZIndex(objects),
+        id
+      );
+      addObject(obj);
+      return id;
+    },
+    [addObject, objects]
+  );
+
   const moveObject = useCallback(
     (objectId: string, x: number, y: number) => {
       const obj = objects[objectId];
@@ -172,6 +223,8 @@ export function useBoardTools() {
     createShape,
     createFrame,
     createConnector,
+    createStraightLine,
+    createCurvedStroke,
     moveObject,
     resizeObject,
     updateText,
