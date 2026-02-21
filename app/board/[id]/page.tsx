@@ -9,6 +9,7 @@ import { BoardHeader } from "@/components/ui/BoardHeader";
 import { ViewportProvider } from "@/components/providers/ViewportProvider";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
+import { ReconnectedBanner } from "@/components/ui/ReconnectedBanner";
 import { ChatbotButton } from "@/components/ui/ChatbotButton";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { getBoard } from "@/lib/supabase/boards";
@@ -110,6 +111,7 @@ export default function BoardPage() {
           <Toolbar />
           <div className="flex-1 relative overflow-hidden">
             <ViewportProvider>
+              <ReconnectedBanner />
               <BoardCanvas boardId={id} />
             <div className="absolute top-4 right-4 z-10">
               <UserList />

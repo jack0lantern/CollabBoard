@@ -9,6 +9,7 @@ import {
   setupOnDisconnectCleanup,
 } from "@/lib/firebase/presence";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
+import { useIdleDisconnect } from "@/hooks/useIdleDisconnect";
 
 const STALE_THRESHOLD_MS = 30000;
 const CURSOR_DEBOUNCE_MS = 50;
@@ -22,12 +23,18 @@ export interface OtherUser {
 
 export function usePresence() {
   const { boardId, userId, displayName, avatarUrl, readOnly } = useBoardContext();
+  const { isConnected } = useIdleDisconnect();
   const [others, setOthers] = useState<OtherUser[]>([]);
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    if (!boardId || !userId || readOnly) return;
+    if (!boardId || !userId || readOnly || !isConnected) {
+      if (boardId && userId && !readOnly && !isConnected) {
+        void removePresence(boardId, userId);
+      }
+      return;
+    }
 
     setPresence(boardId, userId, {
       cursor: null,
@@ -74,11 +81,11 @@ export function usePresence() {
       unsubscribe();
       removePresence(boardId, userId);
     };
-  }, [boardId, userId, displayName, avatarUrl, readOnly]);
+  }, [boardId, userId, displayName, avatarUrl, readOnly, isConnected]);
 
   const updateCursor = useCallback(
     (cursor: { x: number; y: number } | null) => {
-      if (!boardId || !userId || readOnly) return;
+      if (!boardId || !userId || readOnly || !isConnected) return;
 
       if (cursor === null) {
         if (cursorTimerRef.current) {
@@ -100,7 +107,7 @@ export function usePresence() {
         }, CURSOR_DEBOUNCE_MS);
       }
     },
-    [boardId, userId, readOnly]
+    [boardId, userId, readOnly, isConnected]
   );
 
   return { others, updateCursor };

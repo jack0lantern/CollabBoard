@@ -58,7 +58,7 @@ const FONT_SIZE_MAX = 120;
 
 const STROKE_WIDTHS = [0, 1, 2, 3, 4, 6, 8];
 
-const SHAPES_WITH_TEXT: ShapeType[] = ["sticky", "text"];
+const SHAPES_WITH_TEXT: ShapeType[] = ["sticky", "text", "rect", "circle"];
 const SHAPES_WITH_FILL: ShapeType[] = ["sticky", "rect", "circle", "frame"];
 const SHAPES_WITH_STROKE: ShapeType[] = ["sticky", "rect", "circle", "line", "frame"];
 
@@ -160,11 +160,12 @@ export function ShapeToolbar({
           <select
             value={object.fontFamily ?? "sans-serif"}
             onChange={(e) => onUpdate({ fontFamily: e.target.value })}
-            className="crayon-input h-8 min-w-0 px-2 text-sm py-1"
+            className="crayon-input h-8 min-w-[140px] px-2 text-sm py-1"
+            style={{ fontFamily: object.fontFamily ?? "sans-serif" }}
             title="Font family"
           >
             {FONT_FAMILIES.map((f) => (
-              <option key={f} value={f}>
+              <option key={f} value={f} style={{ fontFamily: f }}>
                 {f}
               </option>
             ))}

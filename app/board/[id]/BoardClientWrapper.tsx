@@ -3,6 +3,7 @@
 import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvider";
 import { BoardObjectsProvider } from "@/components/providers/BoardObjectsProvider";
 import { GridProvider } from "@/components/providers/GridProvider";
+import { IdleDisconnectProvider } from "@/hooks/useIdleDisconnect";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { ensureAnonymousAuth } from "@/lib/firebase/anonymous-auth";
 import { useEffect, useState } from "react";
@@ -69,9 +70,11 @@ export function BoardClientWrapper({
       displayName={displayName}
       avatarUrl={avatarUrl}
     >
-      <GridProvider>
-        <BoardObjectsProvider>{children}</BoardObjectsProvider>
-      </GridProvider>
+      <IdleDisconnectProvider readOnly={false}>
+        <GridProvider>
+          <BoardObjectsProvider>{children}</BoardObjectsProvider>
+        </GridProvider>
+      </IdleDisconnectProvider>
     </RealtimeBoardProvider>
   );
 }
