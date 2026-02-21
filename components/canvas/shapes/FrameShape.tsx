@@ -18,6 +18,7 @@ const TITLE_PADDING = 8;
  */
 export function FrameShape({
   data,
+  ephemeralPosition,
   onSelect,
   isSelected,
   isMultiSelect,
@@ -32,6 +33,7 @@ export function FrameShape({
   readOnly = false,
 }: {
   data: ObjectData;
+  ephemeralPosition?: { x: number; y: number };
   onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
   isMultiSelect?: boolean;
@@ -62,8 +64,10 @@ export function FrameShape({
   const [localSize, setLocalSize] = useState<{ width: number; height: number } | null>(null);
   const width = localSize?.width ?? data.width ?? 600;
   const height = localSize?.height ?? data.height ?? 400;
-  const displayX = isDragging ? pos.x : (localPos?.x ?? data.x);
-  const displayY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
+  const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
+  const displayX = (ephemeralPosition?.x ?? baseX);
+  const displayY = (ephemeralPosition?.y ?? baseY);
   const displayRotation = data.rotation ?? 0;
 
   const fillColor = data.frameColor ?? data.color ?? "#ffffff";

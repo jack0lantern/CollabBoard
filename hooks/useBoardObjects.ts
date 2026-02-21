@@ -8,10 +8,12 @@ import {
   useState,
   useCallback,
   useRef,
+  type MutableRefObject,
 } from "react";
 import {
   onBoardObjectsChange,
   replaceBoardObjects,
+  type DragMovePositions,
 } from "@/lib/supabase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import type { ObjectData } from "@/types";
@@ -86,6 +88,12 @@ export interface BoardObjectsValue {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  /** Ref for BoardStage to set ephemeral drag handler (applies broadcast positions to Konva nodes). */
+  broadcastDragMoveHandlerRef: MutableRefObject<
+    ((positions: DragMovePositions) => void) | null
+  >;
+  /** Ref to current objects Record. Stable reference for LineShape to read other objects without causing re-renders. */
+  objectsRef: MutableRefObject<Record<string, ObjectData>>;
 }
 
 export const PatchObjectContext = createContext<PatchFn | null>(null);
@@ -114,6 +122,10 @@ export function useBoardObjects() {
   const undoStackRef = useRef<Record<string, ObjectData>[]>([]);
   const redoStackRef = useRef<Record<string, ObjectData>[]>([]);
   const objectsRef = useRef(objects);
+  const suppressRemoteRef = useRef(false);
+  const broadcastDragMoveHandlerRef = useRef<
+    ((positions: DragMovePositions) => void) | null
+  >(null);
   useLayoutEffect(() => {
     objectsRef.current = objects;
   });
@@ -140,7 +152,16 @@ export function useBoardObjects() {
     setCanRedo(true);
 
     if (boardId) {
-      await replaceBoardObjects(boardId, prev);
+      suppressRemoteRef.current = true;
+      try {
+        await replaceBoardObjects(boardId, prev);
+      } finally {
+        // Realtime postgres_changes arrive asynchronously after the DB call.
+        // Delay clearing so we suppress the cascade of INSERT events.
+        setTimeout(() => {
+          suppressRemoteRef.current = false;
+        }, 150);
+      }
     }
   }, [boardId]);
 
@@ -155,7 +176,14 @@ export function useBoardObjects() {
     setCanRedo(redoStackRef.current.length > 0);
 
     if (boardId) {
-      await replaceBoardObjects(boardId, next);
+      suppressRemoteRef.current = true;
+      try {
+        await replaceBoardObjects(boardId, next);
+      } finally {
+        setTimeout(() => {
+          suppressRemoteRef.current = false;
+        }, 150);
+      }
     }
   }, [boardId]);
 
@@ -229,9 +257,11 @@ export function useBoardObjects() {
 
     const unsubscribe = onBoardObjectsChange(boardId, {
       onAdded(id, data) {
+        if (suppressRemoteRef.current) return;
         setObjects((prev) => ({ ...prev, [id]: data }));
       },
       onChanged(id, data) {
+        if (suppressRemoteRef.current) return;
         pendingChangesRef.current.set(id, data);
         if (!coalesceScheduledRef.current) {
           coalesceScheduledRef.current = true;
@@ -239,11 +269,15 @@ export function useBoardObjects() {
         }
       },
       onRemoved(id) {
+        if (suppressRemoteRef.current) return;
         setObjects((prev) => {
           const next = { ...prev };
           delete next[id];
           return next;
         });
+      },
+      onBroadcastDragMove(positions) {
+        broadcastDragMoveHandlerRef.current?.(positions);
       },
     });
 
@@ -261,5 +295,7 @@ export function useBoardObjects() {
     redo,
     canUndo,
     canRedo,
+    broadcastDragMoveHandlerRef,
+    objectsRef,
   };
 }

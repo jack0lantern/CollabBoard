@@ -20,8 +20,77 @@ const DEFAULT_FONT_FAMILY = "sans-serif";
  * scale into width/height and persist. isTransforming ref prevents external
  * data sync from causing flicker during the transform.
  */
+function useRerenderWatch(
+  props: {
+    data: ObjectData;
+    ephemeralPosition?: { x: number; y: number };
+    isSelected?: boolean;
+    isMultiSelect?: boolean;
+    frameDragOffset?: { dx: number; dy: number };
+    readOnly?: boolean;
+    onSelect?: (id: string, addToSelection?: boolean) => void;
+    registerShapeRef?: (id: string, node: Konva.Node | null) => void;
+    onShapeDragEnd?: () => void;
+    onContextMenu?: (id: string, clientX: number, clientY: number) => void;
+    onDragMoveTick?: () => void;
+    onDragStart?: (objectId: string) => void;
+    onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
+    onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
+  }
+) {
+  const prevRef = useRef<unknown>(null);
+  if (prevRef.current !== null) {
+    const prev = prevRef.current as typeof props;
+    const changed: string[] = [];
+    if (prev.data !== props.data) {
+      const dPrev = prev.data;
+      const dCur = props.data;
+      if (dPrev.id !== dCur.id) changed.push("data.id");
+      if (dPrev.x !== dCur.x) changed.push("data.x");
+      if (dPrev.y !== dCur.y) changed.push("data.y");
+      if (dPrev.width !== dCur.width) changed.push("data.width");
+      if (dPrev.height !== dCur.height) changed.push("data.height");
+      if (dPrev.rotation !== dCur.rotation) changed.push("data.rotation");
+      if (dPrev.color !== dCur.color) changed.push("data.color");
+      if (dPrev.text !== dCur.text) changed.push("data.text");
+      if (dPrev.zIndex !== dCur.zIndex) changed.push("data.zIndex");
+      if (dPrev.strokeColor !== dCur.strokeColor) changed.push("data.strokeColor");
+      if (dPrev.strokeWidth !== dCur.strokeWidth) changed.push("data.strokeWidth");
+      if (changed.length === 0) changed.push("data (reference changed)");
+    }
+    if (
+      prev.ephemeralPosition?.x !== props.ephemeralPosition?.x ||
+      prev.ephemeralPosition?.y !== props.ephemeralPosition?.y
+    ) {
+      changed.push("ephemeralPosition");
+    }
+    if (prev.isSelected !== props.isSelected) changed.push("isSelected");
+    if (prev.isMultiSelect !== props.isMultiSelect) changed.push("isMultiSelect");
+    if (prev.readOnly !== props.readOnly) changed.push("readOnly");
+    if (
+      prev.frameDragOffset?.dx !== props.frameDragOffset?.dx ||
+      prev.frameDragOffset?.dy !== props.frameDragOffset?.dy
+    ) {
+      changed.push("frameDragOffset");
+    }
+    if (prev.onSelect !== props.onSelect) changed.push("onSelect");
+    if (prev.registerShapeRef !== props.registerShapeRef) changed.push("registerShapeRef");
+    if (prev.onShapeDragEnd !== props.onShapeDragEnd) changed.push("onShapeDragEnd");
+    if (prev.onContextMenu !== props.onContextMenu) changed.push("onContextMenu");
+    if (prev.onDragMoveTick !== props.onDragMoveTick) changed.push("onDragMoveTick");
+    if (prev.onDragStart !== props.onDragStart) changed.push("onDragStart");
+    if (prev.onDragEndAt !== props.onDragEndAt) changed.push("onDragEndAt");
+    if (prev.onDragMoveAt !== props.onDragMoveAt) changed.push("onDragMoveAt");
+    if (changed.length > 0) {
+      console.log(`[RectShape ${props.data.id}] rerender caused by:`, changed.join(", "));
+    }
+  }
+  prevRef.current = props;
+}
+
 export function RectShape({
   data,
+  ephemeralPosition,
   onSelect,
   isSelected,
   isMultiSelect,
@@ -36,6 +105,7 @@ export function RectShape({
   readOnly = false,
 }: {
   data: ObjectData;
+  ephemeralPosition?: { x: number; y: number };
   onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
   isMultiSelect?: boolean;
@@ -49,6 +119,22 @@ export function RectShape({
   frameDragOffset?: { dx: number; dy: number };
   readOnly?: boolean;
 }) {
+  useRerenderWatch({
+    data,
+    ephemeralPosition,
+    isSelected,
+    isMultiSelect,
+    frameDragOffset,
+    readOnly,
+    onSelect,
+    registerShapeRef,
+    onShapeDragEnd,
+    onContextMenu,
+    onDragMoveTick,
+    onDragStart,
+    onDragEndAt,
+    onDragMoveAt,
+  });
   const { updateObject } = useBoardMutations();
   const groupRef = useRef<Konva.Group | null>(null);
   const trRef = useRef<Konva.Transformer | null>(null);
@@ -70,8 +156,8 @@ export function RectShape({
   const absHeight = Math.max(MIN_SIZE, Math.abs(height));
   const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
-  const displayX = baseX + (frameDragOffset?.dx ?? 0);
-  const displayY = baseY + (frameDragOffset?.dy ?? 0);
+  const displayX = (ephemeralPosition?.x ?? baseX) + (frameDragOffset?.dx ?? 0);
+  const displayY = (ephemeralPosition?.y ?? baseY) + (frameDragOffset?.dy ?? 0);
   const displayRotation = data.rotation ?? 0;
 
   const prevPosRef = useRef({ x: data.x, y: data.y });

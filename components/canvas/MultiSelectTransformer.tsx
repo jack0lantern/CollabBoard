@@ -1,10 +1,11 @@
 "use client";
 
-import type { RefObject } from "react";
+import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { Group, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { ObjectData } from "@/types";
+import type { DragMovePositions } from "@/lib/supabase/boards";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import type { TransformBox } from "@/lib/utils/boundingBox";
 import { boundBoxWithAnchorPreservation } from "@/lib/utils/boundingBox";
@@ -17,12 +18,14 @@ interface MultiSelectTransformerProps {
   nodeRefsRef: RefObject<Map<string, Konva.Node>>;
   refsVersion: number;
   objects: Record<string, ObjectData>;
+  draggedPositionsRef: MutableRefObject<Record<string, { x: number; y: number }>>;
   onTransformEnd?: () => void;
   onTransform?: () => void;
   onDragStart?: (ids: string[]) => void;
   onContextMenu?: (clientX: number, clientY: number) => void;
   onDragEndAt?: (objectId: string, newX: number, newY: number) => void;
   onDragMoveAt?: (objectId: string, newX: number, newY: number) => void;
+  onBroadcastDragMove?: (positions: DragMovePositions) => void;
 }
 
 /**
@@ -34,12 +37,14 @@ export function MultiSelectTransformer({
   nodeRefsRef,
   refsVersion,
   objects,
+  draggedPositionsRef,
   onTransformEnd,
   onTransform,
   onDragStart,
   onContextMenu,
   onDragEndAt,
   onDragMoveAt,
+  onBroadcastDragMove,
 }: MultiSelectTransformerProps) {
   const trRef = useRef<Konva.Transformer | null>(null);
   const anchorBoxRef = useRef<TransformBox | null>(null);
@@ -72,6 +77,7 @@ export function MultiSelectTransformer({
         fullObjects,
       });
     }
+    draggedPositionsRef.current = {};
     tr.getLayer()?.batchDraw();
     onTransformEnd?.();
   }, [
@@ -80,6 +86,7 @@ export function MultiSelectTransformer({
     updateMultipleObjects,
     onTransformEnd,
     onDragEndAt,
+    draggedPositionsRef,
   ]);
 
   useLayoutEffect(() => {
@@ -104,12 +111,20 @@ export function MultiSelectTransformer({
     const refs = nodeRefsRef.current ?? new Map<string, Konva.Node>();
     const nodeToId = new Map<Konva.Node, string>();
     for (const [id, n] of refs) nodeToId.set(n, id);
+    const positions: DragMovePositions = {};
     for (const node of nodes) {
       const id = nodeToId.get(node);
       if (id == null) continue;
-      onDragMoveAt?.(id, node.x(), node.y());
+      const x = node.x();
+      const y = node.y();
+      positions[id] = { x, y };
+      onDragMoveAt?.(id, x, y);
     }
-  }, [nodeRefsRef, onDragMoveAt]);
+    if (Object.keys(positions).length > 0) {
+      draggedPositionsRef.current = positions;
+      onBroadcastDragMove?.(positions);
+    }
+  }, [nodeRefsRef, onDragMoveAt, onBroadcastDragMove, draggedPositionsRef]);
 
   useLayoutEffect(() => {
     const tr = trRef.current;
@@ -118,6 +133,7 @@ export function MultiSelectTransformer({
     if (!back) return;
     const dragStartHandler = () => {
       onDragStart?.(selectedIds);
+      notifyDragMoveAt();
     };
     const dragEndHandler = () => {
       persistPositions();
@@ -159,8 +175,9 @@ export function MultiSelectTransformer({
         scaleY: node.scaleY(),
         rotation: node.rotation(),
       });
+      const fullObj: ObjectData = { ...obj, ...transformed };
       updates.push({ id, updates: transformed });
-      fullObjects.push(transformed);
+      fullObjects.push(fullObj);
       node.scaleX(1);
       node.scaleY(1);
       node.rotation(0);
@@ -169,6 +186,7 @@ export function MultiSelectTransformer({
     if (updates.length > 0) {
       updateMultipleObjects(updates, { fullObjects });
     }
+    draggedPositionsRef.current = {};
     tr.getLayer()?.batchDraw();
     onTransformEnd?.();
   };

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
+import { useThrottledDragBroadcast } from "@/hooks/useThrottledDragBroadcast";
 import { usePresence } from "@/hooks/usePresence";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
 import { ShapeRenderer } from "./shapes/ShapeRenderer";
@@ -37,7 +38,7 @@ import {
 import { getNodeSnapPoints } from "@/lib/utils/snapPoints";
 import { ShapeToolbar } from "./ShapeToolbar";
 
-export function BoardStage({ boardId: _boardId }: { boardId: string }) {
+export function BoardStage({ boardId }: { boardId: string }) {
   const { readOnly = false } = useBoardContext();
   const stageRef = useRef<Konva.Stage | null>(null);
   const panningRef = useRef(false);
@@ -74,6 +75,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   const shapeRefsRef = useRef<Map<string, Konva.Node>>(new Map());
   const [refsVersion, setRefsVersion] = useState(0);
   const draggedIdsRef = useRef<string[]>([]);
+  const draggedPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
   const copiedObjectsRef = useRef<ObjectData[]>([]);
 
   const rafIdRef = useRef<number | null>(null);
@@ -120,7 +122,33 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     }
   }, []);
 
-  const { objects, pushUndoSnapshot } = useBoardObjectsContext();
+  const {
+    objects,
+    objectsRef,
+    pushUndoSnapshot,
+    broadcastDragMoveHandlerRef,
+  } = useBoardObjectsContext();
+  const broadcastDragMove = useThrottledDragBroadcast(boardId);
+
+  useLayoutEffect(() => {
+    if (readOnly) return;
+    broadcastDragMoveHandlerRef.current = (positions) => {
+      const refs = shapeRefsRef.current;
+      let layer: ReturnType<Konva.Node["getLayer"]> = null;
+      for (const [id, pos] of Object.entries(positions)) {
+        const node = refs.get(id);
+        if (node) {
+          node.x(pos.x);
+          node.y(pos.y);
+          layer ??= node.getLayer();
+        }
+      }
+      layer?.batchDraw();
+    };
+    return () => {
+      broadcastDragMoveHandlerRef.current = null;
+    };
+  }, [readOnly, broadcastDragMoveHandlerRef]);
   const { others, updateCursor } = usePresence();
   const {
     addObject,
@@ -140,10 +168,6 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
   );
 
   const objectListRef = useRef<ObjectData[]>([]);
-  const objectsRef = useRef(objects);
-  useLayoutEffect(() => {
-    objectsRef.current = objects;
-  });
   const rawList = Object.values(objects).filter(
     (obj): obj is ObjectData =>
       typeof obj === "object" &&
@@ -161,14 +185,6 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     const zb = b.type === "line" ? getLineEffectiveZIndex(b, objectList) : (b.zIndex ?? 0);
     return za - zb;
   });
-
-  const otherObjectsByExcludedId = useMemo(() => {
-    const map = new Map<string, ObjectData[]>();
-    for (const obj of objectList) {
-      map.set(obj.id, objectList.filter((o) => o.id !== obj.id));
-    }
-    return map;
-  }, [objectList]);
 
   const applyZOrderUpdates = useCallback(
     (updates: Map<string, number>) => {
@@ -360,9 +376,12 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     [updateObject, updateMultipleObjects]
   );
 
-  const handleDragMoveAt = useCallback(() => {
-    // Z-index deferred to dragend; no work during drag
-  }, []);
+  const handleDragMoveAt = useCallback(
+    (objectId: string, newX: number, newY: number) => {
+      broadcastDragMove({ [objectId]: { x: newX, y: newY } });
+    },
+    [broadcastDragMove]
+  );
 
   const handleDeleteSelected = useCallback(
     (ids?: string[]) => {
@@ -505,19 +524,24 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
     scale,
   ]);
 
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+
   const handleShapeContextMenu = useCallback(
     (id: string, clientX: number, clientY: number) => {
       if (panningRef.current) {
         pendingContextMenuRef.current = { x: clientX, y: clientY, targetIds: [id] };
         return;
       }
-      const targetIds = isSelected(id) ? selectedIds : [id];
-      if (!isSelected(id)) {
+      const ids = selectedIdsRef.current;
+      const idSelected = ids.includes(id);
+      const targetIds = idSelected ? ids : [id];
+      if (!idSelected) {
         select(id);
       }
       setContextMenu({ x: clientX, y: clientY, targetIds });
     },
-    [select, isSelected, selectedIds]
+    [select]
   );
 
   const handleTransformerContextMenu = useCallback(
@@ -726,7 +750,12 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   <ShapeRenderer
                     key={obj.id}
                     data={obj}
-                    otherObjects={otherObjectsByExcludedId.get(obj.id) ?? []}
+                    objectsRef={objectsRef}
+                    ephemeralPosition={
+                      !readOnly && selectedIds.length > 1
+                        ? draggedPositionsRef.current[obj.id]
+                        : undefined
+                    }
                     onSelect={readOnly ? () => {} : handleSelect}
                     isSelected={!readOnly && isSelected(obj.id)}
                     isMultiSelect={!readOnly && selectedIds.length > 1}
@@ -753,6 +782,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   nodeRefsRef={shapeRefsRef}
                   refsVersion={refsVersion}
                   objects={objects}
+                  draggedPositionsRef={draggedPositionsRef}
                   onTransformEnd={() => {
                     setLastDragEnd(Date.now());
                     draggedIdsRef.current = [];
@@ -762,6 +792,7 @@ export function BoardStage({ boardId: _boardId }: { boardId: string }) {
                   onContextMenu={handleTransformerContextMenu}
                   onDragEndAt={handleDragEndAt}
                   onDragMoveAt={handleDragMoveAt}
+                  onBroadcastDragMove={broadcastDragMove}
                 />
                 )}
               </Layer>

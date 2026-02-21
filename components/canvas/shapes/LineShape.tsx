@@ -45,7 +45,8 @@ function rotatePoint(x: number, y: number, degrees: number) {
 
 export function LineShape({
   data,
-  otherObjects = [],
+  objectsRef,
+  ephemeralPosition,
   onSelect,
   isSelected,
   isMultiSelect,
@@ -63,7 +64,8 @@ export function LineShape({
   readOnly = false,
 }: {
   data: ObjectData;
-  otherObjects?: ObjectData[];
+  objectsRef?: RefObject<Record<string, ObjectData>>;
+  ephemeralPosition?: { x: number; y: number };
   onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
   isMultiSelect?: boolean;
@@ -111,8 +113,8 @@ export function LineShape({
 
   const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
-  const displayX = baseX + (frameDragOffset?.dx ?? 0);
-  const displayY = baseY + (frameDragOffset?.dy ?? 0);
+  const displayX = (ephemeralPosition?.x ?? baseX) + (frameDragOffset?.dx ?? 0);
+  const displayY = (ephemeralPosition?.y ?? baseY) + (frameDragOffset?.dy ?? 0);
   const displayRotation = data.rotation ?? 0;
 
   const lineColor = data.strokeColor ?? data.color ?? "#6b7280";
@@ -127,13 +129,15 @@ export function LineShape({
   const inverseScale = 1 / safeScale;
   const snapThreshold = SNAP_THRESHOLD_SCREEN / safeScale;
 
-  const objectsById = useMemo(() => {
+  const objectsById = (() => {
+    const objs = objectsRef?.current ?? {};
     const map = new Map<string, ObjectData>();
-    for (const obj of otherObjects) {
-      map.set(obj.id, obj);
+    for (const obj of Object.values(objs)) {
+      if (obj.id !== data.id) map.set(obj.id, obj);
     }
     return map;
-  }, [otherObjects]);
+  })();
+  const otherObjects = Array.from(objectsById.values());
 
   const worldToLocal = useCallback(
     (worldX: number, worldY: number) => {

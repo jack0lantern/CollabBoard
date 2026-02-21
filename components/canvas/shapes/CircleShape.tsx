@@ -17,6 +17,7 @@ const DEFAULT_FONT_FAMILY = "sans-serif";
 
 export function CircleShape({
   data,
+  ephemeralPosition,
   onSelect,
   isSelected,
   isMultiSelect,
@@ -31,6 +32,7 @@ export function CircleShape({
   readOnly = false,
 }: {
   data: ObjectData;
+  ephemeralPosition?: { x: number; y: number };
   onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
   isMultiSelect?: boolean;
@@ -65,8 +67,8 @@ export function CircleShape({
   const absRadiusY = Math.max(MIN_RADIUS, Math.abs(radiusY));
   const baseX = isDragging ? pos.x : (localPos?.x ?? data.x);
   const baseY = isDragging ? pos.y : (localPos?.y ?? data.y);
-  const displayX = baseX + (frameDragOffset?.dx ?? 0);
-  const displayY = baseY + (frameDragOffset?.dy ?? 0);
+  const displayX = (ephemeralPosition?.x ?? baseX) + (frameDragOffset?.dx ?? 0);
+  const displayY = (ephemeralPosition?.y ?? baseY) + (frameDragOffset?.dy ?? 0);
   const displayRotation = data.rotation ?? 0;
 
   const prevPosRef = useRef({ x: data.x, y: data.y });

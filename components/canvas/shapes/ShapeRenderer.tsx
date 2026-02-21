@@ -12,7 +12,8 @@ import { TextShape } from "./TextShape";
 
 export const ShapeRenderer = memo(function ShapeRenderer({
   data,
-  otherObjects,
+  objectsRef,
+  ephemeralPosition,
   onSelect,
   isSelected,
   isMultiSelect,
@@ -34,7 +35,8 @@ export const ShapeRenderer = memo(function ShapeRenderer({
   readOnly,
 }: {
   data: ObjectData;
-  otherObjects?: ObjectData[];
+  objectsRef?: React.RefObject<Record<string, ObjectData>>;
+  ephemeralPosition?: { x: number; y: number };
   onSelect: (id: string, addToSelection?: boolean) => void;
   isSelected?: boolean;
   isMultiSelect?: boolean;
@@ -63,6 +65,7 @@ export const ShapeRenderer = memo(function ShapeRenderer({
 }) {
   const common = {
     data,
+    ephemeralPosition,
     onSelect,
     isSelected,
     isMultiSelect,
@@ -96,7 +99,7 @@ export const ShapeRenderer = memo(function ShapeRenderer({
       return (
         <LineShape
           {...common}
-          otherObjects={otherObjects ?? []}
+          objectsRef={objectsRef}
           stageScale={stageScale}
           getLiveSnapPoints={getLiveSnapPoints}
           draggedIdsRef={draggedIdsRef}

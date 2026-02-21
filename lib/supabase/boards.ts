@@ -445,12 +445,31 @@ export async function replaceBoardObjects(
   }
 }
 
+/** Ephemeral drag positions broadcast during multi-select drag (no DB write). */
+export type DragMovePositions = Record<string, { x: number; y: number }>;
+
+export function broadcastDragMove(
+  boardId: string,
+  positions: DragMovePositions
+): void {
+  if (Object.keys(positions).length === 0) return;
+  const supabase = createSupabaseClient();
+  if (!supabase) return;
+  const channel = supabase.channel(`board-objects-${boardId}`);
+  void channel.send({
+    type: "broadcast",
+    event: "drag-move",
+    payload: { positions },
+  });
+}
+
 export function onBoardObjectsChange(
   boardId: string,
   callbacks: {
     onAdded: (id: string, data: ObjectData) => void;
     onChanged: (id: string, data: ObjectData) => void;
     onRemoved: (id: string) => void;
+    onBroadcastDragMove?: (positions: DragMovePositions) => void;
   }
 ): () => void {
   const supabase = createSupabaseClient();
@@ -478,6 +497,16 @@ export function onBoardObjectsChange(
           // eventType === "DELETE"
           const row = payload.old as ObjectRow;
           callbacks.onRemoved(row.id);
+        }
+      }
+    )
+    .on(
+      "broadcast",
+      { event: "drag-move" },
+      (payload: { payload?: { positions?: DragMovePositions } }) => {
+        const positions = payload.payload?.positions;
+        if (positions && typeof positions === "object") {
+          callbacks.onBroadcastDragMove?.(positions);
         }
       }
     )
