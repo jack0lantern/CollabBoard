@@ -3,6 +3,7 @@
 import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvider";
 import { BoardObjectsProvider } from "@/components/providers/BoardObjectsProvider";
 import { GridProvider } from "@/components/providers/GridProvider";
+import { SelectionProvider } from "@/components/providers/SelectionProvider";
 import { ToolProvider } from "@/components/providers/ToolProvider";
 import { IdleDisconnectProvider } from "@/hooks/useIdleDisconnect";
 import { createSupabaseClient } from "@/lib/supabase/client";
@@ -74,7 +75,9 @@ export function BoardClientWrapper({
       <IdleDisconnectProvider readOnly={false}>
         <GridProvider>
           <ToolProvider>
-            <BoardObjectsProvider>{children}</BoardObjectsProvider>
+            <SelectionProvider>
+              <BoardObjectsProvider>{children}</BoardObjectsProvider>
+            </SelectionProvider>
           </ToolProvider>
         </GridProvider>
       </IdleDisconnectProvider>

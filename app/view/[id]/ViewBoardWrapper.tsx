@@ -3,6 +3,7 @@
 import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvider";
 import { BoardObjectsProvider } from "@/components/providers/BoardObjectsProvider";
 import { GridProvider } from "@/components/providers/GridProvider";
+import { SelectionProvider } from "@/components/providers/SelectionProvider";
 import { ViewportProvider } from "@/components/providers/ViewportProvider";
 
 export function ViewBoardWrapper({
@@ -21,9 +22,11 @@ export function ViewBoardWrapper({
       readOnly
     >
       <GridProvider>
-        <ViewportProvider>
-          <BoardObjectsProvider>{children}</BoardObjectsProvider>
-        </ViewportProvider>
+        <SelectionProvider>
+          <ViewportProvider>
+            <BoardObjectsProvider>{children}</BoardObjectsProvider>
+          </ViewportProvider>
+        </SelectionProvider>
       </GridProvider>
     </RealtimeBoardProvider>
   );
