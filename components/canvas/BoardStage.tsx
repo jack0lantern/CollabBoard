@@ -104,10 +104,6 @@ export function BoardStage({ boardId }: { boardId: string }) {
     draggedIdsRef.current = [objectId];
   }, []);
 
-  const handleMultiDragStart = useCallback((ids: string[]) => {
-    draggedIdsRef.current = [...ids];
-  }, []);
-
   useEffect(() => {
     setViewport({ position, scale, dimensions });
   }, [position, scale, dimensions, setViewport]);
@@ -129,6 +125,14 @@ export function BoardStage({ boardId }: { boardId: string }) {
     broadcastDragMoveHandlerRef,
   } = useBoardObjectsContext();
   const broadcastDragMove = useThrottledDragBroadcast(boardId);
+
+  const handleMultiDragStart = useCallback(
+    (ids: string[]) => {
+      pushUndoSnapshot();
+      draggedIdsRef.current = [...ids];
+    },
+    [pushUndoSnapshot]
+  );
 
   useLayoutEffect(() => {
     if (readOnly) return;
