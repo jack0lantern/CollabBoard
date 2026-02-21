@@ -57,7 +57,7 @@ When the user asks you to add or change something, use the appropriate tool. For
   });
 
   const result = streamText({
-    model: openai("gpt-4o-nano"),
+    model: openai("gpt-4o-mini"),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
