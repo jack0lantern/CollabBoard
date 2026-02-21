@@ -12,7 +12,7 @@ import {
 } from "react";
 import {
   onBoardObjectsChange,
-  replaceBoardObjects,
+  syncDiffToDatabase,
   type DragMovePositions,
 } from "@/lib/supabase/boards";
 import { useBoardContext } from "@/components/providers/RealtimeBoardProvider";
@@ -65,6 +65,34 @@ function mergeSnapshot(
   return next;
 }
 
+/** Compute IDs that changed between current and target. */
+function computeChangedIds(
+  current: Record<string, ObjectData>,
+  target: Record<string, ObjectData>
+): Set<string> {
+  const changed = new Set<string>();
+  const currentIds = new Set(Object.keys(current));
+  const targetIds = new Set(Object.keys(target));
+
+  for (const id of targetIds) {
+    if (!currentIds.has(id)) {
+      changed.add(id);
+    } else {
+      const cur = current[id];
+      const tgt = target[id];
+      if (!cur || !objectDataEqual(cur, tgt)) {
+        changed.add(id);
+      }
+    }
+  }
+  for (const id of currentIds) {
+    if (!targetIds.has(id)) {
+      changed.add(id);
+    }
+  }
+  return changed;
+}
+
 type PatchFn = (
   id: string,
   updates: Partial<ObjectData>,
@@ -94,6 +122,10 @@ export interface BoardObjectsValue {
   >;
   /** Ref to current objects Record. Stable reference for LineShape to read other objects without causing re-renders. */
   objectsRef: MutableRefObject<Record<string, ObjectData>>;
+  /** Ref for BoardStage to set imperative undo/redo handler. Applies changed objects to Konva nodes. */
+  applyUndoRedoRef: MutableRefObject<
+    ((changedObjects: Record<string, ObjectData>) => void) | null
+  >;
 }
 
 export const PatchObjectContext = createContext<PatchFn | null>(null);
@@ -122,9 +154,11 @@ export function useBoardObjects() {
   const undoStackRef = useRef<Record<string, ObjectData>[]>([]);
   const redoStackRef = useRef<Record<string, ObjectData>[]>([]);
   const objectsRef = useRef(objects);
-  const suppressRemoteRef = useRef(false);
   const broadcastDragMoveHandlerRef = useRef<
     ((positions: DragMovePositions) => void) | null
+  >(null);
+  const applyUndoRedoRef = useRef<
+    ((changedObjects: Record<string, ObjectData>) => void) | null
   >(null);
   useLayoutEffect(() => {
     objectsRef.current = objects;
@@ -146,22 +180,34 @@ export function useBoardObjects() {
     const prev = undoStackRef.current.pop();
     if (prev == null) return;
 
-    redoStackRef.current.push(structuredClone(objectsRef.current));
-    setObjects((current) => mergeSnapshot(current, prev));
+    const current = objectsRef.current;
+    redoStackRef.current.push(structuredClone(current));
+    const merged = mergeSnapshot(current, prev);
+    const changedIds = computeChangedIds(current, merged);
+
+    objectsRef.current = merged;
+
+    const changedObjects: Record<string, ObjectData> = {};
+    for (const id of changedIds) {
+      const obj = merged[id];
+      if (obj) changedObjects[id] = obj;
+    }
+    applyUndoRedoRef.current?.(changedObjects);
+
+    setObjects(merged);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(true);
 
     if (boardId) {
-      suppressRemoteRef.current = true;
-      try {
-        await replaceBoardObjects(boardId, prev);
-      } finally {
-        // Realtime postgres_changes arrive asynchronously after the DB call.
-        // Delay clearing so we suppress the cascade of INSERT events.
-        setTimeout(() => {
-          suppressRemoteRef.current = false;
-        }, 150);
+      const target = prev;
+      const upserts: ObjectData[] = [];
+      const deletes: string[] = [];
+      for (const id of changedIds) {
+        const obj = target[id];
+        if (obj) upserts.push(obj);
+        else deletes.push(id);
       }
+      await syncDiffToDatabase(boardId, { upserts, deletes });
     }
   }, [boardId]);
 
@@ -170,20 +216,34 @@ export function useBoardObjects() {
     const next = redoStackRef.current.pop();
     if (next == null) return;
 
-    undoStackRef.current.push(structuredClone(objectsRef.current));
-    setObjects((current) => mergeSnapshot(current, next));
+    const current = objectsRef.current;
+    undoStackRef.current.push(structuredClone(current));
+    const merged = mergeSnapshot(current, next);
+    const changedIds = computeChangedIds(current, merged);
+
+    objectsRef.current = merged;
+
+    const changedObjects: Record<string, ObjectData> = {};
+    for (const id of changedIds) {
+      const obj = merged[id];
+      if (obj) changedObjects[id] = obj;
+    }
+    applyUndoRedoRef.current?.(changedObjects);
+
+    setObjects(merged);
     setCanUndo(true);
     setCanRedo(redoStackRef.current.length > 0);
 
     if (boardId) {
-      suppressRemoteRef.current = true;
-      try {
-        await replaceBoardObjects(boardId, next);
-      } finally {
-        setTimeout(() => {
-          suppressRemoteRef.current = false;
-        }, 150);
+      const target = next;
+      const upserts: ObjectData[] = [];
+      const deletes: string[] = [];
+      for (const id of changedIds) {
+        const obj = target[id];
+        if (obj) upserts.push(obj);
+        else deletes.push(id);
       }
+      await syncDiffToDatabase(boardId, { upserts, deletes });
     }
   }, [boardId]);
 
@@ -257,11 +317,9 @@ export function useBoardObjects() {
 
     const unsubscribe = onBoardObjectsChange(boardId, {
       onAdded(id, data) {
-        if (suppressRemoteRef.current) return;
         setObjects((prev) => ({ ...prev, [id]: data }));
       },
       onChanged(id, data) {
-        if (suppressRemoteRef.current) return;
         pendingChangesRef.current.set(id, data);
         if (!coalesceScheduledRef.current) {
           coalesceScheduledRef.current = true;
@@ -269,7 +327,6 @@ export function useBoardObjects() {
         }
       },
       onRemoved(id) {
-        if (suppressRemoteRef.current) return;
         setObjects((prev) => {
           const next = { ...prev };
           delete next[id];
@@ -297,5 +354,6 @@ export function useBoardObjects() {
     canRedo,
     broadcastDragMoveHandlerRef,
     objectsRef,
+    applyUndoRedoRef,
   };
 }

@@ -424,24 +424,35 @@ export async function seedBoardObjects(
   });
 }
 
-/** Replace all board objects with the given snapshot (for undo/redo). */
-export async function replaceBoardObjects(
+/** Sync only the diff to the database (for undo/redo). Avoids full wipe-and-replace. */
+export async function syncDiffToDatabase(
   boardId: string,
-  objects: Record<string, ObjectData>
+  diff: { upserts: ObjectData[]; deletes: string[] }
 ): Promise<void> {
   const supabase = createSupabaseClient();
   if (!supabase) return;
 
-  await supabase
-    .from("board_objects")
-    .delete()
-    .eq("board_id", boardId);
+  const { upserts, deletes } = diff;
 
-  const rows = Object.entries(objects).map(([id, obj]) =>
-    objectToRow({ ...sanitizeObjectData(obj), id }, boardId)
-  );
-  if (rows.length > 0) {
-    await supabase.from("board_objects").insert(rows);
+  if (deletes.length > 0) {
+    const { error } = await supabase
+      .from("board_objects")
+      .delete()
+      .eq("board_id", boardId)
+      .in("id", deletes);
+
+    if (error) {
+      console.error(
+        "[syncDiffToDatabase] Supabase delete failed:",
+        error.message,
+        error.code,
+        error.details
+      );
+    }
+  }
+
+  if (upserts.length > 0) {
+    await updateMultipleBoardObjects(boardId, upserts);
   }
 }
 

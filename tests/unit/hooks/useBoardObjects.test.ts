@@ -5,12 +5,12 @@ import type { ObjectData } from "@/types";
 
 // Mock the Firestore boards module
 const mockOnBoardObjectsChange = vi.fn();
-const mockReplaceBoardObjects = vi.fn();
+const mockSyncDiffToDatabase = vi.fn();
 
 vi.mock("@/lib/supabase/boards", () => ({
   onBoardObjectsChange: (...args: unknown[]) =>
     mockOnBoardObjectsChange(...args),
-  replaceBoardObjects: (...args: unknown[]) => mockReplaceBoardObjects(...args),
+  syncDiffToDatabase: (...args: unknown[]) => mockSyncDiffToDatabase(...args),
 }));
 
 // Mock the BoardContext
@@ -30,7 +30,7 @@ describe("useBoardObjects", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     unsubscribe = vi.fn();
-    mockReplaceBoardObjects.mockResolvedValue(undefined);
+    mockSyncDiffToDatabase.mockResolvedValue(undefined);
     mockOnBoardObjectsChange.mockImplementation(
       (_boardId: string, callbacks: typeof capturedCallbacks) => {
         capturedCallbacks = callbacks;
@@ -200,10 +200,10 @@ describe("useBoardObjects", () => {
       });
 
       expect(Object.keys(result.current.objects)).toHaveLength(0);
-      expect(mockReplaceBoardObjects).toHaveBeenCalledWith(
-        mockBoardId,
-        expect.objectContaining({})
-      );
+      expect(mockSyncDiffToDatabase).toHaveBeenCalledWith(mockBoardId, {
+        upserts: [],
+        deletes: ["obj-1"],
+      });
     });
 
     it("undo restores previous state after patchObject", async () => {
@@ -259,10 +259,10 @@ describe("useBoardObjects", () => {
       });
 
       expect(result.current.objects["obj-1"]).toEqual(sticky);
-      expect(mockReplaceBoardObjects).toHaveBeenCalledWith(
-        mockBoardId,
-        expect.objectContaining({ "obj-1": sticky })
-      );
+      expect(mockSyncDiffToDatabase).toHaveBeenCalledWith(mockBoardId, {
+        upserts: [sticky],
+        deletes: [],
+      });
     });
 
     it("canRedo is true after undo", async () => {

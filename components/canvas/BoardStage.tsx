@@ -35,6 +35,7 @@ import {
   isLinePartOfFrame,
   getLineEffectiveZIndex,
 } from "@/lib/utils/boundingBox";
+import { applyObjectToKonvaNode } from "@/lib/utils/applyObjectToKonvaNode";
 import { getNodeSnapPoints } from "@/lib/utils/snapPoints";
 import { ShapeToolbar } from "./ShapeToolbar";
 
@@ -123,6 +124,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
     objectsRef,
     pushUndoSnapshot,
     broadcastDragMoveHandlerRef,
+    applyUndoRedoRef,
   } = useBoardObjectsContext();
   const broadcastDragMove = useThrottledDragBroadcast(boardId);
 
@@ -149,10 +151,23 @@ export function BoardStage({ boardId }: { boardId: string }) {
       }
       layer?.batchDraw();
     };
+    applyUndoRedoRef.current = (changedObjects) => {
+      const refs = shapeRefsRef.current;
+      let layer: ReturnType<Konva.Node["getLayer"]> = null;
+      for (const [id, obj] of Object.entries(changedObjects)) {
+        const node = refs.get(id);
+        if (node) {
+          applyObjectToKonvaNode(node, obj);
+          layer ??= node.getLayer();
+        }
+      }
+      layer?.batchDraw();
+    };
     return () => {
       broadcastDragMoveHandlerRef.current = null;
+      applyUndoRedoRef.current = null;
     };
-  }, [readOnly, broadcastDragMoveHandlerRef]);
+  }, [readOnly, broadcastDragMoveHandlerRef, applyUndoRedoRef]);
   const { others, updateCursor } = usePresence();
   const {
     addObject,
