@@ -60,7 +60,7 @@ When the user asks you to add or change something, use the appropriate tool. For
     model: openai("gpt-4o-mini"),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(3),
     experimental_telemetry: { isEnabled: true },
     onFinish: async (finishResult) => {
       span.update({ output: finishResult.text });
@@ -109,7 +109,7 @@ When the user asks you to add or change something, use the appropriate tool. For
         }),
       }),
       createConnector: tool({
-        description: "Create an arrow/connector between two objects. Use for diagrams, charts, or arrows.",
+        description: "Create an arrow/connector between two objects. Use for diagrams, charts, or arrows. Always build last.",
         inputSchema: z.object({
           fromId: z.string().describe("Source object ID"),
           toId: z.string().describe("Target object ID"),

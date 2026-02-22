@@ -36,7 +36,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
   const addToolOutputRef = useRef<((args: { tool: string; toolCallId: string; output: unknown }) => void) | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sendMessage, addToolOutput, status, error, clearError } = useChat({
+  const { messages, sendMessage, addToolOutput, stop, status, error, clearError } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages }) => ({
@@ -98,7 +98,11 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           fromId: string; toId: string; style?: "line" | "arrow" | "both";
         };
         const id = tools.createConnector(fromId, toId, style ?? "arrow");
-        addToolOutputFn({ tool: "createConnector", toolCallId: toolCall.toolCallId, output: { id } });
+        addToolOutputFn({
+          tool: "createConnector",
+          toolCallId: toolCall.toolCallId,
+          output: id != null ? { id } : { id: null, error: "Source or target object not found" },
+        });
       } else if (toolCall.toolName === "createStraightLine") {
         const { points, x, y, strokeColor, strokeWidth } = (input ?? {}) as {
           points?: number[];
@@ -316,13 +320,29 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
             }}
             disabled={status === "submitted"}
           />
-          <button
-            type="submit"
-            disabled={status === "submitted" || !input.trim()}
-            className="crayon-btn crayon-btn-purple px-3 py-2 text-sm disabled:opacity-50"
-          >
-            Send
-          </button>
+          {status === "submitted" ? (
+            <button
+              type="button"
+              onClick={() => stop()}
+              className="crayon-btn px-3 py-2 text-sm font-bold"
+              style={{
+                background: "var(--crayon-red)",
+                border: "2.5px solid #c00",
+                boxShadow: "2px 2px 0 #c00",
+                color: "white",
+              }}
+            >
+              Stop
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="crayon-btn crayon-btn-purple px-3 py-2 text-sm disabled:opacity-50"
+            >
+              Send
+            </button>
+          )}
         </div>
       </form>
     </div>

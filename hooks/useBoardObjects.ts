@@ -278,6 +278,9 @@ export function useBoardObjects() {
 
   const addObject = useCallback<AddFn>((id, data) => {
     pushUndo();
+    // Update objectsRef synchronously so createConnector (and other tools) can see
+    // newly added objects in the same tick when AI batches createShape + createConnector.
+    objectsRef.current = { ...objectsRef.current, [id]: data };
     setObjects((prev) => ({ ...prev, [id]: data }));
   }, [pushUndo]);
 

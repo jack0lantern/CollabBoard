@@ -21,7 +21,7 @@ import {
  */
 export function useBoardTools() {
   const { addObject, updateObject } = useBoardMutations();
-  const { objects } = useBoardObjectsContext();
+  const { objects, objectsRef } = useBoardObjectsContext();
 
   const createStickyNote = useCallback(
     (text: string, x: number, y: number, color: string) => {
@@ -94,19 +94,23 @@ export function useBoardTools() {
 
   const createConnector = useCallback(
     (fromId: string, toId: string, style: ConnectorStyle = "arrow") => {
+      // Use objectsRef so we see objects added in the same tick (e.g. when AI batches
+      // createShape + createConnector). React state updates are async; objectsRef is
+      // updated synchronously in addObject.
+      const currentObjects = objectsRef.current;
       const obj = buildConnectorObject(
         fromId,
         toId,
         style,
-        objects,
-        getNextZIndex(objects),
+        currentObjects,
+        getNextZIndex(currentObjects),
         crypto.randomUUID()
       );
       if (!obj) return null;
       addObject(obj);
       return obj.id;
     },
-    [addObject, objects]
+    [addObject, objectsRef]
   );
 
   const createStraightLine = useCallback(
