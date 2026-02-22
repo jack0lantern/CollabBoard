@@ -58,7 +58,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-center justify-center"
       style={{ background: "rgba(26,26,46,0.6)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
