@@ -10,7 +10,6 @@ import { ViewportProvider } from "@/components/providers/ViewportProvider";
 import { Toolbar } from "@/components/ui/Toolbar";
 import { UserList } from "@/components/ui/UserList";
 import { ReconnectedBanner } from "@/components/ui/ReconnectedBanner";
-import { useSelection } from "@/hooks/useSelection";
 import { ChatbotButton } from "@/components/ui/ChatbotButton";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { getBoard } from "@/lib/supabase/boards";
@@ -19,21 +18,13 @@ import type { Board } from "@/types";
 
 function ChatbotFloatingButton() {
   const [open, setOpen] = useState(false);
-  const { clearSelection } = useSelection();
-
-  const handleToggle = () => {
-    clearSelection();
-    setOpen((o) => !o);
-  };
-
   return (
     <>
-      <ChatbotButton onClick={handleToggle} isOpen={open} />
+      <ChatbotButton onClick={() => setOpen((o) => !o)} isOpen={open} />
       <div
         className={`fixed top-32 bottom-20 right-6 z-40 w-96 transition-opacity duration-200 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
-        onClick={clearSelection}
       >
         <ChatPanel onClose={() => setOpen(false)} />
       </div>
