@@ -13,16 +13,8 @@ export const maxDuration = 30;
 type LangfuseSpan = { update: (a: object) => void; updateTrace: (a: object) => void };
 
 const handler = async (req: Request, span: LangfuseSpan) => {
-  const { messages, boardState } = (await req.json()) as {
+  const { messages } = (await req.json()) as {
     messages: UIMessage[];
-    boardState?: Array<{
-      id: string;
-      type: string;
-      x: number;
-      y: number;
-      text?: string;
-      title?: string;
-    }>;
   };
 
   const systemPrompt = `You are an AI assistant for a collaborative whiteboard. You can create and modify shapes, sticky notes, frames, connectors, and draw with the pen on the board. If the user doesn't give you parameters, use defaults. 
@@ -37,8 +29,9 @@ const handler = async (req: Request, span: LangfuseSpan) => {
 
 **Batching: When the user asks for multiple things (e.g., "add a sticky note and a circle", "create 3 shapes", "add a frame and connect it to the note"), make ALL required tool calls in a single response. Batch multiple tool calls together rather than doing them one at a time, especially for drawing with the pen.**
 
-Current board state (for context):
-${JSON.stringify(boardState ?? [], null, 2)}
+When building flowcharts/diagrams: call ALL createShape tools first in one batch, 
+then ALL createConnector tools in a second batch using the IDs returned.
+Never interleave shape creation and connector creation.
 
 When the user asks you to add or change something, use the appropriate tool. For positions (x, y), you may omit them to place objects on the left side of the user's view; otherwise use reasonable board coordinates. For colors, use hex codes like #fef08a, #3b82f6, #ef4444.`;
 
@@ -60,7 +53,7 @@ When the user asks you to add or change something, use the appropriate tool. For
     model: openai("gpt-4o-mini"),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(3),
+    stopWhen: stepCountIs(5),
     experimental_telemetry: { isEnabled: true },
     onFinish: async (finishResult) => {
       span.update({ output: finishResult.text });
