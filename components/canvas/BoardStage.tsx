@@ -920,7 +920,6 @@ export function BoardStage({ boardId }: { boardId: string }) {
                 <ShapeToolbar
                   object={selectedSingleObject}
                   containerRect={containerRect}
-                  hidden={isDragging}
                   shapeRect={(() => {
                     const box = getObjectBoundingBox(selectedSingleObject);
                     return {
