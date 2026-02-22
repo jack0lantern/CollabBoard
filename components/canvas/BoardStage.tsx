@@ -78,6 +78,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const shapeRefsRef = useRef<Map<string, Konva.Node>>(new Map());
   const [refsVersion, setRefsVersion] = useState(0);
   const draggedIdsRef = useRef<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const draggedPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
   const copiedObjectsRef = useRef<ObjectData[]>([]);
 
@@ -105,6 +106,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
 
   const handleDragStart = useCallback((objectId: string) => {
     draggedIdsRef.current = [objectId];
+    setIsDragging(true);
   }, []);
 
   useEffect(() => {
@@ -134,6 +136,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
     (ids: string[]) => {
       pushUndoSnapshot();
       draggedIdsRef.current = [...ids];
+      setIsDragging(true);
     },
     [pushUndoSnapshot]
   );
@@ -310,6 +313,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
   const handleShapeDragEnd = useCallback(() => {
     setLastDragEnd(Date.now());
     draggedIdsRef.current = [];
+    setIsDragging(false);
   }, []);
 
   const handleDragEndAt = useCallback(
@@ -881,6 +885,7 @@ export function BoardStage({ boardId }: { boardId: string }) {
                   onTransformEnd={() => {
                     setLastDragEnd(Date.now());
                     draggedIdsRef.current = [];
+                    setIsDragging(false);
                   }}
                   onTransform={onDragMoveTick}
                   onDragStart={handleMultiDragStart}
@@ -910,10 +915,12 @@ export function BoardStage({ boardId }: { boardId: string }) {
             {!readOnly &&
               selectedSingleObject != null &&
               containerRect != null &&
-              selectedIds.length === 1 && (
+              selectedIds.length === 1 && 
+              !isDragging && (
                 <ShapeToolbar
                   object={selectedSingleObject}
                   containerRect={containerRect}
+                  hidden={isDragging}
                   shapeRect={(() => {
                     const box = getObjectBoundingBox(selectedSingleObject);
                     return {
