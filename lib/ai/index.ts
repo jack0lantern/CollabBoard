@@ -8,6 +8,8 @@ export {
   DEFAULT_COLORS,
   type ConnectorStyle,
   type CreateShapeType,
+  type BoardObjectForAI,
+  type BoardStateForAI,
 } from "./boardTools";
 export {
   add,

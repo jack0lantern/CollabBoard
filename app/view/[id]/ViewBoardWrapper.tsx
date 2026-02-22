@@ -4,6 +4,7 @@ import { RealtimeBoardProvider } from "@/components/providers/RealtimeBoardProvi
 import { BoardObjectsProvider } from "@/components/providers/BoardObjectsProvider";
 import { GridProvider } from "@/components/providers/GridProvider";
 import { ViewportProvider } from "@/components/providers/ViewportProvider";
+import { SelectionProvider } from "@/components/providers/SelectionProvider";
 
 export function ViewBoardWrapper({
   boardId,
@@ -22,7 +23,9 @@ export function ViewBoardWrapper({
     >
       <GridProvider>
         <ViewportProvider>
-          <BoardObjectsProvider>{children}</BoardObjectsProvider>
+          <SelectionProvider>
+            <BoardObjectsProvider>{children}</BoardObjectsProvider>
+          </SelectionProvider>
         </ViewportProvider>
       </GridProvider>
     </RealtimeBoardProvider>

@@ -197,12 +197,8 @@ export function buildConnectorObject(
   };
 }
 
-/**
- * Format board state for AI context (compact representation).
- */
-export function formatBoardStateForAI(
-  objects: Record<string, ObjectData>
-): Array<{
+/** Compact object representation for AI context */
+export type BoardObjectForAI = {
   id: string;
   type: ShapeType;
   x: number;
@@ -215,9 +211,26 @@ export function formatBoardStateForAI(
   strokeColor?: string;
   points?: number[];
   tension?: number;
-}> {
-  return Object.values(objects).map((obj) => {
-    const base = {
+  selected?: boolean;
+};
+
+/** Board state including selection for AI context */
+export interface BoardStateForAI {
+  objects: BoardObjectForAI[];
+  selectedIds: string[];
+}
+
+/**
+ * Format board state for AI context (compact representation).
+ * Includes selection so the agent knows what the user has selected.
+ */
+export function formatBoardStateForAI(
+  objects: Record<string, ObjectData>,
+  selectedIds: string[] = []
+): BoardStateForAI {
+  const selectedSet = new Set(selectedIds);
+  const objectsArray: BoardObjectForAI[] = Object.values(objects).map((obj) => {
+    const base: BoardObjectForAI = {
       id: obj.id,
       type: obj.type,
       x: obj.x,
@@ -227,10 +240,12 @@ export function formatBoardStateForAI(
       text: obj.text,
       title: obj.title,
       color: obj.color ?? obj.strokeColor,
+      selected: selectedSet.has(obj.id),
     };
     if (obj.type === "line" || obj.type === "pen") {
       return { ...base, strokeColor: obj.strokeColor, points: obj.points, tension: obj.tension };
     }
     return base;
   });
+  return { objects: objectsArray, selectedIds };
 }

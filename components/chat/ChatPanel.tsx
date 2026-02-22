@@ -6,6 +6,9 @@ import { useBoardTools } from "@/hooks/useBoardTools";
 import { useViewport } from "@/components/providers/ViewportProvider";
 import { getDefaultObjectPosition } from "@/lib/ai/boardTools";
 import { useRef, useEffect, useState } from "react";
+import { useSelection } from "@/components/providers/SelectionProvider";
+
+const AMBIGUOUS_PRONOUN_RE = /\b(these|those|them|this|it)\b/i;
 
 const USER_FRIENDLY_ERROR = "Something went wrong. Please try again.";
 
@@ -31,8 +34,11 @@ const SUGGESTIONS = [
 
 export function ChatPanel({ onClose }: { onClose: () => void }) {
   const tools = useBoardTools();
+  const { selectedIds } = useSelection();
   const viewport = useViewport();
   const [input, setInput] = useState("");
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [selectedCount, setSelectedCount] = useState(0);
   const addToolOutputRef = useRef<((args: { tool: string; toolCallId: string; output: unknown }) => void) | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -166,6 +172,19 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
     addToolOutputRef.current = (args) => { void addToolOutput(args); };
   }, [addToolOutput]);
 
+  function sendWithSelectedContext() {
+    if (!pendingMessage) return;
+    const selectionNote = `[Referring to the ${selectedCount} shape${selectedCount !== 1 ? "s" : ""} currently selected on the canvas] ${pendingMessage}`;
+    void sendMessage({ text: selectionNote });
+    setPendingMessage(null);
+  }
+
+  function sendWithChatContext() {
+    if (!pendingMessage) return;
+    void sendMessage({ text: pendingMessage });
+    setPendingMessage(null);
+  }
+
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (el) {
@@ -296,12 +315,61 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
         )}
       </div>
 
+      {/* Disambiguation banner */}
+      {pendingMessage !== null && (
+        <div
+          className="mx-3 mb-2 px-3 py-2 rounded-xl text-sm font-semibold flex flex-col gap-2"
+          style={{
+            background: "#fffbeb",
+            border: "2px solid var(--crayon-yellow)",
+          }}
+        >
+          <span className="text-xs font-bold" style={{ color: "#92400e" }}>
+            ✏️ &ldquo;these&rdquo; is ambiguous — did you mean:
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={sendWithSelectedContext}
+              className="flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all hover:-translate-y-0.5"
+              style={{
+                background: "var(--crayon-blue)",
+                color: "white",
+                border: "2px solid #0046cc",
+                boxShadow: "2px 2px 0 #0046cc",
+              }}
+            >
+              ◉ {selectedCount} selected shape{selectedCount !== 1 ? "s" : ""}
+            </button>
+            <button
+              type="button"
+              onClick={sendWithChatContext}
+              className="flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all hover:-translate-y-0.5"
+              style={{
+                background: "white",
+                color: "#1a1a2e",
+                border: "2px solid #1a1a2e",
+                boxShadow: "2px 2px 0 #1a1a2e",
+              }}
+            >
+              Chat context
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (input.trim()) {
-            void sendMessage({ text: input });
+          const trimmed = input.trim();
+          if (!trimmed) return;
+          if (selectedIds.length > 0 && messages.length > 0 && AMBIGUOUS_PRONOUN_RE.test(trimmed)) {
+            setSelectedCount(selectedIds.length);
+            setPendingMessage(trimmed);
+            setInput("");
+          } else {
+            void sendMessage({ text: trimmed });
             setInput("");
           }
         }}
@@ -318,7 +386,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
               border: "2.5px solid #1a1a2e",
               boxShadow: "2px 2px 0 #1a1a2e",
             }}
-            disabled={status === "submitted"}
+            disabled={status === "submitted" || pendingMessage !== null}
           />
           {status === "submitted" ? (
             <button
@@ -337,7 +405,7 @@ export function ChatPanel({ onClose }: { onClose: () => void }) {
           ) : (
             <button
               type="submit"
-              disabled={!input.trim()}
+              disabled={!input.trim() || pendingMessage !== null}
               className="crayon-btn crayon-btn-purple px-3 py-2 text-sm disabled:opacity-50"
             >
               Send

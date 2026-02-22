@@ -138,7 +138,7 @@ export const BOARD_TOOL_DEFINITIONS = [
   {
     name: "getBoardState",
     description:
-      "Get the current board objects for context. Returns id, type, x, y, width, height, text, title, color for each object.",
+      "Get the current board objects and selection for context. Returns { objects, selectedIds }. Each object has id, type, x, y, width, height, text, title, color, and selected (true if user has it selected). selectedIds lists IDs of currently selected objects—use this when the user refers to 'these', 'the selected', or 'this one'.",
     parameters: {
       type: "object",
       properties: {},

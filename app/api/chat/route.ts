@@ -142,7 +142,7 @@ When the user asks you to add or change something, use the appropriate tool. For
         }),
       }),
       moveObject: tool({
-        description: "Move an object to a new position",
+        description: "Move or arrangean object to a new position",
         inputSchema: z.object({
           objectId: z.string(),
           x: z.number(),

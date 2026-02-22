@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useBoardMutations } from "@/hooks/useBoardMutations";
 import { useBoardObjectsContext } from "@/hooks/useBoardObjects";
+import { useSelection } from "@/hooks/useSelection";
 import {
   getNextZIndex,
   buildStickyNoteObject,
@@ -22,6 +23,7 @@ import {
 export function useBoardTools() {
   const { addObject, updateObject } = useBoardMutations();
   const { objects, objectsRef } = useBoardObjectsContext();
+  const { selectedIds } = useSelection();
 
   const createStickyNote = useCallback(
     (text: string, x: number, y: number, color: string) => {
@@ -223,8 +225,8 @@ export function useBoardTools() {
   );
 
   const getBoardState = useCallback(() => {
-    return formatBoardStateForAI(objects);
-  }, [objects]);
+    return formatBoardStateForAI(objects, selectedIds);
+  }, [objects, selectedIds]);
 
   return {
     createStickyNote,
