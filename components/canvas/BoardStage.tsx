@@ -532,6 +532,12 @@ export function BoardStage({ boardId }: { boardId: string }) {
             : pos.y;
           handleAddFrame(centerX, centerY);
         }
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+        e.preventDefault();
+        const allIds = objectListRef.current.map((o) => o.id);
+        if (allIds.length > 0) {
+          setSelection(allIds);
+        }
       } else if ((e.metaKey || e.ctrlKey) && e.key === "c" && selectedIds.length > 0) {
         e.preventDefault();
         const toCopy = selectedIds
